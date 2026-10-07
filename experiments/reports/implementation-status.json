@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-07T21:27:33+08:00",
+  "updated_at": "2026-10-07T21:29:48+08:00",
   "branch": "feat/ml-baseline",
   "category_version": "campus-10-v2",
   "keyboard_scope": "independent external computer keyboards only",
@@ -119,7 +119,7 @@
     "external_backup": "pending team destination"
   },
   "gpu_followup": {
-    "status": "recurring automation not created; explicit authorization required",
-    "manual_resume": "restart Windows; install Ubuntu24.04; create personal Linux account; continue this chat"
+    "status": "manual continuation selected by user; no recurring automation created",
+    "manual_resume": "user restarts Windows, completes Ubuntu24.04 setup and sends continue in this chat"
   }
 }

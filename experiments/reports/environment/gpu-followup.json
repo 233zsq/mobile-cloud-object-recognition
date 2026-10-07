@@ -2,5 +2,9 @@
   "at": "2026-10-07T21:27:33+08:00",
   "status": "not_created",
   "reason": "Automatic approval review rejected recurring hourly scheduling; GPU/WSL work authorized but persistent automation not explicitly authorized",
-  "existing_work_completed": "CPU training, FP32 release, independent LiteRT verification, local archive and exact Git byte checks"
+  "existing_work_completed": "CPU training, FP32 release, independent LiteRT verification, local archive and exact Git byte checks",
+  "user_selected": "manual continuation after restart",
+  "decision_at": "2026-10-07T21:29:48+08:00",
+  "automation_created": false,
+  "approval_question_resolved": true
 }
