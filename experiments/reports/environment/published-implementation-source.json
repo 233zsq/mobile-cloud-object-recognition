@@ -1,0 +1,50 @@
+{
+  "at": "2026-10-07T21:36:55+08:00",
+  "implementation_commit": "0feb8ae413f55b4a608ea61d90668e9d5e829b3e",
+  "committed_code_snapshot_sha256": "e82cc002ba469f1dd09df4cc1976542d9938ecf40581c823abf0f9d283f93e45",
+  "working_code_snapshot_sha256": "e82cc002ba469f1dd09df4cc1976542d9938ecf40581c823abf0f9d283f93e45",
+  "all_module_bytes_match": true,
+  "modules": [
+    {
+      "file": "ml/src/recognition/__init__.py",
+      "matches_committed_bytes": true
+    },
+    {
+      "file": "ml/src/recognition/__main__.py",
+      "matches_committed_bytes": true
+    },
+    {
+      "file": "ml/src/recognition/collect.py",
+      "matches_committed_bytes": true
+    },
+    {
+      "file": "ml/src/recognition/common.py",
+      "matches_committed_bytes": true
+    },
+    {
+      "file": "ml/src/recognition/data.py",
+      "matches_committed_bytes": true
+    },
+    {
+      "file": "ml/src/recognition/inference.py",
+      "matches_committed_bytes": true
+    },
+    {
+      "file": "ml/src/recognition/preprocessing.py",
+      "matches_committed_bytes": true
+    },
+    {
+      "file": "ml/src/recognition/release.py",
+      "matches_committed_bytes": true
+    },
+    {
+      "file": "ml/src/recognition/smoke.py",
+      "matches_committed_bytes": true
+    },
+    {
+      "file": "ml/src/recognition/training.py",
+      "matches_committed_bytes": true
+    }
+  ],
+  "note": "Runs preserve their start HEAD and exact source archive; this commit contains these module bytes."
+}
