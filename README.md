@@ -2,11 +2,25 @@
 
 计算机系统项目综合实践：手机拍照，在 Android 端离线识别物品，再把识别记录同步到云端，由 Web 页面展示统计结果。
 
+后端采用 **Python Flask**，云端部署与手机相同的一份 **MobileNetV2 tflite模型**。Android默认离线识别，联网时可以主动选择云端单图片识别或同图对比；模型训练仍在本地4台PC完成。系统与课程材料计划于 **2026年10月14日** 完成。
+
 仓库：<https://github.com/233zsq/mobile-cloud-object-recognition>
 
 ## 当前状态
 
-本仓库目前完成目录初始化、协作约定与资料归档。各模块是待开发的目录骨架，尚未生成 Android Gradle 工程、Spring Boot 工程或训练程序，也没有模型、APK、运行结果或已通过的验收记录。依赖版本由各负责人验证后统一登记。
+本仓库目前完成目录初始化、协作约定与资料归档，规划已调整为Flask后端与端云同版模型。各模块仍是待开发骨架，尚无可运行的Android工程、Flask服务、训练程序、正式模型或APK，也没有已通过的验收记录。依赖版本由各负责人验证后统一登记。
+
+## 技术栈
+
+| 模块 | 计划采用的技术 | 职责 |
+| --- | --- | --- |
+| 本地训练 | Python、TensorFlow/Keras、预训练MobileNetV2 | 10类迁移学习、分阶段调参、评估与导出 |
+| Android | Java、CameraX、tflite/LiteRT、Room | 拍照、离线推理、纠错、记录、云端调用与补传 |
+| 云端服务 | Flask、SQLAlchemy、PyMySQL、MySQL | 记录接收、纠错、去重、统计与单图片推理接口 |
+| 云端模型 | LiteRT Python运行时、同版FP32 tflite、CPU | 加载模型并返回分类结果及分阶段耗时 |
+| Web与部署 | HTML/CSS/JavaScript、Gunicorn、Nginx、systemd | 每5秒刷新统计；HTTPS、服务运行与重启 |
+
+云端使用已有2核4GB实例，从一个Gunicorn worker和受控推理并发开始，实测资源后调整；训练在PC进行。训练环境与后端运行环境分别管理，版本以 [环境清单](docs/environment.md) 为准。
 
 ## 项目结构
 
@@ -14,8 +28,7 @@
 mobile-cloud-object-recognition/
 ├── android/             # Java Android App：拍照、推理、本地保存与同步
 │   └── app/src/main/    # java/、res/、assets/models/
-├── backend/             # Spring Boot：结果接收、纠错、查询与统计
-│   └── src/             # main/java、main/resources、test/java
+├── backend/             # Flask：记录、纠错、统计与云端单图片推理（待实现）
 ├── web/                 # HTML/JavaScript 统计页，计划每 5 秒刷新
 │   └── assets/          # css/、js/、images/
 ├── ml/                  # TensorFlow/Keras：训练、评估与 tflite 导出
@@ -40,14 +53,25 @@ mobile-cloud-object-recognition/
 
 空目录用 `.gitkeep` 保留，加入实际文件后可以删除对应占位文件。
 
+`backend/`中原有Java目录仅为初始化占位，Python工程尚未创建；后续按 [后端布局](backend/README.md) 建立Flask应用。
+
+## 识别模式与统计口径
+
+- **默认离线**：手机加载模型并识别，Room保存结果，联网后同步记录；云端不可用不影响该流程。
+- **主动云端识别**：用户发起照片上传，`POST /api/infer`使用同版模型返回预测、置信度、版本、哈希和耗时。照片默认处理后释放，不自动进入训练样本库。
+- **端云对比**：相同图片、模型、标签和预处理下比较分类结果与耗时。分别报告纯推理、预处理加推理和手机请求至返回的总等待时间，并记录设备、网络、CPU、内存与失败率。
+- **采集只计一次**：推理接口不自动入库；用户采用的结果通过`POST /api/records`保存一次，来源记为`device`或`cloud`。同图对比结果进入实验记录，不重复增加日常采集总数。
+
+云端模型部署及单图片接口纳入本期交付；自动选择模式、在线模型更新、重训调度和量化对比属于后续扩展。相同模型的部署位置不意味着准确率必然提高。
+
 ## 分工
 
 | 角色 | 主责目录 | 交付重点 |
 | --- | --- | --- |
-| 组长兼测试负责人 | `tests/`、`docs/` | 进度、独立评估、真机性能、报告与答辩 |
-| 模型训练负责人 | `ml/`、`models/`、`experiments/` | 训练、调参、转换、模型交接 |
-| Android 开发负责人 | `android/` | CameraX、端侧推理、Room、纠错与补传 |
-| 数据与云端负责人 | `backend/`、`web/`、`database/`、`deploy/`、`data/` | 样本清单、云端、统计页与部署 |
+| 组长兼测试负责人 | `tests/`、`docs/` | 进度、独立评估、端云耗时与资源对比、报告与答辩 |
+| 模型训练负责人 | `ml/`、`models/`、`experiments/` | 训练、调参、转换、端云同版模型与一致性 |
+| Android 开发负责人 | `android/` | CameraX、端侧推理、云端调用、Room、纠错与补传 |
+| 数据与云端负责人 | `backend/`、`web/`、`database/`、`deploy/`、`data/` | 样本、Flask接口、CPU模型部署、数据库与统计页 |
 
 已有项目分工和开发计划书的原文件副本保存在本地 `docs/planning/`，不随公开仓库同步；资料位置说明见 [规划资料](docs/planning/README.md)。
 
@@ -56,8 +80,16 @@ mobile-cloud-object-recognition/
 1. 阅读 [协作说明](CONTRIBUTING.md)，各自在功能分支开发。
 2. 在 [环境清单](docs/environment.md) 登记并统一验证后的工具和依赖版本。
 3. 冻结 [类别映射](shared/README.md)、[接口草案](docs/api/README.md) 与 [模型交接约定](docs/model-contract.md)。
-4. 各负责人分别在 `android/` 生成 Java Android 工程，在 `backend/` 生成 Spring Boot 工程，在 `ml/` 建立训练环境与入口。各模块 README 说明预留目录用途。
-5. 先用小样本跑通模型转换与手机加载，再实现手机上报、云端入库和网页展示。
-6. 完成纠错、断网补传与 UUID 去重后，冻结版本并填写 `tests/acceptance-cases.csv`，整理独立评估与课程材料。
+4. 在`android/`生成Java Android工程，在`backend/`建立Flask应用与独立Python环境，在`ml/`建立训练入口；云端模型使用同一发布包。
+5. 先跑通小样本转换和真机加载，完成Flask记录接收、MySQL入库及Web展示，再接入云端CPU模型与单图片接口。
+6. 完成主动云端调用、纠错、补传和UUID去重，10月11日晚冻结基础功能；随后填写`tests/acceptance-cases.csv`，完成独立评估、端云对比、回归与材料。
+
+| 日期 | 主要检查点 |
+| --- | --- |
+| 10月8日 | 真机离线推理、Flask接收接口与输入/标签检查 |
+| 10月9日 | 原始样本和固定划分、首版10类模型 |
+| 10月10日 | 离线识别到Web主链路；云端同版CPU模型可加载 |
+| 10月11日 | 单图片推理、端云模型、纠错和补传完成；基础功能冻结 |
+| 10月12日至14日 | 独立评估、端云耗时及资源测试、修复、材料与交付 |
 
 原始照片、模型权重与训练检查点存放在对应本地目录并另行备份；Git 跟踪代码、清单、配置和经过整理的实验结论。具体规则见各目录说明。

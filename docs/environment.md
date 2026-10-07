@@ -7,13 +7,16 @@
 | Android | Android Studio、JDK、Gradle、AGP、compile/min/target SDK | 待填写 | 待验证 |
 | Android 依赖 | CameraX、Room、tflite/LiteRT 与网络库 | 待填写 | 待验证 |
 | 真机 | 型号、Android 版本、处理器、内存 | 待填写 | 待验证 |
-| 后端 | JDK、Spring Boot、Maven/Wrapper、数据库驱动 | 待填写 | 待验证 |
+| 后端 | Python、Flask、SQLAlchemy、PyMySQL、依赖与配置加载方式 | 待填写 | 待验证 |
+| 云端推理 | LiteRT Python运行时、模型与标签哈希、CPU线程与推理并发 | 待填写 | 待验证 |
 | 数据库 | MySQL 版本、字符集、时区与备份方式 | 待填写 | 待验证 |
 | Web | 浏览器版本与支持范围 | 待填写 | 待验证 |
 | 训练 | OS/WSL、Python、TensorFlow、Keras、依赖清单 | 待填写 | 待验证 |
 | 各训练 PC | PC 标识、GPU、显存、驱动、实际 GPU 可用状态 | 待填写 | 待验证 |
-| 云端 | 系统、JDK、Nginx、CPU、内存、磁盘余量 | 待填写 | 待验证 |
+| 云端 | Linux、Python、Gunicorn、Nginx、CPU、内存、磁盘余量 | 待填写 | 待验证 |
 
 先验证小样本训练、模型转换和真机加载，再统一锁定依赖版本。各 PC 比较候选实验时使用相同环境和配置口径。实际 CPU/GPU 使用情况如实记录。
 
 各模块提交构建配置、依赖清单和适用的锁定文件，补充复现命令；不提交本地环境目录、凭据或机器专用路径。
+
+训练与云端服务使用独立Python环境。云端运行与手机相同的FP32 tflite，从一个Gunicorn worker和受控推理并发开始，记录实际内存和CPU；默认离线识别不依赖云端模型加载成功。模型更新后同步检查两端版本、哈希及预处理。
