@@ -1,0 +1,30 @@
+{
+  "status": "template",
+  "model_version": null,
+  "model_file": "model.tflite",
+  "sha256": null,
+  "labels_file": "labels.txt",
+  "labels_sha256": null,
+  "category_version": null,
+  "data_version": null,
+  "experiment_id": null,
+  "code_commit": null,
+  "input": {
+    "shape": null,
+    "dtype": null,
+    "color_order": null,
+    "orientation": null,
+    "crop": null,
+    "resize": null,
+    "normalization": null,
+    "quantization": null
+  },
+  "output": {
+    "shape": null,
+    "dtype": null,
+    "interpretation": null,
+    "quantization": null
+  },
+  "low_confidence_threshold": null,
+  "created_at": null
+}

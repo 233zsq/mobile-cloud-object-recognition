@@ -1,0 +1,95 @@
+# Operating systems and editors
+.DS_Store
+Thumbs.db
+Desktop.ini
+.idea/
+.vscode/
+*.iml
+*.swp
+*.swo
+*~
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+local.properties
+application-local.properties
+application-local.yml
+application-local.yaml
+*.jks
+*.keystore
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+
+# Course source documents with personal information stay local
+/docs/planning/project-development-plan.docx
+/docs/planning/task-allocation.md
+
+# Android, Java and web builds
+.gradle/
+build/
+target/
+out/
+*.class
+*.apk
+*.aab
+node_modules/
+dist/
+coverage/
+
+# Python environments and caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+*.egg-info/
+
+# Local runtime files
+*.log
+*.pid
+*.db
+*.sqlite
+*.sqlite3
+tmp/
+backups/
+
+# Original photos and generated datasets (keep manifests and split lists)
+/data/raw/**
+!/data/raw/.gitkeep
+/data/processed/**
+!/data/processed/.gitkeep
+
+# Model binaries and training outputs; metadata remains trackable
+*.tflite
+*.keras
+*.h5
+*.hdf5
+*.onnx
+*.pt
+*.pth
+*.ckpt
+*.ckpt.*
+/models/**/saved_model/
+/experiments/checkpoints/**
+!/experiments/checkpoints/.gitkeep
+/experiments/logs/**
+!/experiments/logs/.gitkeep
+
+# Large delivery archives and recordings; store separately
+*.zip
+*.7z
+*.tar
+*.tar.gz
+*.mp4
+*.mov
+*.avi
+*.mkv

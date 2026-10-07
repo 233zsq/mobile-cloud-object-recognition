@@ -1,0 +1,11 @@
+* text=auto eol=lf
+*.md text whitespace=-blank-at-eol
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.docx binary
+*.pptx binary
+*.pdf binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.tflite binary

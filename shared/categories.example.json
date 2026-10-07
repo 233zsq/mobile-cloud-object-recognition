@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "status": "draft",
+  "description": "候选类别及输出顺序，须经全组确认后冻结",
+  "categories": [
+    {"id": 0, "label_key": "cup", "display_name": "水杯"},
+    {"id": 1, "label_key": "umbrella", "display_name": "雨伞"},
+    {"id": 2, "label_key": "book", "display_name": "书本"},
+    {"id": 3, "label_key": "pencil_case", "display_name": "笔袋"},
+    {"id": 4, "label_key": "mouse", "display_name": "鼠标"},
+    {"id": 5, "label_key": "keyboard", "display_name": "键盘"},
+    {"id": 6, "label_key": "earphones", "display_name": "耳机"},
+    {"id": 7, "label_key": "charger", "display_name": "充电器"},
+    {"id": 8, "label_key": "key", "display_name": "钥匙"},
+    {"id": 9, "label_key": "backpack", "display_name": "背包"}
+  ]
+}

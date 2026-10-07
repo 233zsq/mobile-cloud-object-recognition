@@ -1,0 +1,24 @@
+{
+  "status": "draft",
+  "description": "开发计划书基线参数草案，尚无训练程序读取本文件",
+  "architecture": "MobileNetV2",
+  "pretrained_weights": "imagenet",
+  "input_shape": [224, 224, 3],
+  "num_classes": 10,
+  "optimizer": "Adam",
+  "learning_rate": 0.0003,
+  "dropout": 0.2,
+  "batch_size": 32,
+  "max_epochs": 20,
+  "early_stopping": {
+    "monitor": "val_loss",
+    "patience": 3
+  },
+  "freeze_backbone": true,
+  "seed": 42,
+  "data_version": null,
+  "categories_file": null,
+  "train_manifest": null,
+  "validation_manifest": null,
+  "preprocessing_contract": null
+}

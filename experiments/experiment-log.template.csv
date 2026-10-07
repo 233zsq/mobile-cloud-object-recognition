@@ -1,0 +1,1 @@
+experiment_id,stage,pc_id,started_at,code_commit,data_version,category_version,seed,learning_rate,dropout,batch_size,fine_tune_scope,epochs,validation_accuracy,validation_macro_f1,training_seconds,checkpoint_path,notes
