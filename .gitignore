@@ -93,3 +93,7 @@ backups/
 *.mov
 *.avi
 *.mkv
+
+# Android model package payloads stay local (README + placement rules only)
+/android/app/src/main/assets/models/*
+!/android/app/src/main/assets/models/README.md
