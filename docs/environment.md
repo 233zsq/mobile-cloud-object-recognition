@@ -4,7 +4,7 @@
 
 | 模块 | 需要登记的信息 | 实际版本/设备 | 验证结果与日期 |
 | --- | --- | --- | --- |
-| Android | Android Studio、JDK、Gradle、AGP、compile/min/target SDK | 待填写 | 待验证 |
+| Android | Android Studio、Kotlin及相关编译插件、JDK、Gradle、AGP、compile/min/target SDK | 待填写 | 待验证 |
 | Android 依赖 | CameraX、Room、tflite/LiteRT 与网络库 | 待填写 | 待验证 |
 | 真机 | 型号、Android 版本、处理器、内存 | 待填写 | 待验证 |
 | 后端 | Python、Flask、SQLAlchemy、PyMySQL、依赖与配置加载方式 | 待填写 | 待验证 |
