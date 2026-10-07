@@ -1,0 +1,46 @@
+{
+  "at": "2026-10-07T20:22:30+08:00",
+  "status": "review_complete",
+  "candidate_count": 2288,
+  "approved_count": 877,
+  "rejected_count": 1411,
+  "approved_by_source": {
+    "wikimedia_commons": 557,
+    "open_images": 320
+  },
+  "approved_by_class": {
+    "cup": 97,
+    "umbrella": 30,
+    "book": 59,
+    "pencil_case": 103,
+    "mouse": 124,
+    "keyboard": 64,
+    "earphones": 141,
+    "charger": 41,
+    "key": 104,
+    "backpack": 114
+  },
+  "missing_to_80_by_class": {
+    "cup": 0,
+    "umbrella": 50,
+    "book": 21,
+    "pencil_case": 0,
+    "mouse": 0,
+    "keyboard": 16,
+    "earphones": 0,
+    "charger": 39,
+    "key": 0,
+    "backpack": 0
+  },
+  "photo_bytes": 541061545,
+  "photo_limit_bytes": 3221225472,
+  "openimages_index_bytes": 1195834724,
+  "openimages_index_limit_bytes": 1288490188,
+  "frozen_version": "campus-public-expanded-v1",
+  "train_count": 659,
+  "validation_count": 218,
+  "dataset_sha256": "d49b776fc1bf33e162353d35357d8bb5d54effbf3c2b9dddf2928fed12d4689a",
+  "category_version": "campus-10-v2",
+  "public_entity_isolation": "source and near-duplicate grouping only when true object identity is unknown",
+  "early_source_revision_limit": "585 early photos use downloaded byte SHA-256; historical upstream revision not retained; local write time recovered honestly"
+}

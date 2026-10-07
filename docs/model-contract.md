@@ -1,7 +1,7 @@
 # 模型交接约定
 
 由模型训练负责人提供，Android开发负责人接入手机，数据与云端负责人部署云端CPU推理，组长验证。
-已提供真实公开照片训练的FP32试验发布包 `models/releases/pilot-cpu-baseline-v1/`，用于链路联调；较早的合成fixture包只作工具链验证。正式GPU模型及独立实拍指标另行登记。
+当前真实公开照片训练的FP32试验发布包为 `models/releases/expanded-cpu-v1/`，用于链路联调；完整结果见 `ml-expanded-experiments.md`。较早的合成fixture包只作工具链验证。正式GPU模型及独立实拍指标另行登记。
 完整可执行接入、预处理和测试说明见 `ml-handover.md`。
 
 ## 类别与输出

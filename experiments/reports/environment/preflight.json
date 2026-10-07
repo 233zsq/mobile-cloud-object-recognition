@@ -1,0 +1,30 @@
+{
+  "at": "2026-10-07T17:49:11+08:00",
+  "status": "cpu_only_gpu_pending",
+  "recommended_common_batch": 32,
+  "device": [
+    "CPU"
+  ],
+  "checks": [
+    {
+      "scope": "frozen",
+      "batch_size": 32,
+      "gradient_updated": true,
+      "loss": 4.243773460388184,
+      "seconds": 3.5514955000107875,
+      "gpu_memory": null
+    },
+    {
+      "scope": "last_2",
+      "batch_size": 32,
+      "gradient_updated": true,
+      "loss": 4.243773460388184,
+      "seconds": 3.872139099999913,
+      "gpu_memory": null
+    }
+  ],
+  "optimizer_restored": true,
+  "fp32_builtin_conversion_passed": true,
+  "max_score_difference": 1.430511474609375e-06,
+  "code_snapshot_sha256": "19e69be44f22f3f0fb5752e107ccabe3c9b38994f27b91ff683cced7b3363079"
+}

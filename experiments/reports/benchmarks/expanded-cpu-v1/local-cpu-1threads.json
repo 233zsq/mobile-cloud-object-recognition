@@ -1,0 +1,24 @@
+{
+  "at": "2026-10-07T21:10:41+08:00",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "processor": "Intel64 Family 6 Model 183 Stepping 1, GenuineIntel",
+  "runtime": "ai-edge-litert",
+  "threads": 1,
+  "warmup": 20,
+  "iterations": 100,
+  "model_bytes": 8939040,
+  "inference_ms": {
+    "p50": 19.48600000469014,
+    "p95": 31.179604998033028
+  },
+  "preprocess_and_inference_ms": {
+    "p50": 43.72510000393959,
+    "p95": 64.26129500177922
+  },
+  "network_wait_ms": null,
+  "location": "local CPU; not actual cloud or Android",
+  "runtime_version": "2.2.0",
+  "python_version": "3.13.0",
+  "tensorflow_installed": false,
+  "sample_strategy": "cycle all 20 handover photos"
+}

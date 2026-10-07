@@ -1,0 +1,26 @@
+{
+  "campaign": "pilot-cpu-20261007",
+  "stage": "fine_tune",
+  "jobs": [
+    {
+      "experiment_id": "pilot-cpu-20261007-fine_tune-1",
+      "config": "ml/configs/generated/pilot-cpu-20261007/pilot-cpu-20261007-fine_tune-1.json",
+      "pc_slot": 1,
+      "initial_checkpoint": "experiments\\checkpoints\\pilot-cpu-20261007-dropout-3\\best.keras"
+    },
+    {
+      "experiment_id": "pilot-cpu-20261007-fine_tune-2",
+      "config": "ml/configs/generated/pilot-cpu-20261007/pilot-cpu-20261007-fine_tune-2.json",
+      "pc_slot": 2,
+      "initial_checkpoint": "experiments\\checkpoints\\pilot-cpu-20261007-dropout-3\\best.keras"
+    },
+    {
+      "experiment_id": "pilot-cpu-20261007-fine_tune-3",
+      "config": "ml/configs/generated/pilot-cpu-20261007/pilot-cpu-20261007-fine_tune-3.json",
+      "pc_slot": 3,
+      "initial_checkpoint": "experiments\\checkpoints\\pilot-cpu-20261007-dropout-3\\best.keras"
+    }
+  ],
+  "pc_4": "reproduction/development; does not share GPU memory",
+  "previous_summary": "experiments\\reports\\pilot-cpu-20261007\\dropout-summary.json"
+}

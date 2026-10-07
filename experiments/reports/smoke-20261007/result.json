@@ -1,0 +1,349 @@
+{
+  "experiment_id": "smoke-20261007",
+  "status": "smoke",
+  "config": {
+    "schema_version": 1,
+    "architecture": "MobileNetV2",
+    "pretrained_weights": "imagenet",
+    "alpha": 1.0,
+    "input_shape": [
+      224,
+      224,
+      3
+    ],
+    "num_classes": 10,
+    "learning_rate": 0.0003,
+    "dropout": 0.2,
+    "batch_size": 4,
+    "max_epochs": 1,
+    "patience": 3,
+    "fine_tune_scope": "frozen",
+    "seed": 42,
+    "data_version": "smoke-20261007-data",
+    "category_version": "campus-10-v1",
+    "stop_hour": 23,
+    "augmentation": false,
+    "smoke": true
+  },
+  "identity": {
+    "config": {
+      "schema_version": 1,
+      "architecture": "MobileNetV2",
+      "pretrained_weights": "imagenet",
+      "alpha": 1.0,
+      "input_shape": [
+        224,
+        224,
+        3
+      ],
+      "num_classes": 10,
+      "learning_rate": 0.0003,
+      "dropout": 0.2,
+      "batch_size": 4,
+      "max_epochs": 1,
+      "patience": 3,
+      "fine_tune_scope": "frozen",
+      "seed": 42,
+      "data_version": "smoke-20261007-data",
+      "category_version": "campus-10-v1",
+      "stop_hour": 23,
+      "augmentation": false,
+      "smoke": true
+    },
+    "data_metadata_sha256": "c50d13d2565a5f014fa466cf318bfd04c18e79972c12ed762b166195c238f7da",
+    "code_snapshot_sha256": "7a2b185a990751d7ed760609a691168b3001259a0e8dcbb192d2f808a5143b01",
+    "initial_checkpoint_sha256": null
+  },
+  "validation": {
+    "accuracy": 0.1,
+    "macro_f1": 0.01818181818181818,
+    "loss": 3.2528698444366455,
+    "classification_report": {
+      "cup": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1-score": 0.0,
+        "support": 2.0
+      },
+      "umbrella": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1-score": 0.0,
+        "support": 2.0
+      },
+      "book": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1-score": 0.0,
+        "support": 2.0
+      },
+      "pencil_case": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1-score": 0.0,
+        "support": 2.0
+      },
+      "mouse": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1-score": 0.0,
+        "support": 2.0
+      },
+      "keyboard": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1-score": 0.0,
+        "support": 2.0
+      },
+      "earphones": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1-score": 0.0,
+        "support": 2.0
+      },
+      "charger": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1-score": 0.0,
+        "support": 2.0
+      },
+      "key": {
+        "precision": 0.1,
+        "recall": 1.0,
+        "f1-score": 0.18181818181818182,
+        "support": 2.0
+      },
+      "backpack": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1-score": 0.0,
+        "support": 2.0
+      },
+      "accuracy": 0.1,
+      "macro avg": {
+        "precision": 0.01,
+        "recall": 0.1,
+        "f1-score": 0.01818181818181818,
+        "support": 20.0
+      },
+      "weighted avg": {
+        "precision": 0.01,
+        "recall": 0.1,
+        "f1-score": 0.01818181818181818,
+        "support": 20.0
+      }
+    },
+    "confusion_matrix": [
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        2,
+        0
+      ]
+    ],
+    "sample_count": 20
+  },
+  "threshold": {
+    "threshold": 0.6,
+    "status": "provisional",
+    "source": "validation only",
+    "candidates": [
+      {
+        "threshold": 0.5,
+        "count": 20,
+        "coverage": 1.0,
+        "accuracy": 0.1
+      },
+      {
+        "threshold": 0.55,
+        "count": 20,
+        "coverage": 1.0,
+        "accuracy": 0.1
+      },
+      {
+        "threshold": 0.6,
+        "count": 20,
+        "coverage": 1.0,
+        "accuracy": 0.1
+      },
+      {
+        "threshold": 0.65,
+        "count": 18,
+        "coverage": 0.9,
+        "accuracy": 0.1111111111111111
+      },
+      {
+        "threshold": 0.7,
+        "count": 11,
+        "coverage": 0.55,
+        "accuracy": 0.18181818181818182
+      },
+      {
+        "threshold": 0.75,
+        "count": 2,
+        "coverage": 0.1,
+        "accuracy": 0.0
+      },
+      {
+        "threshold": 0.8,
+        "count": 0,
+        "coverage": 0.0,
+        "accuracy": null
+      },
+      {
+        "threshold": 0.85,
+        "count": 0,
+        "coverage": 0.0,
+        "accuracy": null
+      },
+      {
+        "threshold": 0.9,
+        "count": 0,
+        "coverage": 0.0,
+        "accuracy": null
+      },
+      {
+        "threshold": 0.95,
+        "count": 0,
+        "coverage": 0.0,
+        "accuracy": null
+      }
+    ]
+  },
+  "best_epoch": 1,
+  "checkpoint": "experiments\\checkpoints\\smoke-20261007\\best.keras",
+  "checkpoint_sha256": "6c6a192ac1bfe0bbfe9025e77717bc887605c83507d4466a7100f865c4ab822d",
+  "environment": {
+    "python": "3.13.0",
+    "tensorflow": "2.21.0",
+    "keras": "3.12.1",
+    "gpu": [],
+    "platform": "Windows-11-10.0.26200-SP0"
+  },
+  "code_commit": "ca47e0edff4c84bdd597b97f6343732b78d680c1",
+  "training_seconds": 5.873894600008498,
+  "history": [
+    {
+      "epoch": 1,
+      "training_loss": 3.716691493988037,
+      "validation_accuracy": 0.1,
+      "validation_macro_f1": 0.01818181818181818,
+      "validation_loss": 3.2528698444366455,
+      "seconds": 5.873894600008498
+    }
+  ]
+}

@@ -3,6 +3,7 @@
 模型训练环境脚本均从仓库根目录运行：
 
 - Windows管理员PowerShell：`./scripts/setup-wsl-admin.ps1` 启用WSL及虚拟机平台，不自动重启；系统要求重启时先保存工作。
+- Windows管理员PowerShell：`./scripts/install-wsl-ubuntu.ps1` 安装WSL和Ubuntu24.04但不自动启动Linux、不重启，保存实际返回码；首次Linux账号由本人创建。
 - Git Bash：`bash scripts/wsl-setup-wizard.sh` 引导完成管理员安装、重启和首次Linux账号创建。
 - Ubuntu 24.04：`bash scripts/setup-ml-wsl.sh` 建立Python3.12训练及独立LiteRT环境，锁定实际版本，验证GPU梯度更新、显存、模型保存及FP32转换。显存不足时将公共batch统一改为16，重新生成全部候选。
 
@@ -16,6 +17,12 @@
 生成全部20张样例的空白结果表，由Android或云端负责人填写实际分数和设备信息。
 随后用 `python -m recognition verify --release ... --external-report ...` 核对并保存通过或失败记录。
 `write-ml-report.py` 汇总本次CPU先导实验为 `docs/ml-experiments.md`；未来正式实验应使用各阶段summarize输出重新整理实际指标。
+`write-expanded-ml-report.py` 汇总已完成的877张公开照片CPU实验，未完成时不生成最终结论。
+
+独立LiteRT环境运行 `check-local-runtime.py --release models/releases/<version> --run-id <唯一ID>`，
+实际检查20张参考张量和20次图片预处理，并保存没有安装/导入TensorFlow的记录。
+这只验证本机运行时和回传工具，Android/真实云端另交实际记录。
+`record-source-commit.py --commit <提交>` 逐文件核对提交与训练模块字节，保存源码摘要，不能把不匹配的提交作为复现版本。
 
 `run-ml-campaign.py --config ml/configs/<数据版本>.json --campaign <唯一实验ID> --version <模型版本>`
 顺序完成三阶段、种子43复核（差异大时追加44）、试验导出、验证评估和本机CPU测速。

@@ -1,0 +1,8 @@
+{
+  "at": "2026-10-07T20:12:54+08:00",
+  "rows_completed": {
+    "public-candidates.csv": 480,
+    "openimages-candidates.csv": 105
+  },
+  "limitation": "No historical upstream revision is fabricated. Early rows use exact archived downloaded bytes and SHA-256; filesystem mtime supplies original local write time. New Commons rows retain source timestamp/SHA1/thumbnail size. Originals remain public-source photos, never self-captured."
+}

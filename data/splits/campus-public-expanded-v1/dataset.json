@@ -1,0 +1,49 @@
+{
+  "status": "frozen",
+  "data_version": "campus-public-expanded-v1",
+  "category_version": "campus-10-v2",
+  "categories_sha256": "b008bd5e1224a58430292ebf71d01a9e736de8cef73f5c0e6ebbe62929b44dc9",
+  "created_at": "2026-10-07T20:18:56+08:00",
+  "seed": 42,
+  "grouping": "actual object ID when known, otherwise audited source/near-duplicate groups",
+  "files": {
+    "train": {
+      "sha256": "47e2bcfec5e0963e1594f115afe10de858ce684f751c56c1e71ef21e95531e0a",
+      "count": 659,
+      "counts": {
+        "0": 73,
+        "1": 23,
+        "2": 44,
+        "3": 77,
+        "4": 93,
+        "5": 48,
+        "6": 106,
+        "7": 31,
+        "8": 78,
+        "9": 86
+      }
+    },
+    "validation": {
+      "sha256": "d838ab5e92514ea55db55b3444dd2ebf5e579699561ceb077867baf539e29827",
+      "count": 218,
+      "counts": {
+        "0": 24,
+        "1": 7,
+        "2": 15,
+        "3": 26,
+        "4": 31,
+        "5": 16,
+        "6": 35,
+        "7": 10,
+        "8": 26,
+        "9": 28
+      }
+    }
+  },
+  "source_manifest_sha256": "b7bc7a62e5c4de9b24b64c47406a27a97a9602de27adce8a61606ce9722688fd",
+  "final_test_status": "pending_field_photos",
+  "source_snapshot": {
+    "file": "audited-source.csv",
+    "sha256": "b7bc7a62e5c4de9b24b64c47406a27a97a9602de27adce8a61606ce9722688fd"
+  }
+}

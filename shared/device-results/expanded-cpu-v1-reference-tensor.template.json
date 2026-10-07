@@ -1,0 +1,351 @@
+{
+  "run_id": "REPLACE_WITH_UNIQUE_DEVICE_RUN_ID",
+  "mode": "reference_tensor",
+  "device": "REPLACE_WITH_ACTUAL_DEVICE_OS",
+  "runtime": "REPLACE_WITH_RUNTIME_VERSION_THREADS",
+  "model_sha256": "7bde6b570248b2795f6165a12d7bf763615ae2763c16ed17862da8cac5bc3558",
+  "labels_sha256": "19b5879f196651ffc2171d43f9c954c02893d1d2893cc4d19c70bc0b24479871",
+  "input_contract": {
+    "version": "rgb-letterbox-v1",
+    "orientation": "EXIF transpose",
+    "color_order": "RGB",
+    "shape": [
+      1,
+      224,
+      224,
+      3
+    ],
+    "dtype": "float32",
+    "pixel_range": [
+      0,
+      255
+    ],
+    "crop": "none",
+    "resize": "bilinear half_pixel_centers; antialias=false; round half up",
+    "padding": "center; RGB 128; odd remainder right/bottom",
+    "normalization": "inside model: x / 127.5 - 1",
+    "byte_order": "little-endian"
+  },
+  "samples": [
+    {
+      "sample_id": "oi-30d38acdacfe06d0",
+      "scores": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "tensor_sha256": "REPLACE_WITH_HASH_OF_ACTUAL_INPUT_BYTES"
+    },
+    {
+      "sample_id": "commons-101801303",
+      "scores": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "tensor_sha256": "REPLACE_WITH_HASH_OF_ACTUAL_INPUT_BYTES"
+    },
+    {
+      "sample_id": "commons-142628717",
+      "scores": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "tensor_sha256": "REPLACE_WITH_HASH_OF_ACTUAL_INPUT_BYTES"
+    },
+    {
+      "sample_id": "commons-170447402",
+      "scores": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "tensor_sha256": "REPLACE_WITH_HASH_OF_ACTUAL_INPUT_BYTES"
+    },
+    {
+      "sample_id": "commons-19912806",
+      "scores": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "tensor_sha256": "REPLACE_WITH_HASH_OF_ACTUAL_INPUT_BYTES"
+    },
+    {
+      "sample_id": "commons-2987257",
+      "scores": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "tensor_sha256": "REPLACE_WITH_HASH_OF_ACTUAL_INPUT_BYTES"
+    },
+    {
+      "sample_id": "oi-6b784b107eaa3126",
+      "scores": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "tensor_sha256": "REPLACE_WITH_HASH_OF_ACTUAL_INPUT_BYTES"
+    },
+    {
+      "sample_id": "oi-10dd651ae86b43b3",
+      "scores": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "tensor_sha256": "REPLACE_WITH_HASH_OF_ACTUAL_INPUT_BYTES"
+    },
+    {
+      "sample_id": "commons-176030688",
+      "scores": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "tensor_sha256": "REPLACE_WITH_HASH_OF_ACTUAL_INPUT_BYTES"
+    },
+    {
+      "sample_id": "commons-176030689",
+      "scores": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "tensor_sha256": "REPLACE_WITH_HASH_OF_ACTUAL_INPUT_BYTES"
+    },
+    {
+      "sample_id": "commons-109930862",
+      "scores": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "tensor_sha256": "REPLACE_WITH_HASH_OF_ACTUAL_INPUT_BYTES"
+    },
+    {
+      "sample_id": "commons-144261318",
+      "scores": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "tensor_sha256": "REPLACE_WITH_HASH_OF_ACTUAL_INPUT_BYTES"
+    },
+    {
+      "sample_id": "commons-14723373",
+      "scores": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "tensor_sha256": "REPLACE_WITH_HASH_OF_ACTUAL_INPUT_BYTES"
+    },
+    {
+      "sample_id": "commons-72283140",
+      "scores": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "tensor_sha256": "REPLACE_WITH_HASH_OF_ACTUAL_INPUT_BYTES"
+    },
+    {
+      "sample_id": "commons-192911358",
+      "scores": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "tensor_sha256": "REPLACE_WITH_HASH_OF_ACTUAL_INPUT_BYTES"
+    },
+    {
+      "sample_id": "commons-13640856",
+      "scores": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "tensor_sha256": "REPLACE_WITH_HASH_OF_ACTUAL_INPUT_BYTES"
+    },
+    {
+      "sample_id": "commons-79672988",
+      "scores": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "tensor_sha256": "REPLACE_WITH_HASH_OF_ACTUAL_INPUT_BYTES"
+    },
+    {
+      "sample_id": "commons-71474663",
+      "scores": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "tensor_sha256": "REPLACE_WITH_HASH_OF_ACTUAL_INPUT_BYTES"
+    },
+    {
+      "sample_id": "commons-7151563",
+      "scores": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "tensor_sha256": "REPLACE_WITH_HASH_OF_ACTUAL_INPUT_BYTES"
+    },
+    {
+      "sample_id": "oi-2fdfbd153b29517b",
+      "scores": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "tensor_sha256": "REPLACE_WITH_HASH_OF_ACTUAL_INPUT_BYTES"
+    }
+  ]
+}

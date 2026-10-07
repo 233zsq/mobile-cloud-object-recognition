@@ -8,6 +8,10 @@
 | `architecture.md` | 模块边界与主要数据流 |
 | `api/README.md` | 从计划书整理的接口草案，后续由前后端冻结 |
 | `model-contract.md` | 类别、预处理、标签顺序与模型交接要求 |
+| `ml-handover.md` | 当前试验包、端云核对、实拍评估与性能测量操作 |
+| `ml-experiments.md` | 已完成CPU实验、10类指标、曲线和实际验收状态 |
+| `ml-expanded-experiments.md` | 877张公开照片的三阶段实验、复核、全类指标及FP32证据 |
+| `ml-photo-gaps.md` | 审核后四类训练/验证补拍数量及独立测试采集边界 |
 | `environment.md` | 待填写的工具、依赖和设备版本清单 |
 | `report/` | 实践报告与配图 |
 | `presentation/` | 答辩 PPT 与讲稿 |

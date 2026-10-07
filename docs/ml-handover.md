@@ -2,11 +2,17 @@
 
 ## 当前交付状态
 
-当前选定试验包为 `models/releases/pilot-cpu-tuned-v1/`：ImageNet
-MobileNetV2 + 10 类头，386张公开训练照片、128张公开验证照片。
-验证准确率86.72%、宏平均F1=0.825，仅为公开验证集成绩。FP32文件8,939,040字节，
-完整验证集Keras/TFLite最大分数差8.35e-6，Top-1一致，20张真实交接样例已通过独立LiteRT验证。
-种子43完整复核宏F1=0.8233，差0.00169；低置信阈值0.55。分阶段记录见 `ml-experiments.md`。
+当前选定试验包为 `models/releases/expanded-cpu-v1/`：ImageNet
+MobileNetV2 + 10 类头，659张公开训练照片、218张公开验证照片。
+验证准确率90.37%、宏平均F1=0.8993，仅为公开验证集成绩。FP32文件8,939,040字节，
+完整验证集Keras/TFLite最大分数差3.34e-6，Top-1一致；20张参考张量和20次图片链路
+已在不含TensorFlow的LiteRT2.2.0独立环境实际复核，最大分数差0。
+种子43完整复核宏F1=0.8842，差0.01509；低置信阈值0.50。分阶段记录见 `ml-expanded-experiments.md`。
+本机CPU单线程、20次预热/100次计时：纯推理P50/P95=19.49/31.18ms，
+预处理加推理=43.73/64.26ms，循环全部20张样例。这些不是手机或真实云端结果。
+模型SHA-256：`7bde6b570248b2795f6165a12d7bf763615ae2763c16ed17862da8cac5bc3558`。
+源码提交为`a64f5f7`，与训练源码摘要逐文件核对通过。
+旧版514张数据先导结果保留在 `ml-experiments.md`，两版划分不同，不直接比较提升率。
 类别版本campus-10-v2，键盘只包含独立外接计算机键盘。
 较早的 `smoke-20261007-export-v3/` 和 `smoke-20261007-current/` 使用合成fixture，
 只作加载、输入、哈希和一致性验证，不作真实物品识别成绩。
@@ -59,7 +65,7 @@ LiteRunner 本身只需要 NumPy、Pillow 和 ai-edge-litert。
 
 ```bash
 python -m recognition split --test-only --manifest data/manifests/field-test.csv \
-  --training-version campus-public-v1 --version campus-field-v1
+  --training-version campus-public-expanded-v1 --version campus-field-v1
 python -m recognition evaluate --release models/releases/campus-v1 --split test \
   --test-version campus-field-v1 --confirm-model-hash <metadata中的sha256>
 ```
@@ -81,11 +87,11 @@ Android/真实云端检查项在 `tests/model-handover-cases.csv`，未实测保
 每个端分别提交两份记录，先直接使用参考张量，再从图片生成输入：
 
 ```bash
-python scripts/make-handover-report.py --release models/releases/pilot-cpu-tuned-v1 \
+python scripts/make-handover-report.py --release models/releases/expanded-cpu-v1 \
   --mode reference_tensor --out experiments/reports/android-tensor.json
-python scripts/make-handover-report.py --release models/releases/pilot-cpu-tuned-v1 \
+python scripts/make-handover-report.py --release models/releases/expanded-cpu-v1 \
   --mode image_chain --out experiments/reports/android-image.json
-python -m recognition verify --release models/releases/pilot-cpu-tuned-v1 \
+python -m recognition verify --release models/releases/expanded-cpu-v1 \
   --external-report experiments/reports/android-tensor.json
 ```
 
@@ -96,3 +102,20 @@ little-endian float32输入文件，tensor_file相对结果JSON目录。两个�
 结果保存在 `experiments/reports/consistency/<模型版本>/`，失败也保留差异记录。
 JPEG解码或插值差异需要先定位，不能把失败记录标成通过；输入范围检查本身不能发现所有重复归一化，
 必须与参考张量比较。核对通过只证明该端同图一致性，手机性能和独立测试仍单独验收。
+
+## 复现、备份和GPU续作
+
+本地交付归档为 `backups/expanded-cpu-v1-delivery.zip`，归档SHA-256及逐项核验记录在
+`experiments/reports/delivery/expanded-cpu-v1/archive.json`，包内有 `delivery-files.json`。
+包含877张实际训练/验证照片、冻结清单、源码、依赖锁、各候选最佳及续训检查点、
+使用过的ImageNet初始权重和交接样例。虚拟环境需按锁文件重建；未提供组内异机备份位置。
+
+将归档解压到新的工作目录，先核对归档及包内文件哈希，再按 `ml/README.md` 安装。
+使用相同Python、依赖锁、数据和源码，在新campaign/model版本运行，保留旧实验和评估。
+本机可执行：`./.venv/Scripts/python.exe scripts/run-ml-campaign.py --config ml/configs/public-expanded-cpu.json --campaign <新ID> --version <新版本>`。
+
+WSL3.0.1和系统组件已安装，重启后先核对 `wsl --status`。
+安装Ubuntu24.04并创建本人Linux账号后，在仓库目录运行
+`bash scripts/setup-ml-wsl.sh campus-public-expanded-v1`，由GPU实测生成公共batch配置。
+执行 `./.venv-wsl/bin/python scripts/run-ml-campaign.py --config ml/configs/wsl-campus-public-expanded-v1.json --campaign expanded-gpu-v1 --version campus-gpu-v1 --formal`。
+GPU梯度/显存检查和完整训练完成前，现有CPU试验包保持experimental。

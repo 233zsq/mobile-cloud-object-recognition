@@ -1,0 +1,213 @@
+{
+  "at": "2026-10-07T20:48:57+08:00",
+  "run_id": "standalone-checker-pilot-20261007-image_chain",
+  "mode": "image_chain",
+  "device": "Windows-11-10.0.26200-SP0 LOCAL PC CHECK ONLY",
+  "runtime": "ai-edge-litert 2.2.0; one thread",
+  "model_sha256": "489032d33f105927f864b906b3679f39af358aef93839b15f73a19c498774e07",
+  "labels_sha256": "19b5879f196651ffc2171d43f9c954c02893d1d2893cc4d19c70bc0b24479871",
+  "submitted_report_sha256": "1a7a2a1950fe98a700cb6e19ec192e65fd51dbf23b19f138b5740c5fe4e5a44c",
+  "passed": true,
+  "comparisons": [
+    {
+      "sample_id": "oi-30d38acdacfe06d0",
+      "actual_tensor_sha256": "e9176625dca64785493b831ec77b346289974ef1d6abe848b92b28c99648c57b",
+      "reference_tensor_sha256": "e9176625dca64785493b831ec77b346289974ef1d6abe848b92b28c99648c57b",
+      "input_passed": true,
+      "max_input_difference": 0.0,
+      "top1_same": true,
+      "max_score_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-101801303",
+      "actual_tensor_sha256": "6bf8ef97efd12c4725b2961815da5b538218b0e2ffe185050c7d8be91a821756",
+      "reference_tensor_sha256": "6bf8ef97efd12c4725b2961815da5b538218b0e2ffe185050c7d8be91a821756",
+      "input_passed": true,
+      "max_input_difference": 0.0,
+      "top1_same": true,
+      "max_score_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-67420116",
+      "actual_tensor_sha256": "3b12b0b79206cb2682529e023da8d41035f769564b5ffe2b2f95dcbb6c8d6ff5",
+      "reference_tensor_sha256": "3b12b0b79206cb2682529e023da8d41035f769564b5ffe2b2f95dcbb6c8d6ff5",
+      "input_passed": true,
+      "max_input_difference": 0.0,
+      "top1_same": true,
+      "max_score_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "oi-968288c82e121f36",
+      "actual_tensor_sha256": "d6e7aa629bcf03be719aec4d2fc047a5992c1ee87abc25eeba424c540b4df9ce",
+      "reference_tensor_sha256": "d6e7aa629bcf03be719aec4d2fc047a5992c1ee87abc25eeba424c540b4df9ce",
+      "input_passed": true,
+      "max_input_difference": 0.0,
+      "top1_same": true,
+      "max_score_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "oi-d68f85d27f38f4ae",
+      "actual_tensor_sha256": "9cf947fdce9a71dbc9c9d12e11da2446367e3a3fb4265cf39efa126fe16140df",
+      "reference_tensor_sha256": "9cf947fdce9a71dbc9c9d12e11da2446367e3a3fb4265cf39efa126fe16140df",
+      "input_passed": true,
+      "max_input_difference": 0.0,
+      "top1_same": true,
+      "max_score_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "oi-48dfa3049039bdc3",
+      "actual_tensor_sha256": "74072a50a2e63a39e0514811f49cd05dc1305f397aeed557ce29242879a5eeb0",
+      "reference_tensor_sha256": "74072a50a2e63a39e0514811f49cd05dc1305f397aeed557ce29242879a5eeb0",
+      "input_passed": true,
+      "max_input_difference": 0.0,
+      "top1_same": true,
+      "max_score_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "oi-34b0bbc8824f3225",
+      "actual_tensor_sha256": "b42189337e3ce73b548be0c1d7040bc4ee49da075c520d5415a80781230948f5",
+      "reference_tensor_sha256": "b42189337e3ce73b548be0c1d7040bc4ee49da075c520d5415a80781230948f5",
+      "input_passed": true,
+      "max_input_difference": 0.0,
+      "top1_same": true,
+      "max_score_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-3926181",
+      "actual_tensor_sha256": "a76f7fa2b7a8112c226f24cf747be0b459e6a0cd359799af9d790c90b5398165",
+      "reference_tensor_sha256": "a76f7fa2b7a8112c226f24cf747be0b459e6a0cd359799af9d790c90b5398165",
+      "input_passed": true,
+      "max_input_difference": 0.0,
+      "top1_same": true,
+      "max_score_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "oi-65312e4ca5a6f947",
+      "actual_tensor_sha256": "e9e79d07914d5cdfe61f4f376bfa5fb1652e03a4fc25b04475df67c69f16f482",
+      "reference_tensor_sha256": "e9e79d07914d5cdfe61f4f376bfa5fb1652e03a4fc25b04475df67c69f16f482",
+      "input_passed": true,
+      "max_input_difference": 0.0,
+      "top1_same": true,
+      "max_score_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-14491855",
+      "actual_tensor_sha256": "45c0701b83add60302f57f73b04ac3584344055354225fff037fe79d10009312",
+      "reference_tensor_sha256": "45c0701b83add60302f57f73b04ac3584344055354225fff037fe79d10009312",
+      "input_passed": true,
+      "max_input_difference": 0.0,
+      "top1_same": true,
+      "max_score_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-112602361",
+      "actual_tensor_sha256": "41a7e9e12dd4d943b25b5360c8b145216a5165c3824c20ff809f619edb6d0b08",
+      "reference_tensor_sha256": "41a7e9e12dd4d943b25b5360c8b145216a5165c3824c20ff809f619edb6d0b08",
+      "input_passed": true,
+      "max_input_difference": 0.0,
+      "top1_same": true,
+      "max_score_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-112602362",
+      "actual_tensor_sha256": "37565e4f22bf3eb95e065dbd8015a965b8c0aaea1e699f27a4dc66c744bc8c13",
+      "reference_tensor_sha256": "37565e4f22bf3eb95e065dbd8015a965b8c0aaea1e699f27a4dc66c744bc8c13",
+      "input_passed": true,
+      "max_input_difference": 0.0,
+      "top1_same": true,
+      "max_score_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "oi-04148d451d34d720",
+      "actual_tensor_sha256": "04aaad80965dd39f92f63c0d3842685d142f02c27ac5bfdb757df9269f6048b9",
+      "reference_tensor_sha256": "04aaad80965dd39f92f63c0d3842685d142f02c27ac5bfdb757df9269f6048b9",
+      "input_passed": true,
+      "max_input_difference": 0.0,
+      "top1_same": true,
+      "max_score_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-73831530",
+      "actual_tensor_sha256": "e03cabf23ff7f6cd8d26f494720b44aa93dce3bf59ab122c0d9e3145db707017",
+      "reference_tensor_sha256": "e03cabf23ff7f6cd8d26f494720b44aa93dce3bf59ab122c0d9e3145db707017",
+      "input_passed": true,
+      "max_input_difference": 0.0,
+      "top1_same": true,
+      "max_score_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-114076786",
+      "actual_tensor_sha256": "39515aca9d5cbdaa7e66e368dfacd7f3da4871da7cb5291be76f092f838aa195",
+      "reference_tensor_sha256": "39515aca9d5cbdaa7e66e368dfacd7f3da4871da7cb5291be76f092f838aa195",
+      "input_passed": true,
+      "max_input_difference": 0.0,
+      "top1_same": true,
+      "max_score_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-97158659",
+      "actual_tensor_sha256": "fc833ff01b10f9c40f84540fb5546ce2d9d753151ee1ff420a64b5884a4676b9",
+      "reference_tensor_sha256": "fc833ff01b10f9c40f84540fb5546ce2d9d753151ee1ff420a64b5884a4676b9",
+      "input_passed": true,
+      "max_input_difference": 0.0,
+      "top1_same": true,
+      "max_score_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-125037354",
+      "actual_tensor_sha256": "c3e4d39cc9d89b14c0fc373ef8c14d768505f31f5b3e35677243521d9ae41302",
+      "reference_tensor_sha256": "c3e4d39cc9d89b14c0fc373ef8c14d768505f31f5b3e35677243521d9ae41302",
+      "input_passed": true,
+      "max_input_difference": 0.0,
+      "top1_same": true,
+      "max_score_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-59318655",
+      "actual_tensor_sha256": "4c114725d0a096b09b622287fb4a15e50f1b2e94feb363b4dede3bec65f93e45",
+      "reference_tensor_sha256": "4c114725d0a096b09b622287fb4a15e50f1b2e94feb363b4dede3bec65f93e45",
+      "input_passed": true,
+      "max_input_difference": 0.0,
+      "top1_same": true,
+      "max_score_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "oi-c028944212bdc80c",
+      "actual_tensor_sha256": "62afe132ee6c5f354e55b26c0dcae14b586bc662cb4463da3e4ecd258b1c3049",
+      "reference_tensor_sha256": "62afe132ee6c5f354e55b26c0dcae14b586bc662cb4463da3e4ecd258b1c3049",
+      "input_passed": true,
+      "max_input_difference": 0.0,
+      "top1_same": true,
+      "max_score_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "oi-dc747e1d542bf243",
+      "actual_tensor_sha256": "e10a3f4cf5b178a1fb09dfa3f8f1e422b74ec4718c09446787478ecb564c6ece",
+      "reference_tensor_sha256": "e10a3f4cf5b178a1fb09dfa3f8f1e422b74ec4718c09446787478ecb564c6ece",
+      "input_passed": true,
+      "max_input_difference": 0.0,
+      "top1_same": true,
+      "max_score_difference": 0.0,
+      "passed": true
+    }
+  ]
+}

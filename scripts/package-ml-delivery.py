@@ -35,7 +35,13 @@ def main():
         path = (release/name).resolve()
         if not path.is_relative_to(release) or sha(path) != expected:
             raise ValueError('Release file changed: '+name)
-    files = set()
+    files = {ROOT/'.gitattributes', ROOT/'.gitignore', ROOT/'data/README.md'}
+    current_source = hashlib.sha256()
+    for path in sorted((ROOT/'ml/src/recognition').glob('*.py')):
+        current_source.update(path.name.encode())
+        current_source.update(path.read_bytes())
+    if current_source.hexdigest() != selected['identity']['code_snapshot_sha256']:
+        raise ValueError('Restore the selected training source before packaging a reproducible workspace')
     for directory in [ROOT/'ml/src', ROOT/'ml/configs', ROOT/'ml/tests', ROOT/'shared', release, ROOT/'scripts']:
         files.update(p for p in directory.rglob('*') if p.is_file() and '__pycache__' not in p.parts)
     for pattern in ['ml/*.toml', 'ml/*.txt', 'ml/*.lock', 'ml/*.ini', 'ml/README.md', 'tests/model-handover-cases.csv']:
@@ -43,8 +49,10 @@ def main():
     for name in ['model-contract.md', 'ml-handover.md', 'ml-experiments.md', 'ml-expanded-experiments.md', 'ml-photo-gaps.md', 'environment.md']:
         path = ROOT/'docs'/name
         if path.exists(): files.add(path)
-    files.update(p for p in (ROOT/'experiments/reports').rglob('*') if p.is_file() and not (p.parent.name=='audit' and p.suffix=='.png') and not p.name.endswith('-errors.png'))
+    files.update(p for p in (ROOT/'experiments/reports').rglob('*') if p.is_file() and not (p.parent.name=='audit' and p.suffix=='.png'))
     files.update((ROOT/'data/manifests').glob('*.csv'))
+    # Preserve the actual ImageNet initialization so this campaign can run offline.
+    files.update((ROOT/'experiments/checkpoints/keras-cache/models').glob('*.h5'))
     data = ROOT/'data/splits'/metadata['data_version']
     dataset = json.loads((data/'dataset.json').read_text(encoding='utf-8'))
     if sha(data/'dataset.json') != selected['identity']['data_metadata_sha256']:

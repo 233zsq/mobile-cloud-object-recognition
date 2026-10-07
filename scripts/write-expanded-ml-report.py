@@ -1,5 +1,4 @@
 """Write the completed expanded CPU campaign's evidence-backed model chapter."""
-from collections import Counter
 from recognition.common import ROOT,read_json,read_csv,write_json,digest,now,categories
 from recognition.training import snapshot
 campaign='expanded-cpu-20261007';version='expanded-cpu-v1'
@@ -18,7 +17,7 @@ f"数据版本{meta['data_version']}，659张公开训练、218张公开验证�
 '本机Windows CPU完成三阶段和完整流程复核，模型保持experimental。WSL GPU正式训练、独立实拍测试、Android和真实云端验收仍待完成。',
 '公开验证成绩用于选参，不能作为独立实拍准确率验收成绩。旧版514张先导实验保留在ml-experiments.md，两版划分不同，成绩不作直接提升率比较。','',
 '## 数据与来源','',
-f"公开候选{evidence['candidate_count']}张，审核通过{evidence['approved_count']}张、拒绝{evidence['rejected_count']}张。通过来源：{evidence['approved_by_source']}。独立手机实拍0张，公开照片不记为自采成果。",
+f"公开候选{evidence['candidate_count']}张，审核通过{evidence['approved_count']}张、拒绝{evidence['rejected_count']}张。通过照片来自Commons {evidence['approved_by_source']['wikimedia_commons']}张、Open Images {evidence['approved_by_source']['open_images']}张。独立手机实拍0张，公开照片不记为自采成果。",
 'Commons及Open Images官方人工正标签候选均经图像审核；来源中的public-test属于公开训练/验证来源，独立实拍测试另行冻结。',
 '按SHA、来源、感知哈希及人工拍摄系列分组。无法确认公开实物身份时object_id为空，分组不能证明完全实体隔离；585张早期候选的上游修订号未保留，下载版本以原始字节SHA-256标识，未虚构修订号。',
 f"数据元数据SHA-256：`{digest(ROOT/'data/splits'/meta['data_version']/'dataset.json')}`。类别campus-10-v2，键盘仅独立外接计算机键盘。",
@@ -26,7 +25,7 @@ f"数据元数据SHA-256：`{digest(ROOT/'data/splits'/meta['data_version']/'dat
 for c in labels:
     key=str(c['id']);label=c['label_key']
     lines.append(f"| {c['display_name']} | {data['files']['train']['counts'][key]} | {data['files']['validation']['counts'][key]} | {evidence['approved_by_class'][label]} | {evidence['missing_to_80_by_class'][label]} |")
-lines += ['', '877张公开训练/验证照片、约200张独立测试照片分别计数；后续126张训练/验证补拍另行计数并冻结新版本。采集规则见ml-photo-gaps.md。','',
+lines += ['', '已采集877张公开训练/验证照片；独立实拍目前0张，计划约200张，另行计数。后续126张训练/验证补拍另行计数并冻结新版本。采集规则见ml-photo-gaps.md。','',
 '## 候选实验','',
 'MobileNetV2/ImageNet alpha=1.0，GAP、Dropout、10类Softmax；raw RGB float32输入，模型内归一化。只有训练集增强；BN始终冻结。相同阶段初始化、冻结数据、环境及种子42。',
 '本机顺序执行候选，四PC任务配置保存在campaign/pc-tasks。按宏F1、准确率、较低损失、较小微调范围及候选顺序选择。每轮原子保存模型/优化器和进度；23:00前停止长任务。','',
@@ -45,7 +44,11 @@ lines += ['', '## 全10类验证指标','', '| 类别 | 精确率 | 召回率 | 
 for c in labels:
     v=winner['validation']['classification_report'][c['label_key']]
     lines.append(f"| {c['display_name']} | {v['precision']:.4f} | {v['recall']:.4f} | {v['f1-score']:.4f} | {int(v['support'])} |")
-lines += ['', '各类数量不同，少样本类别指标不稳定；错误预测明细、10×10混淆矩阵及错误照片单独保存。未使用实拍测试调参。','', '## 阈值、FP32与一致性','',
+confusions=sorted([(count,i,j) for i,row in enumerate(winner['validation']['confusion_matrix']) for j,count in enumerate(row) if i!=j and count],reverse=True)
+lines += ['', '各类数量不同，少样本类别指标不稳定；错误预测明细、10×10混淆矩阵及错误照片单独保存。未使用实拍测试调参。']
+if confusions:
+    lines += ['', '验证集出现次数最多的混淆：'+ '；'.join(f"{labels[i]['display_name']}→{labels[j]['display_name']} {count}张" for count,i,j in confusions[:5])+'。']
+lines += ['', '## 阈值、FP32与一致性','',
 f"阈值{meta['low_confidence_threshold']:.2f}，状态{meta['threshold_status']}，只用验证集选择；候选支持数和准确率见winner result.json的threshold表。始终输出Top-1，低置信仅人工确认提示。",
 f"FP32 TFLite实际{meta['model_bytes']:,}字节，SHA-256=`{meta['sha256']}`。转换只允许内置算子、关闭量化。",
 f"完整218张验证集Keras/TFLite最大分数差{comparison['max_score_difference']:.8g}，Top-1变化{len(comparison['top1_mismatch_sample_ids'])}。20张真实交接照片、输入张量及完整分数保存在发布包examples。",
@@ -56,6 +59,16 @@ f"10×10混淆矩阵、每张预测和错误样例：`experiments/reports/evalua
 '复现命令：`python scripts/run-ml-campaign.py --config ml/configs/public-expanded-cpu.json --campaign <新ID> --version <新模型版本>`。匹配环境锁与冻结照片，不能把不同环境或源码的候选混在同一阶段。',
 '完成管理员安装、重启及Ubuntu首次账号后，执行WSL脚本生成实测公共batch的GPU配置，另开GPU campaign，完成后用--formal冻结模型。',
 '组长提供独立实拍清单；Android/云端按参考张量→图片完整链路核对，20次预热/至少100次计时；各项未完成就保持pending。交付及操作见ml-handover.md。','']
+threshold_rows=['','## 验证阈值扫描明细','','| 阈值 | 高置信数量 | 覆盖率 | 高置信准确率 |','| ---: | ---: | ---: | ---: |']
+for item in winner['threshold']['candidates']:
+    accuracy='无样本' if item['accuracy'] is None else f"{item['accuracy']:.2%}"
+    threshold_rows.append(f"| {item['threshold']:.2f} | {item['count']} | {item['coverage']:.2%} | {accuracy} |")
+lines += threshold_rows+['']
+lines += ['## 报告配图','',f"![胜出微调训练曲线](../experiments/reports/{winner['experiment_id']}/training-curves.png)",'',
+          f'![学习率候选对照](../experiments/reports/{campaign}/learning_rate-summary.png)','',
+          f'![Dropout候选对照](../experiments/reports/{campaign}/dropout-summary.png)','',
+          f'![微调范围候选对照](../experiments/reports/{campaign}/fine_tune-summary.png)','',
+          f"![公开验证集10类混淆矩阵](../experiments/reports/evaluations/{version}/{meta['data_version']}-validation.png)",'']
 (ROOT/'docs/ml-expanded-experiments.md').write_text('\n'.join(lines),encoding='utf-8')
 status=read_json(ROOT/'experiments/reports/implementation-status.json')
 status.update(updated_at=now(),current_code_snapshot_sha256=snapshot(),trained_code_snapshot_sha256=winner['identity']['code_snapshot_sha256'])

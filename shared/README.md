@@ -9,5 +9,5 @@
 
 API 和模型契约分别保存在 `docs/api/README.md`、`docs/model-contract.md`，后续真实共享文件统一放到此目录。
 
-`device-results/` 提供先导试验包的参考张量/图片链路结果空表，不能把空表或参考答案当实际结果。
+`device-results/` 提供先导和expanded-cpu-v1试验包的参考张量/图片链路结果空表，不能把空表或参考答案当实际结果。
 新模型应运行 `scripts/make-handover-report.py` 从对应发布包生成表格，详见 `docs/ml-handover.md`。

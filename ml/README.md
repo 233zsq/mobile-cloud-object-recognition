@@ -39,7 +39,7 @@ Ubuntu安装python3.12-venv后运行 `bash scripts/setup-ml-wsl.sh`。
 当前新增冻结数据为 `campus-public-expanded-v1`，659张公开训练、218张公开验证。
 WSL环境安装可运行 `bash scripts/setup-ml-wsl.sh campus-public-expanded-v1`，
 生成 `ml/configs/wsl-campus-public-expanded-v1.json`，使用实测推荐公共batch。
-然后运行 `python scripts/run-ml-campaign.py --config ml/configs/wsl-campus-public-expanded-v1.json --campaign expanded-gpu-v1 --version campus-gpu-v1 --formal`。
+然后运行 `./.venv-wsl/bin/python scripts/run-ml-campaign.py --config ml/configs/wsl-campus-public-expanded-v1.json --campaign expanded-gpu-v1 --version campus-gpu-v1 --formal`。
 完整GPU训练前必须通过环境梯度/显存检查；CPU版本保持试验状态。
 
 独立运行时按 `requirements-runtime.txt` 安装，详见 `docs/ml-handover.md`。

@@ -1,0 +1,6 @@
+{
+  "status": "administrator_process_started",
+  "at": "2026-10-07T20:51:31.0029630+08:00",
+  "pid": 37244,
+  "action": "enable WSL and VirtualMachinePlatform without reboot"
+}
