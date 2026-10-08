@@ -15,7 +15,7 @@
 | 模块 | 计划采用的技术 | 职责 |
 | --- | --- | --- |
 | 本地训练 | Python、TensorFlow/Keras、预训练MobileNetV2 | 10类迁移学习、分阶段调参、评估与导出 |
-| Android | Java、CameraX、tflite/LiteRT、Room | 拍照、离线推理、纠错、记录、云端调用与补传 |
+| Android | Kotlin、CameraX、tflite/LiteRT、Room | 拍照、离线推理、纠错、记录、云端调用与补传 |
 | 云端服务 | Flask、SQLAlchemy、PyMySQL、MySQL | 记录接收、纠错、去重、统计与单图片推理接口 |
 | 云端模型 | LiteRT Python运行时、同版FP32 tflite、CPU | 加载模型并返回分类结果及分阶段耗时 |
 | Web与部署 | HTML/CSS/JavaScript、Gunicorn、Nginx、systemd | 每5秒刷新统计；HTTPS、服务运行与重启 |
@@ -26,7 +26,7 @@
 
 ```text
 mobile-cloud-object-recognition/
-├── android/             # Java Android App：拍照、推理、本地保存与同步
+├── android/             # Kotlin Android App：拍照、推理、本地保存与同步
 │   └── app/src/main/    # java/、res/、assets/models/
 ├── backend/             # Flask：记录、纠错、统计与云端单图片推理（待实现）
 ├── web/                 # HTML/JavaScript 统计页，计划每 5 秒刷新
@@ -80,7 +80,7 @@ mobile-cloud-object-recognition/
 1. 阅读 [协作说明](CONTRIBUTING.md)，各自在功能分支开发。
 2. 在 [环境清单](docs/environment.md) 登记并统一验证后的工具和依赖版本。
 3. 冻结 [类别映射](shared/README.md)、[接口草案](docs/api/README.md) 与 [模型交接约定](docs/model-contract.md)。
-4. 在`android/`生成Java Android工程，在`backend/`建立Flask应用与独立Python环境，在`ml/`建立训练入口；云端模型使用同一发布包。
+4. 在`android/`生成Kotlin Android工程，在`backend/`建立Flask应用与独立Python环境，在`ml/`建立训练入口；云端模型使用同一发布包。
 5. 先跑通小样本转换和真机加载，完成Flask记录接收、MySQL入库及Web展示，再接入云端CPU模型与单图片接口。
 6. 完成主动云端调用、纠错、补传和UUID去重，10月11日晚冻结基础功能；随后填写`tests/acceptance-cases.csv`，完成独立评估、端云对比、回归与材料。
 
