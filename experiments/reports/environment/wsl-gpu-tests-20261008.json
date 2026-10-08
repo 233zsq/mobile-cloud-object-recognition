@@ -1,0 +1,21 @@
+{
+  "at": "2026-10-08T21:43:48+08:00",
+  "environment": "WSL2 Ubuntu24.04 Python3.12 RTX4060 actual GPU visible",
+  "command": "source scripts/activate-ml-wsl.sh; python -m pytest ml/tests -q -c ml/pytest.ini --basetemp experiments/checkpoints/pytest-wsl-gpu-20261008 --tb=short",
+  "passed": 84,
+  "warnings": 797,
+  "seconds": 323.49,
+  "source_snapshot_sha256": "1d77a1f2b326f9c84623ad1ec0efe89ad9292e6e79a6405ff4a95829585c600f",
+  "precision_regression": {
+    "before_fix": {
+      "obtained": 1024.0,
+      "expected": 1024.1024,
+      "absolute_tolerance": 0.01,
+      "status": "failed_on_real_gpu"
+    },
+    "after_fix": "passed on actual training entry and resume entry"
+  },
+  "environment_loader_regression": "GPU detection and GPU matrix multiplication passed after activation script; no Windows driver modification",
+  "log": "experiments/logs/pytest-wsl-gpu-20261008.log",
+  "scope": "toolchain checks only; no independent field or Android/cloud acceptance claimed"
+}

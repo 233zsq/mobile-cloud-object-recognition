@@ -1,5 +1,5 @@
 {
-  "at": "2026-10-08T21:44:06+08:00",
+  "at": "2026-10-08T21:28:40+08:00",
   "status": "gpu_passed",
   "recommended_common_batch": 32,
   "device": [
@@ -10,28 +10,27 @@
       "scope": "frozen",
       "batch_size": 32,
       "gradient_updated": true,
-      "loss": 4.043402671813965,
-      "seconds": 6.746541984,
+      "loss": 4.0421881675720215,
+      "seconds": 9.41961895,
       "gpu_memory": {
         "current": 9530880,
-        "peak": 666861568
+        "peak": 934810880
       }
     },
     {
       "scope": "last_2",
       "batch_size": 32,
       "gradient_updated": true,
-      "loss": 4.043402671813965,
-      "seconds": 4.399790572000001,
+      "loss": 4.042183876037598,
+      "seconds": 5.142277887000006,
       "gpu_memory": {
         "current": 30529536,
-        "peak": 379450368
+        "peak": 379449856
       }
     }
   ],
   "optimizer_restored": true,
   "fp32_builtin_conversion_passed": true,
-  "tensor_float_32_enabled": false,
-  "max_score_difference": 8.046627044677734e-07,
-  "code_snapshot_sha256": "1d77a1f2b326f9c84623ad1ec0efe89ad9292e6e79a6405ff4a95829585c600f"
+  "max_score_difference": 0.0005767494440078735,
+  "code_snapshot_sha256": "46b9c91f7c25f35bcc2634005fb8efd073cc32db71ced769ae39fbcd855c7749"
 }

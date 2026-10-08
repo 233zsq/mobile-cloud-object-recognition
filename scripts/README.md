@@ -7,6 +7,9 @@
 - Git Bash：`bash scripts/wsl-setup-wizard.sh` 引导完成管理员安装、重启和首次Linux账号创建。
 - Ubuntu 24.04：`bash scripts/setup-ml-wsl.sh` 建立Python3.12训练及独立LiteRT环境，锁定实际版本，验证GPU梯度更新、显存、模型保存及FP32转换。显存不足时将公共batch统一改为16，重新生成全部候选。
 
+`ML_TRAIN_ENV`、`ML_RUNTIME_ENV` 可分别指定Linux环境目录；脚本解析目录链接，拒绝两个目录实际相同，并检查独立推理环境中没有TensorFlow。仓库在Windows挂载盘上时，优先把环境放在Linux文件系统，具体示例见 `ml/README.md`。
+每个新的Ubuntu终端先 `source scripts/activate-ml-wsl.sh`，加载训练解释器及NVIDIA动态库路径，再运行训练入口。自定义路径时使用相同的 `ML_TRAIN_ENV`。此设置只影响当前终端；独立LiteRT环境仍使用它自己的解释器。
+
 数据、训练、哈希、评估和模型交接使用安装后的 `python -m recognition`，命令详见 `ml/README.md`。本期不包含数据库备份脚本。
 
 完成同一数据版本的训练后，运行 `python scripts/package-ml-delivery.py --release models/releases/<version>`。

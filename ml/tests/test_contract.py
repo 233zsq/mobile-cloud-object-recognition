@@ -227,8 +227,16 @@ def test_paused_run_can_resume_and_optimizer_state_is_restored(workspace,monkeyp
     monkeypatch.setattr(training,"datetime",Clock)
     config={"data_version":"v1","category_version":common.categories()["category_version"],"learning_rate":.0003,"dropout":.2,"batch_size":4,"max_epochs":1,"patience":3,"fine_tune_scope":"frozen","seed":42,"stop_hour":23,"augmentation":False,"smoke":True,"pretrained_weights":None}
     path=root/"config.json";common.write_json(path,config)
+    import tensorflow as tf
+    tf.config.experimental.enable_tensor_float_32_execution(True)
     paused=training.train(path,"resume-check")
     assert paused["status"]=="paused_time_window" and paused["next_epoch"]==0
+    # The actual training entrypoint must retain the float32 contribution that
+    # default GPU TensorFloat-32 rounds away, including on the resume path.
+    device='/GPU:0' if tf.config.list_physical_devices('GPU') else '/CPU:0'
+    with tf.device(device):
+        product=tf.matmul(tf.fill((1024,1024),1.0001),tf.ones((1024,1024)))
+    assert float(product[0,0])==pytest.approx(1024*1.0001,abs=.01)
     Clock.hour=8
     original_plots=training.plots
     def interrupt_curve_publication(*args):
@@ -261,7 +269,11 @@ def test_paused_run_can_resume_and_optimizer_state_is_restored(workspace,monkeyp
     assert int(latest.optimizer.iterations)>0
     assert int(latest.optimizer.iterations)==interrupted_iterations
     iterations=int(latest.optimizer.iterations)
+    tf.config.experimental.enable_tensor_float_32_execution(True)
     again=training.train(path,"resume-check",resume=True)
+    with tf.device(device):
+        product=tf.matmul(tf.fill((1024,1024),1.0001),tf.ones((1024,1024)))
+    assert float(product[0,0])==pytest.approx(1024*1.0001,abs=.01)
     latest=keras.models.load_model(root/"experiments/checkpoints/resume-check/latest.keras")
     assert int(latest.optimizer.iterations)==iterations
     assert completed["checkpoint_sha256"]==again["checkpoint_sha256"]

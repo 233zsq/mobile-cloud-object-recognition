@@ -44,9 +44,9 @@ coverage/
 
 # Python environments and caches
 .venv/
-.venv-wsl/
+.venv-wsl
 .venv-runtime/
-.venv-runtime-wsl/
+.venv-runtime-wsl
 venv/
 __pycache__/
 *.py[cod]
