@@ -74,6 +74,7 @@ python -m recognition split --manifest data/manifests/public-candidates.csv \
 收集进程运行时不要修改其候选清单；先复制快照进行预览审核，待收集结束后合并决定。
 冻结数据版本不可覆盖，修改图片或清单后所有训练入口拒绝继续。
 近重复组/同物品系列共享group_id；公开照片无法确认实物ID时留空。
+划分按object_id与审核group_id的连通关系合并分组，保留两种身份；两种ID各有命名空间，值相同不会被当成同一种身份。连通组不能跨类别或跨集合。
 缺口先扩大Commons候选至每类240张，再按需要运行Open Images有框类别回退，例如：
 
 ```bash

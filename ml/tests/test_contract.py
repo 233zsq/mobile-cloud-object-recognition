@@ -66,6 +66,58 @@ def test_split_keeps_objects_together_and_freezes(workspace):
         data.load_split("v1","test")
 
 
+@pytest.mark.parametrize('transitive',[False,True])
+def test_split_preserves_both_object_and_review_group_connections(workspace,transitive):
+    root,manifest,rows=workspace
+    for category in range(10):
+        samples=rows[category*4:category*4+4]
+        for index,row in enumerate(samples):
+            row['object_id']=f'object-{category}-{index}'
+        if transitive:
+            samples[2]['object_id']=samples[1]['object_id']
+            samples[2]['group_id']=f'bridge-{category}'
+            samples[3]['group_id']=f'independent-{category}'
+        else:
+            samples[3]['review_status']='rejected'
+    common.write_csv(manifest,rows)
+    data.freeze_split(manifest,'connected',seed=42)
+    train,_=data.load_split('connected','train')
+    val,_=data.load_split('connected','validation')
+    data.check_isolation(train,val)
+    selected={r['sample_id']:r for r in train+val}
+    partitions={r['sample_id']:'train' for r in train}|{r['sample_id']:'validation' for r in val}
+    for category in range(10):
+        connected=rows[category*4:category*4+(3 if transitive else 2)]
+        assert len({partitions[r['sample_id']] for r in connected})==1
+        for row in connected:
+            assert selected[row['sample_id']]['object_id']==row['object_id']
+            assert selected[row['sample_id']]['group_id']==row['group_id']
+
+
+def test_split_identity_namespaces_do_not_merge_unrelated_groups(workspace):
+    root,manifest,rows=workspace
+    for category in range(10):
+        a,b,c,d=rows[category*4:category*4+4]
+        a.update(object_id=f'object-{category}',group_id=f'source-{category}')
+        b.update(object_id=f'source-{category}',group_id=f'another-source-{category}')
+        c['review_status']=d['review_status']='rejected'
+    common.write_csv(manifest,rows)
+    data.freeze_split(manifest,'namespaced')
+    train,_=data.load_split('namespaced','train')
+    val,_=data.load_split('namespaced','validation')
+    assert len(train)==len(val)==10
+
+
+def test_connected_groups_with_conflicting_labels_are_rejected(workspace):
+    root,manifest,rows=workspace
+    rows[0].update(object_id='cup-object',group_id='shared-series')
+    rows[4].update(object_id='umbrella-object',group_id='shared-series')
+    common.write_csv(manifest,rows)
+    with pytest.raises(ValueError,match='conflicting category'):
+        data.freeze_split(manifest,'bad-connected-labels')
+    assert not (root/'data/splits/bad-connected-labels').exists()
+
+
 def test_changed_manifest_or_image_is_rejected(workspace):
     root,manifest,rows=workspace
     data.freeze_split(manifest,"v1")

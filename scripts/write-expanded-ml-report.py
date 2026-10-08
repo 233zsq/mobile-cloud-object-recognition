@@ -1,6 +1,5 @@
-"""Write the completed expanded CPU campaign's evidence-backed model chapter."""
-from recognition.common import ROOT,read_json,read_csv,write_json,digest,now,categories
-from recognition.training import snapshot
+"""Write the historical expanded CPU chapter without changing the active release."""
+from recognition.common import ROOT,read_json,digest,now
 campaign='expanded-cpu-20261007';version='expanded-cpu-v1'
 stages={s:read_json(ROOT/'experiments/reports'/campaign/(s+'-summary.json')) for s in ['learning_rate','dropout','fine_tune']}
 winner=stages['fine_tune']['winner'];release=ROOT/'models/releases'/version
@@ -10,11 +9,11 @@ gap=abs(winner['validation']['macro_f1']-repeat['validation']['macro_f1'])
 comparison=read_json(release/'validation-comparison.json')
 timing=read_json(ROOT/'experiments/reports/benchmarks'/version/'local-cpu-1threads.json')
 evidence=read_json(ROOT/'experiments/reports/audit/final-public-data.json')
-labels=categories()['categories']
-lines=['# 新版公开照片模型实验材料','',f'生成时间：{now()}。只报告已保存的真实实验结果。','',
+labels=meta['categories']
+lines=['# 扩展公开照片CPU历史实验材料','',f'生成时间：{now()}。只报告已保存的真实实验结果。','',
 '## 结论与验收边界','',
 f"数据版本{meta['data_version']}，659张公开训练、218张公开验证；新版胜出验证准确率{winner['validation']['accuracy']:.2%}、宏F1={winner['validation']['macro_f1']:.4f}。",
-'本机Windows CPU完成三阶段和完整流程复核，模型保持experimental。WSL GPU正式训练、独立实拍测试、Android和真实云端验收仍待完成。',
+'本次Windows CPU试验完成三阶段和完整流程复核，历史模型保持experimental。后续GPU训练、独立实拍及端云验收的当前进度见implementation-status.json。',
 '公开验证成绩用于选参，不能作为独立实拍准确率验收成绩。旧版514张先导实验保留在ml-experiments.md，两版划分不同，成绩不作直接提升率比较。','',
 '## 数据与来源','',
 f"公开候选{evidence['candidate_count']}张，审核通过{evidence['approved_count']}张、拒绝{evidence['rejected_count']}张。通过照片来自Commons {evidence['approved_by_source']['wikimedia_commons']}张、Open Images {evidence['approved_by_source']['open_images']}张。独立手机实拍0张，公开照片不记为自采成果。",
@@ -70,9 +69,4 @@ lines += ['## 报告配图','',f"![胜出微调训练曲线](../experiments/repo
           f'![微调范围候选对照](../experiments/reports/{campaign}/fine_tune-summary.png)','',
           f"![公开验证集10类混淆矩阵](../experiments/reports/evaluations/{version}/{meta['data_version']}-validation.png)",'']
 (ROOT/'docs/ml-expanded-experiments.md').write_text('\n'.join(lines),encoding='utf-8')
-status=read_json(ROOT/'experiments/reports/implementation-status.json')
-status.update(updated_at=now(),current_code_snapshot_sha256=snapshot(),trained_code_snapshot_sha256=winner['identity']['code_snapshot_sha256'])
-status['training'].update(expanded_cpu_campaign='complete',expanded_winner=winner['experiment_id'],expanded_validation_accuracy=winner['validation']['accuracy'],expanded_validation_macro_f1=winner['validation']['macro_f1'],expanded_seed43_f1_difference=gap)
-status['release'].update(selected=version,status=meta['status'],model_bytes=meta['model_bytes'],model_sha256=meta['sha256'],full_validation_max_score_difference=comparison['max_score_difference'])
-write_json(ROOT/'experiments/reports/implementation-status.json',status)
 print(ROOT/'docs/ml-expanded-experiments.md')

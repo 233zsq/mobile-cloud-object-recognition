@@ -142,6 +142,36 @@ def audit(manifest, decisions=None, contact_sheets=True):
     return rows
 
 
+def connected_groups(rows):
+    """Keep every object identity and audited group connection in one component."""
+    identities=[]
+    by_identity={}
+    for index,row in enumerate(rows):
+        keys=[(field,row[field]) for field in ('object_id','group_id') if row.get(field)]
+        if not keys:
+            raise ValueError('Every sample needs object_id or audited group_id')
+        identities.append(keys)
+        for key in keys:
+            by_identity.setdefault(key,[]).append(index)
+    visited=set()
+    groups=[]
+    for start in range(len(rows)):
+        if start in visited:
+            continue
+        pending=[start]
+        members=[]
+        while pending:
+            index=pending.pop()
+            if index in visited:
+                continue
+            visited.add(index)
+            members.append(index)
+            for key in identities[index]:
+                pending.extend(by_identity.pop(key,()))
+        groups.append([rows[index].copy() for index in sorted(members)])
+    return groups
+
+
 def freeze_split(manifest, version, seed=42, test_manifest=None):
     safe_name(version)
     directory=ROOT / "data/splits" / version
@@ -156,16 +186,11 @@ def freeze_split(manifest, version, seed=42, test_manifest=None):
         raise ValueError("Need approved samples in all ten categories")
     rng=random.Random(seed)
     train,val=[],[]
-    grouped={}
-    for row in approved:
-        key=row.get("object_id") or row.get("group_id")
-        if not key:
-            raise ValueError("Every sample needs object_id or audited group_id")
-        grouped.setdefault(key,[]).append(row.copy())
-    if any(len({r["category_id"] for r in group}) != 1 for group in grouped.values()):
+    grouped=connected_groups(approved)
+    if any(len({r["category_id"] for r in group}) != 1 for group in grouped):
         raise ValueError("Group contains conflicting category labels")
     for category in range(10):
-        groups=[group for group in grouped.values() if int(group[0]["category_id"]) == category]
+        groups=[group for group in grouped if int(group[0]["category_id"]) == category]
         if len(groups)<2:
             raise ValueError(f"Class {category} requires at least two independent groups")
         rng.shuffle(groups)
@@ -184,7 +209,7 @@ def freeze_split(manifest, version, seed=42, test_manifest=None):
         validate_field_rows(tests)
     check_isolation(train,val,tests)
     category=categories()
-    meta={"status":"frozen","data_version":version,"category_version":category["category_version"],"categories_sha256":digest(ROOT/"shared/categories.json"),"created_at":now(),"seed":seed,"grouping":"actual object ID when known, otherwise audited source/near-duplicate groups", "files":{}, "source_manifest_sha256":digest(manifest),"final_test_status":"frozen" if tests else "pending_field_photos"}
+    meta={"status":"frozen","data_version":version,"category_version":category["category_version"],"categories_sha256":digest(ROOT/"shared/categories.json"),"created_at":now(),"seed":seed,"grouping":"connected components of namespaced object_id and audited group_id identities", "files":{}, "source_manifest_sha256":digest(manifest),"final_test_status":"frozen" if tests else "pending_field_photos"}
     # Check all bytes before creating a version so an invalid sample cannot half-freeze it.
     for row in train+val+tests:
         if digest(image_path(row["image_path"])) != row["image_sha256"]:

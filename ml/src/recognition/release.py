@@ -4,7 +4,7 @@ import tempfile
 import time
 from pathlib import Path
 import numpy as np
-from .common import ROOT, categories, digest, image_path, now, read_json, safe_name, write_json
+from .common import ROOT, categories, digest, image_path, now, read_csv, read_json, safe_name, write_json
 from .data import check_isolation, load_split
 from .inference import LiteRunner
 from .preprocessing import SPEC, preprocess
@@ -179,12 +179,31 @@ def verify(release,external_report=None):
     return result
 
 
-def check_test_model_binding(version,manifest_sha256,model_sha256):
+def tested_image_hashes(record):
+    hashes=record.get('image_sha256s')
+    if hashes is None:
+        # Older reports can recover photo identities from their unchanged frozen CSV,
+        # without reading the historical test images or changing the old evidence.
+        version=safe_name(record.get('data_version',''))
+        path=ROOT/'data/splits'/version/'test.csv'
+        if not path.is_file() or digest(path)!=record.get('manifest_sha256'):
+            raise ValueError('Historical test photo identities unavailable; restore the original frozen test.csv')
+        hashes=[row.get('image_sha256') for row in read_csv(path)]
+    if not isinstance(hashes,list) or not hashes or any(not isinstance(value,str) or not value for value in hashes):
+        raise ValueError('Historical test photo SHA-256 identities are missing or invalid')
+    return set(hashes)
+
+
+def check_test_model_binding(version,manifest_sha256,model_sha256,rows):
+    incoming={row['image_sha256'] for row in rows}
     for path in (ROOT/'experiments/reports/evaluations').glob('*/*-test.json'):
         previous=read_json(path)
-        if previous.get('split')=='test' and (previous.get('data_version')==version or previous.get('manifest_sha256')==manifest_sha256):
-            if previous.get('model_sha256')!=model_sha256:
-                raise ValueError('Independent test version was already used by a different model; freeze a new test version')
+        if previous.get('split')!='test' or previous.get('model_sha256')==model_sha256:
+            continue
+        if previous.get('data_version')==version or previous.get('manifest_sha256')==manifest_sha256:
+            raise ValueError('Independent test version was already used by a different model; freeze a new test version')
+        if incoming & tested_image_hashes(previous):
+            raise ValueError('Independent test photos were already used by a different model; collect new independent photos')
 
 
 def evaluate(release,split="validation",test_version=None,confirm_model_hash=None):
@@ -197,7 +216,7 @@ def evaluate(release,split="validation",test_version=None,confirm_model_hash=Non
         raise ValueError("Final test requires frozen model and explicit --confirm-model-hash")
     rows,data=load_split(version,split,allow_test=split=="test")
     if split=="test":
-        check_test_model_binding(version,data['files']['test']['sha256'],m['sha256'])
+        check_test_model_binding(version,data['files']['test']['sha256'],m['sha256'],rows)
         if any(r.get("source_dataset") not in ("field","self_captured") or not r.get("object_id") for r in rows) or any(sum(int(r["category_id"])==i for r in rows)<20 for i in range(10)):
             raise ValueError("Final test requires at least twenty independently captured photos per class")
         train,_=load_split(m["data_version"],"train")
@@ -207,6 +226,7 @@ def evaluate(release,split="validation",test_version=None,confirm_model_hash=Non
     scores=np.stack([runner.predict_tensor(a) for a in x])
     result={"at":now(),"split":split,"model_sha256":m["sha256"],"model_version":m["model_version"],"data_version":version,"manifest_sha256":data["files"][split]["sha256"],"metrics":metrics(y,scores),"predictions":[{"sample_id":r["sample_id"],"true_id":int(y[i]),"predicted_id":int(scores[i].argmax()),"confidence":float(scores[i].max())} for i,r in enumerate(rows)]}
     if split=="test":
+        result['image_sha256s']=sorted(row['image_sha256'] for row in rows)
         result["acceptance"]={"accuracy_passed":result["metrics"]["accuracy"]>=.85,"macro_f1_passed":result["metrics"]["macro_f1"]>=.8}
     out=ROOT/"experiments/reports/evaluations"/m["model_version"]/f"{version}-{split}.json"
     if out.exists():
