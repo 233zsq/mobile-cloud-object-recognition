@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-07T21:29:48+08:00",
+  "updated_at": "2026-10-08T12:59:38+08:00",
   "branch": "feat/ml-baseline",
   "category_version": "campus-10-v2",
   "keyboard_scope": "independent external computer keyboards only",
@@ -105,11 +105,12 @@
   },
   "accuracy_caveat": "All current accuracy/F1 values use public validation photos, never independent field acceptance.",
   "tests": {
-    "passed": 30,
-    "scope": "data isolation, preprocessing, checkpoint/optimizer resume, frozen archives, source download policy, external consistency and model contract"
+    "passed": 41,
+    "scope": "data isolation, preprocessing, checkpoint/optimizer/Dropout RNG recovery, finalization interruptions, early-stop recovery, candidate initialization, independent-test model binding, historical reporting and release contract",
+    "evidence": "experiments/reports/environment/pr-readiness-20261008.json"
   },
   "trained_code_snapshot_sha256": "e82cc002ba469f1dd09df4cc1976542d9938ecf40581c823abf0f9d283f93e45",
-  "current_code_snapshot_sha256": "e82cc002ba469f1dd09df4cc1976542d9938ecf40581c823abf0f9d283f93e45",
+  "current_code_snapshot_sha256": "e8e570bbf97051777512b9ec58a5a5796986fe62e4c496c0a53d02474d787820",
   "delivery": {
     "local_archive_verified": true,
     "archive_bytes": 588621459,
@@ -121,5 +122,10 @@
   "gpu_followup": {
     "status": "manual continuation selected by user; no recurring automation created",
     "manual_resume": "user restarts Windows, completes Ubuntu24.04 setup and sends continue in this chat"
+  },
+  "post_training_review_fixes": {
+    "source_snapshot_sha256": "e8e570bbf97051777512b9ec58a5a5796986fe62e4c496c0a53d02474d787820",
+    "historical_cpu_results_unchanged": true,
+    "new_training_requires_new_campaign": true
   }
 }

@@ -4,7 +4,7 @@ from pathlib import Path
 import sys
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'ml/src'))
-from recognition.common import read_json, read_csv, write_json, now, digest
+from recognition.common import read_json, read_csv, now
 
 campaign=ROOT/'experiments/reports/pilot-cpu-20261007'
 stages={name:read_json(campaign/(name+'-summary.json')) for name in ['learning_rate','dropout','fine_tune']}
@@ -20,9 +20,10 @@ candidate=Counter(int(r['category_id']) for r in rows)
 labels=metadata['categories']
 gap=abs(winner['validation']['macro_f1']-repeat['validation']['macro_f1'])
 lines=[
-'# 模型训练实验材料', '',
+'# 模型训练历史先导实验材料', '',
 f'生成时间：{now()}。所有数字来自保存的清单及实验JSON。', '',
-'## 当前结论', '',
+'本章节保留先导实验；当前模型结果见[扩展数据实验](ml-expanded-experiments.md)。', '',
+'## 历史先导结论', '',
 f"已完成本机CPU上的基线、三阶段贪心调参及种子43完整流程复核。胜出公开验证集准确率{winner['validation']['accuracy']:.2%}、宏平均F1={winner['validation']['macro_f1']:.4f}。",
 '发布包保持experimental。指定WSL GPU正式训练、独立实拍准确率、Android及真实云端结果仍待完成，不据公开验证成绩宣布验收达标。', '',
 '## 数据来源与冻结', '',
@@ -35,7 +36,7 @@ f"本次实验使用{dataset['files']['train']['count']}张训练照片、{datas
 for c in labels:
     i=c['id']; key=str(i)
     lines.append(f"| {c['display_name']} | {dataset['files']['train']['counts'].get(key,0)} | {dataset['files']['validation']['counts'].get(key,0)} | {candidate[i]} | {approved[i]} | {max(0,80-approved[i])} |")
-lines += ['', '当前审核与补图仍在进行；新图不会加入已经冻结的本次试验集。后续数据变更使用新版本。',
+lines += ['', '先导实验划分保持不变；后续审核数据使用新版本，当前进度见implementation-status.json。',
 '水杯、笔袋数量较多，雨伞和充电器较少；书本含较多历史书籍。补拍需优先覆盖现代课本、普通雨伞及手机/电脑适配器，补拍实物与最终测试实物分开。', '',
 '## 训练设置与比较', '',
 'MobileNetV2 alpha=1.0，ImageNet预训练，GAP、Dropout、10类Softmax；模型内部x/127.5-1。训练集采用固定的适度旋转、平移、缩放和亮度增强；验证处理确定且不增强。',
@@ -77,10 +78,4 @@ f"本次训练源码摘要为`{winner['identity']['code_snapshot_sha256']}`，�
 '组长冻结每类至少20张手机实拍照片后，使用split --test-only及evaluate --split test。模型/阈值已冻结，测试结果不回流选参。Android与真实云端分别核对张量及从图片开始的处理，并按20次预热、至少100次测量记录P50/P95；网络等待另测。',
 '未满足独立测试准确率85%或宏F1 0.80时如实报告；修改模型须使用新的独立测试版本。', '']
 (ROOT/'docs/ml-experiments.md').write_text('\n'.join(lines),encoding='utf-8')
-status=read_json(ROOT/'experiments/reports/implementation-status.json')
-status.update(updated_at=now(),tests={'passed':30,'scope':'data isolation, preprocessing, checkpoint/optimizer resume, frozen archives, source download policy, external consistency and model contract'})
-status['data'].update(current_reviewed_count=sum(approved.values()),approved_by_class=dict(approved),remaining_to_80_by_class={str(i):max(0,80-approved[i]) for i in range(10)})
-status['training'].update(staged_cpu_pilot='complete',winner=winner['experiment_id'],winner_validation_accuracy=winner['validation']['accuracy'],winner_validation_macro_f1=winner['validation']['macro_f1'],seed43_macro_f1_difference=gap)
-status['release'].update(selected='pilot-cpu-tuned-v1',status='experimental',model_bytes=metadata['model_bytes'],model_sha256=metadata['sha256'],full_validation_max_score_difference=comparison['max_score_difference'])
-write_json(ROOT/'experiments/reports/implementation-status.json',status)
 print(str(ROOT/'docs/ml-experiments.md'))

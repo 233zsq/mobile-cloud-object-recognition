@@ -33,7 +33,12 @@ WSL2/Ubuntu 24.04：管理员运行 `scripts/setup-wsl-admin.ps1`，按其提示
 `bash scripts/wsl-setup-wizard.sh` 逐步完成这些人工步骤。
 Ubuntu安装python3.12-venv后运行 `bash scripts/setup-ml-wsl.sh`。
 该脚本验证GPU可见性，并实测冻结骨干和最大微调范围下batch32（显存不足时统一16）的
-梯度更新、优化器保存恢复及FP32内置算子转换，保存显存峰值。随后执行smoke和测试。
+梯度更新、优化器保存恢复及FP32内置算子转换，保存显存峰值。脚本完成后手动执行：
+
+```bash
+./.venv-wsl/bin/python -m recognition smoke --id <唯一ID> --epochs 1
+./.venv-wsl/bin/python -m pytest ml/tests -q -c ml/pytest.ini
+```
 单独重测：`python -m recognition doctor --training-check --require-gpu`。
 
 当前新增冻结数据为 `campus-public-expanded-v1`，659张公开训练、218张公开验证。
@@ -108,7 +113,7 @@ initial_checkpoint执行train，回传result.json和对应best.keras。
 各PC必须使用相同冻结数据、依赖和代码；设备耗时单独记录，不据此宣称并行加速。
 
 暂停后用原config、实验ID及原initial-checkpoint运行 `train --resume`。
-每轮保存模型和优化器到epoch编号检查点，再原子更新进度指针及哈希；latest.keras为便利副本，best.keras用于候选选择。代码或配置变化须另开run。
+每轮保存模型和优化器到epoch编号检查点，同时记录Dropout随机状态，再原子更新进度指针及哈希；latest.keras为便利副本，best.keras用于候选选择。结果与曲线写完后才标记complete；评估阶段中断可直接续作，不增加训练轮次。代码或配置变化须另开run。
 北京时间23:00至06:00暂停长训练，预估下一轮越过23:00时提前停止。
 重复执行相同sweep可跳过完整结果并恢复暂停run。
 

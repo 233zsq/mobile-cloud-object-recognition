@@ -179,6 +179,14 @@ def verify(release,external_report=None):
     return result
 
 
+def check_test_model_binding(version,manifest_sha256,model_sha256):
+    for path in (ROOT/'experiments/reports/evaluations').glob('*/*-test.json'):
+        previous=read_json(path)
+        if previous.get('split')=='test' and (previous.get('data_version')==version or previous.get('manifest_sha256')==manifest_sha256):
+            if previous.get('model_sha256')!=model_sha256:
+                raise ValueError('Independent test version was already used by a different model; freeze a new test version')
+
+
 def evaluate(release,split="validation",test_version=None,confirm_model_hash=None):
     release=Path(release)
     verify(release)
@@ -189,6 +197,7 @@ def evaluate(release,split="validation",test_version=None,confirm_model_hash=Non
         raise ValueError("Final test requires frozen model and explicit --confirm-model-hash")
     rows,data=load_split(version,split,allow_test=split=="test")
     if split=="test":
+        check_test_model_binding(version,data['files']['test']['sha256'],m['sha256'])
         if any(r.get("source_dataset") not in ("field","self_captured") or not r.get("object_id") for r in rows) or any(sum(int(r["category_id"])==i for r in rows)<20 for i in range(10)):
             raise ValueError("Final test requires at least twenty independently captured photos per class")
         train,_=load_split(m["data_version"],"train")

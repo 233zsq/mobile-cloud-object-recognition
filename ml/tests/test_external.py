@@ -41,3 +41,15 @@ def test_field_freeze_refuses_duplicate_images_before_reading_test_files():
     data.validate_field_rows(rows)
     rows[1]['image_sha256']=rows[0]['image_sha256']
     with pytest.raises(ValueError,match='Duplicate field'):data.validate_field_rows(rows)
+
+
+@pytest.mark.parametrize('version,manifest_sha256',[
+    ('field-v1','manifest'),('renamed-field-version','manifest'),('field-v1','different-manifest')])
+def test_changed_model_requires_unused_independent_test_version(tmp_path,monkeypatch,version,manifest_sha256):
+    monkeypatch.setattr(release,'ROOT',tmp_path)
+    common.write_json(tmp_path/'experiments/reports/evaluations/model-v1/field-v1-test.json',{
+        'split':'test','data_version':'field-v1','manifest_sha256':'manifest','model_sha256':'model-one'})
+    with pytest.raises(ValueError,match='different model'):
+        release.check_test_model_binding(version,manifest_sha256,'model-two')
+    release.check_test_model_binding('field-v1','manifest','model-one')
+    release.check_test_model_binding('field-v2','new-manifest','model-two')

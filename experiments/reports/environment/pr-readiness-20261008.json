@@ -1,0 +1,45 @@
+{
+  "at": "2026-10-08T12:59:38+08:00",
+  "review_base": "4651b429cd5b085fd81202e2a31cfc66cc8b2d8b",
+  "head_before_review_fixes": "c0c49c769f0871731a65b5533a8a187f10cefd61",
+  "source_snapshot_sha256": "e8e570bbf97051777512b9ec58a5a5796986fe62e4c496c0a53d02474d787820",
+  "tests": {
+    "passed": 41,
+    "seconds": 39.93,
+    "command": ".venv/Scripts/python.exe -m pytest ml/tests -q --basetemp experiments/checkpoints/pytest-pr-final-20261008",
+    "warnings": "Existing Keras NumPy copy deprecation and empty fresh Adam slot warning; trained optimizer and Dropout continuation checked"
+  },
+  "independent_litert": {
+    "command": ".venv-runtime/Scripts/python.exe -m recognition verify --release models/releases/expanded-cpu-v1",
+    "passed": true,
+    "sample_count": 20,
+    "max_score_difference": 0,
+    "model_sha256": "7bde6b570248b2795f6165a12d7bf763615ae2763c16ed17862da8cac5bc3558"
+  },
+  "frozen_data": {
+    "version": "campus-public-expanded-v1",
+    "train": 659,
+    "validation": 218,
+    "manifest_image_hashes_and_group_isolation_verified": true
+  },
+  "review": {
+    "standards_unresolved": 0,
+    "spec_implementation_unresolved": 0,
+    "fixed": [
+      "finalization interruption including curve publication",
+      "Dropout RNG checkpoint restore",
+      "same initial classification head for comparable candidates",
+      "new independent test version after model changes",
+      "historical writer preserves current release"
+    ]
+  },
+  "pr_scope": "Training tools, audited frozen public data and CPU experimental evidence; formal acceptance remains pending",
+  "pending": [
+    "WSL GPU preflight and formal training",
+    "126 supplemental public-training/validation photos",
+    "200 independently captured test photos",
+    "Android and actual cloud consistency/performance",
+    "off-device team backup destination"
+  ],
+  "existing_cpu_artifacts": "Preserved with their original source snapshots and hashes; latest tools require a new campaign"
+}

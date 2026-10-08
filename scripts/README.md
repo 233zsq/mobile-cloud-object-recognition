@@ -16,7 +16,7 @@
 `make-handover-report.py --release models/releases/<version> --mode reference_tensor|image_chain --out <结果JSON>`
 生成全部20张样例的空白结果表，由Android或云端负责人填写实际分数和设备信息。
 随后用 `python -m recognition verify --release ... --external-report ...` 核对并保存通过或失败记录。
-`write-ml-report.py` 汇总本次CPU先导实验为 `docs/ml-experiments.md`；未来正式实验应使用各阶段summarize输出重新整理实际指标。
+`write-ml-report.py` 只重生成历史CPU先导章节 `docs/ml-experiments.md`，不修改当前发布状态；未来正式实验应使用各阶段summarize输出重新整理实际指标。
 `write-expanded-ml-report.py` 汇总已完成的877张公开照片CPU实验，未完成时不生成最终结论。
 
 独立LiteRT环境运行 `check-local-runtime.py --release models/releases/<version> --run-id <唯一ID>`，

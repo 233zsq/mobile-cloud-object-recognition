@@ -96,8 +96,29 @@ def save_progress(model, run, state):
     save_model(model,checkpoint)
     state['resume_checkpoint']=checkpoint.name
     state['resume_checkpoint_sha256']=digest(checkpoint)
+    state['dropout_rng_state']=dropout_rng_state(model)
     write_json(run/'state.json',state)
     shutil.copyfile(checkpoint,run/'latest.keras')
+
+
+def dropout_rng_state(model):
+    import keras
+    return {layer.name:layer.seed_generator.state.numpy().tolist()
+            for layer in model.layers
+            if isinstance(layer,keras.layers.Dropout) and layer.rate>0}
+
+
+def restore_dropout_rng(model,states):
+    import keras
+    layers={layer.name:layer for layer in model.layers
+            if isinstance(layer,keras.layers.Dropout) and layer.rate>0}
+    if states is None or set(states)!=set(layers):
+        raise ValueError('Resume Dropout random state is missing or differs')
+    for name,layer in layers.items():
+        value=np.asarray(states[name],dtype=np.int64)
+        if value.shape!=tuple(layer.seed_generator.state.shape):
+            raise ValueError('Resume Dropout random state shape differs')
+        layer.seed_generator.state.assign(value)
 
 
 def preflight(require_gpu=False):
@@ -198,16 +219,18 @@ def train(config_path,experiment_id,resume=False,initial_checkpoint=None):
         raise ValueError("Smoke fixtures cannot be used for formal training")
     identity={"config":config,"data_metadata_sha256":digest(ROOT/"data/splits"/config["data_version"]/"dataset.json"),"code_snapshot_sha256":snapshot(),"initial_checkpoint_sha256":digest(initial_checkpoint) if initial_checkpoint else None}
     state_path=run/"state.json"
+    result_path=ROOT/"experiments/reports"/experiment_id/"result.json"
     if resume:
         state=read_json(state_path)
         if state["identity"]!=identity:
             raise ValueError("Resume config/data/code/initial checkpoint differs from saved run")
-        if state["status"]=="complete":
-            return read_json(ROOT/"experiments/reports"/experiment_id/"result.json")
+        if state["status"]=="complete" and result_path.exists():
+            return read_json(result_path)
         checkpoint=run/state.get("resume_checkpoint","latest.keras")
         if state.get("resume_checkpoint_sha256") and digest(checkpoint)!=state["resume_checkpoint_sha256"]:
             raise ValueError("Resume checkpoint hash changed")
         model=keras.models.load_model(checkpoint)
+        restore_dropout_rng(model,state.get('dropout_rng_state'))
     else:
         run.mkdir(parents=True,exist_ok=True)
         source_dir=run/"code-snapshot/recognition"
@@ -227,7 +250,10 @@ def train(config_path,experiment_id,resume=False,initial_checkpoint=None):
         model.compile(optimizer=keras.optimizers.Adam(config["learning_rate"]),loss="sparse_categorical_crossentropy")
         state={"identity":identity,"next_epoch":0,"best":None,"best_loss":float("inf"),"bad_epochs":0,"history":[],"started_at":now(),"code_commit":code_commit(),"environment":{"python":platform.python_version(),"tensorflow":tf.__version__,"keras":keras.__version__,"gpu":[g.name for g in tf.config.list_physical_devices("GPU")],"platform":platform.platform(),"dependencies_sha256":digest(run/"installed-dependencies.lock")},"status":"running","training_seconds":0}
         save_progress(model,run,state)
-    for epoch in range(state["next_epoch"],config["max_epochs"]):
+    epochs=range(state["next_epoch"],config["max_epochs"])
+    if state['status'] in ('finalizing','complete') or state['bad_epochs']>=config.get('patience',3):
+        epochs=()
+    for epoch in epochs:
         local=datetime.now(TZ)
         deadline=local.replace(hour=config.get("stop_hour",23),minute=0,second=0,microsecond=0)
         estimate=max([r["seconds"] for r in state["history"][-3:]] or [60])+15
@@ -267,13 +293,15 @@ def train(config_path,experiment_id,resume=False,initial_checkpoint=None):
         print(experiment_id,entry,flush=True)
         if state["bad_epochs"]>=config.get("patience",3):
             break
-    state["status"]="complete"
+    state["status"]="finalizing"
     write_json(state_path,state)
     best=keras.models.load_model(run/"best.keras")
     scores=predict(best,vx,config["batch_size"])
     result={"experiment_id":experiment_id,"status":"smoke" if config.get("smoke") else "complete","config":config,"identity":identity,"validation":metrics(vy,scores),"threshold":threshold(vy,scores),"best_epoch":state["best_epoch"],"checkpoint":str((run/"best.keras").relative_to(ROOT)),"checkpoint_sha256":digest(run/"best.keras"),"environment":state["environment"],"code_commit":state["code_commit"],"started_at":state["started_at"],"training_seconds":state["training_seconds"],"history":state["history"]}
-    write_json(ROOT/"experiments/reports"/experiment_id/"result.json",result)
     plots(result,ROOT/"experiments/reports"/experiment_id)
+    write_json(result_path,result)
+    state["status"]="complete"
+    write_json(state_path,state)
     return result
 
 
@@ -346,12 +374,24 @@ def sweep(base_path,campaign,stage,previous=None,execute=False):
                 old=read_json(finished)
                 if old["config"]!=read_json(ROOT/job["config"]) or old["identity"]["code_snapshot_sha256"]!=snapshot() or old["identity"]["data_metadata_sha256"]!=digest(ROOT/"data/splits"/old["config"]["data_version"]/"dataset.json"):
                     raise ValueError("Existing candidate config/code differs; use a new campaign")
+                validate_initial_checkpoint(old,job,stage)
                 continue
             resume=(ROOT/"experiments/checkpoints"/job["experiment_id"]/"state.json").exists()
             result=train(ROOT/job["config"],job["experiment_id"],resume=resume,initial_checkpoint=ROOT/job["initial_checkpoint"] if job["initial_checkpoint"] else None)
             if result.get("status")=="paused_time_window":
                 break
     return plan_path
+
+
+def validate_initial_checkpoint(result,job,stage):
+    initial=job.get('initial_checkpoint')
+    actual=result['identity'].get('initial_checkpoint_sha256')
+    if stage=='fine_tune':
+        if not initial or not actual or actual!=digest(image_path(initial)):
+            raise ValueError('Fine-tune initial checkpoint differs from the planned classification head')
+    elif initial or actual is not None:
+        raise ValueError('Learning-rate/Dropout candidates must start from the fixed model initialization')
+    return actual
 
 
 def summarize(jobs_path):
@@ -361,6 +401,9 @@ def summarize(jobs_path):
         result=read_json(ROOT/"experiments/reports"/job["experiment_id"]/"result.json")
         if result["status"]!="complete" or result["config"]!=read_json(ROOT/job["config"]):
             raise ValueError("Missing/formally incomparable candidate result")
+        initial_hash=validate_initial_checkpoint(result,job,jobs['stage'])
+        if results and initial_hash!=results[0]['identity'].get('initial_checkpoint_sha256'):
+            raise ValueError('Candidates use different initial classification head checkpoints')
         if results and (result["identity"]["data_metadata_sha256"]!=results[0]["identity"]["data_metadata_sha256"] or result["identity"]["code_snapshot_sha256"]!=results[0]["identity"]["code_snapshot_sha256"] or {k:v for k,v in result["environment"].items() if k!="platform"}!={k:v for k,v in results[0]["environment"].items() if k!="platform"}):
             raise ValueError("Candidates use different data/code/runtime")
         results.append(result)

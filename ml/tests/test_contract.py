@@ -178,15 +178,43 @@ def test_paused_run_can_resume_and_optimizer_state_is_restored(workspace,monkeyp
     paused=training.train(path,"resume-check")
     assert paused["status"]=="paused_time_window" and paused["next_epoch"]==0
     Clock.hour=8
+    original_plots=training.plots
+    def interrupt_curve_publication(*args):
+        raise OSError('simulated interruption before curve publication')
+    monkeypatch.setattr(training,'plots',interrupt_curve_publication)
+    with pytest.raises(OSError,match='before curve publication'):
+        training.train(path,'resume-check',resume=True)
+    assert not (root/'experiments/reports/resume-check/result.json').exists()
+    assert common.read_json(root/'experiments/checkpoints/resume-check/state.json')['status']=='finalizing'
+    monkeypatch.setattr(training,'plots',original_plots)
+    original_write=training.write_json
+    def interrupt_final_evaluation(path,value):
+        if Path(path).name=='result.json':
+            raise OSError('simulated interruption before result publication')
+        original_write(path,value)
+    monkeypatch.setattr(training,'write_json',interrupt_final_evaluation)
+    with pytest.raises(OSError,match='before result publication'):
+        training.train(path,"resume-check",resume=True)
+    interrupted=common.read_json(root/'experiments/checkpoints/resume-check/state.json')
+    assert interrupted['status']=='finalizing' and interrupted['next_epoch']==1
+    import keras
+    latest=keras.models.load_model(root/"experiments/checkpoints/resume-check/latest.keras")
+    interrupted_iterations=int(latest.optimizer.iterations)
+    monkeypatch.setattr(training,'write_json',original_write)
     completed=training.train(path,"resume-check",resume=True)
     assert completed["status"]=="smoke" and len(completed["history"])==1
     state=common.read_json(root/'experiments/checkpoints/resume-check/state.json')
     assert state['resume_checkpoint_sha256']==common.digest(root/'experiments/checkpoints/resume-check'/state['resume_checkpoint'])
-    import keras
     latest=keras.models.load_model(root/"experiments/checkpoints/resume-check/latest.keras")
     assert int(latest.optimizer.iterations)>0
+    assert int(latest.optimizer.iterations)==interrupted_iterations
     iterations=int(latest.optimizer.iterations)
     again=training.train(path,"resume-check",resume=True)
     latest=keras.models.load_model(root/"experiments/checkpoints/resume-check/latest.keras")
     assert int(latest.optimizer.iterations)==iterations
     assert completed["checkpoint_sha256"]==again["checkpoint_sha256"]
+    # Repair a completed state whose result was never durably published.
+    (root/'experiments/reports/resume-check/result.json').unlink()
+    recovered=training.train(path,'resume-check',resume=True)
+    assert recovered['checkpoint_sha256']==completed['checkpoint_sha256']
+    assert common.read_json(root/'experiments/checkpoints/resume-check/state.json')['status']=='complete'
