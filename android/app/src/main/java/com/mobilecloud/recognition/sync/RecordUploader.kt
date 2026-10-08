@@ -59,7 +59,9 @@ class RecordUploader(
             try {
                 val response = api.correctLabel(record.recordId, RecordMapper.toCorrectionRequest(record))
                 if (response.isSuccessful) {
-                    dao.markCorrectionSynced(record.recordId, clock())
+                    // 传入发送时的修订号：若等待期间用户又纠错（revision 已递增），
+                    // 此处不会清除新修订的待同步标志
+                    dao.markCorrectionSynced(record.recordId, record.revision, clock())
                     corrections++
                 } else {
                     val message = correctionErrorMessage(response.code())

@@ -33,8 +33,12 @@ interface RecordDao {
     @Query("UPDATE records SET uploaded = 1, lastError = NULL, updatedAt = :now WHERE recordId = :recordId")
     suspend fun markUploaded(recordId: String, now: Long)
 
-    @Query("UPDATE records SET correctionPending = 0, lastError = NULL, updatedAt = :now WHERE recordId = :recordId")
-    suspend fun markCorrectionSynced(recordId: String, now: Long)
+    /** 仅当本地修订号仍等于已发送修订号时清除待同步标志，避免在途请求掩盖更新的修订（T11 竞态） */
+    @Query(
+        "UPDATE records SET correctionPending = 0, lastError = NULL, updatedAt = :now " +
+            "WHERE recordId = :recordId AND revision = :revision"
+    )
+    suspend fun markCorrectionSynced(recordId: String, revision: Int, now: Long)
 
     @Query("UPDATE records SET lastError = :error, updatedAt = :now WHERE recordId = :recordId")
     suspend fun markError(recordId: String, error: String, now: Long)

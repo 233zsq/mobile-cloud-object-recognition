@@ -31,7 +31,9 @@ UUID。首次保存的原始预测不可变。服务端按 UUID 去重（同 UUI
 
 ### 纠错与修订号（T10/T11）
 纠错不覆盖原预测：`correctedIndex/correctedLabel/correctedAt` 独立字段；`revision` 从 0
-开始每次纠错 +1，本地持久化后递增再 PATCH。服务端旧修订拒绝 → 显示冲突提示，记录保留待传。
+开始每次纠错 +1，本地持久化后递增再 PATCH。PATCH 成功仅在本地 revision 仍等于已发送
+revision 时清除待同步标志，防止在途请求掩盖更新的修订（PR 审查修复项）。服务端旧修订
+拒绝 → 显示冲突提示，记录保留待传。
 
 ### 同步状态机
 ```text
