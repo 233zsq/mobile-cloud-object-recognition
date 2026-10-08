@@ -9,11 +9,13 @@ import com.mobilecloud.recognition.data.local.RecordEntity
 import com.mobilecloud.recognition.inference.ModelRepository
 import com.mobilecloud.recognition.inference.Prediction
 import java.io.File
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 sealed interface ModelState {
     data object Loading : ModelState
@@ -73,8 +75,10 @@ class CaptureViewModel : ViewModel() {
         _state.update { it.copy(capturing = true) }
         viewModelScope.launch {
             try {
-                val bitmap = AppGraph.photoStore.decodeUpright(file)
-                    ?: throw IllegalStateException("照片解码失败，不产生识别结果")
+                // JPEG 解码与 EXIF 旋转是文件 IO + 同步计算，放 IO 线程；classify 内部自行切 Default
+                val bitmap = withContext(Dispatchers.IO) {
+                    AppGraph.photoStore.decodeUpright(file)
+                } ?: throw IllegalStateException("照片解码失败，不产生识别结果")
                 val prediction = AppGraph.modelRepository.classify(bitmap)
                 val clientId = AppGraph.settings.ensureClientId()
                 val now = System.currentTimeMillis()
