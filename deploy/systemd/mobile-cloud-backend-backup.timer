@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily mobile cloud backend database backup
+
+[Timer]
+OnCalendar=daily
+RandomizedDelaySec=600
+Persistent=true
+Unit=mobile-cloud-backend-backup.service
+
+[Install]
+WantedBy=timers.target

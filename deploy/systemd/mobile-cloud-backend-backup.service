@@ -1,0 +1,13 @@
+[Unit]
+Description=Back up mobile cloud backend MySQL database
+After=mysql.service
+Requires=mysql.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 -B /usr/local/lib/mobile-cloud-backend/backup_database.py
+UMask=0077
+Nice=10
+IOSchedulingClass=idle
+NoNewPrivileges=true
+PrivateTmp=true

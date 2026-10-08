@@ -8,7 +8,7 @@
 
 ## 当前状态
 
-本仓库目前完成目录初始化、协作约定与资料归档，规划已调整为Flask后端与端云同版模型。各模块仍是待开发骨架，尚无可运行的Android工程、Flask服务、训练程序、正式模型或APK，也没有已通过的验收记录。依赖版本由各负责人验证后统一登记。
+当前工作区已建立Flask工程、MySQL四张核心表，以及记录上传、UUID去重和内容冲突保护，并在腾讯云完成Gunicorn、Nginx、自签名HTTPS和代理层Bearer认证部署，公网记录接口已验证。查询、纠错、统计、Web、应用自身鉴权和云端模型仍待接入；Android与模型功能分支整体成果尚未集成，尚无完整系统验收。数据库初始化与启动见 [后端说明](backend/README.md) 和 [数据库说明](database/README.md)，服务器运维见 [部署说明](deploy/README.md)，版本见 [环境清单](docs/environment.md)。
 
 ## 技术栈
 
@@ -28,7 +28,7 @@
 mobile-cloud-object-recognition/
 ├── android/             # Kotlin Android App：拍照、推理、本地保存与同步
 │   └── app/src/main/    # java/、res/、assets/models/
-├── backend/             # Flask：记录、纠错、统计与云端单图片推理（待实现）
+├── backend/             # Flask记录入库与去重已实现；查询、纠错、统计、推理待接入
 ├── web/                 # HTML/JavaScript 统计页，计划每 5 秒刷新
 │   └── assets/          # css/、js/、images/
 ├── ml/                  # TensorFlow/Keras：训练、评估与 tflite 导出
@@ -42,7 +42,7 @@ mobile-cloud-object-recognition/
 ├── database/            # MySQL 建表文件与初始化数据
 │   ├── schema/
 │   └── seeds/
-├── deploy/              # 腾讯云部署，预留 Nginx 与 systemd 配置
+├── deploy/              # 腾讯云部署，Nginx/systemd 配置、证书及验收脚本
 ├── tests/               # 系统联调、验收记录与测试证据
 ├── scripts/             # 后续数据检查、备份与交付辅助脚本
 ├── docs/                # 计划、接口、模型契约、报告、PPT 与演示资料
@@ -53,7 +53,7 @@ mobile-cloud-object-recognition/
 
 空目录用 `.gitkeep` 保留，加入实际文件后可以删除对应占位文件。
 
-`backend/`中原有Java目录仅为初始化占位，Python工程尚未创建；后续按 [后端布局](backend/README.md) 建立Flask应用。
+`backend/`中的Python应用位于 `app/`，本地启动入口为 `python -m app`，生产WSGI入口为 `wsgi:app`。原有Java目录仅为初始化占位，不参与Python运行，见 [后端说明](backend/README.md)。
 
 ## 识别模式与统计口径
 

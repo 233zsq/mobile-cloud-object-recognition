@@ -1,0 +1,39 @@
+{
+  "date": "2026-10-08",
+  "timezone": "Asia/Shanghai",
+  "mysql": "8.0.25",
+  "python": "3.11.4",
+  "dependencies": {
+    "Flask": "3.1.3",
+    "Flask-SQLAlchemy": "3.1.1",
+    "SQLAlchemy": "2.0.54",
+    "PyMySQL": "1.2.3"
+  },
+  "environment": "Isolated local MySQL data directory; no existing databases or Windows services modified",
+  "tests": {
+    "tests": 78,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 3,
+    "passed": 75
+  },
+  "tables": [
+    "category",
+    "inference_record",
+    "model_version",
+    "sample"
+  ],
+  "sql_snapshot_executed": true,
+  "cli_initialization_and_seeding": true,
+  "http": {
+    "first_upload": 201,
+    "same_content_retry": 200,
+    "different_content": 409,
+    "retry_after_app_restart": 200,
+    "persisted_rows": 1
+  },
+  "mysql_concurrent_requests": "4 simultaneous first uploads: one creation, same-content retries succeed; different-content uploads conflict",
+  "model_registration": "metadata only; inference model remains unloaded",
+  "database_failure": "503 response; health endpoint stays available",
+  "services_stopped_and_temporary_directory_removed": true
+}

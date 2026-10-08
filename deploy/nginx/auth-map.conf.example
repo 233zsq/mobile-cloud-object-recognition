@@ -1,0 +1,6 @@
+# Render __API_TOKEN__ on the server; install the rendered file as root:root 0600.
+# Regex matching keeps the token case-sensitive.
+map $http_authorization $mobile_cloud_authorized {
+    default 0;
+    "~^Bearer __API_TOKEN__$" 1;
+}
