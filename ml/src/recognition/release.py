@@ -150,13 +150,20 @@ def compare_external(release,report_path):
     return result
 
 
-def verify(release,external_report=None):
+def verify(release,external_report=None,*,_annex_recovery=None):
     release=Path(release)
     runner=LiteRunner(release)
     files=read_json(release/"release-files.json")
+    mutable={"metadata.json","evaluation-test.json","confusion-matrix-test.png"}
+    if _annex_recovery:
+        # Only a validated, interrupted test annex may change these three files.
+        # Model, labels, contract and all golden samples still undergo verification.
+        if runner.metadata not in (_annex_recovery['original_metadata'],_annex_recovery['metadata']) or files not in (_annex_recovery['original_files'],_annex_recovery['files']):
+            raise ValueError('Interrupted evaluation release identity differs')
+        files=_annex_recovery['original_files']
     for filename,sha in files.items():
         path=(release/filename).resolve()
-        if not path.is_relative_to(release.resolve()) or digest(path)!=sha:
+        if not path.is_relative_to(release.resolve()) or (not (_annex_recovery and filename in mutable) and digest(path)!=sha):
             raise ValueError("Release file hash mismatch: "+filename)
     examples=read_json(release/"examples/manifest.json")
     if runner.metadata["status"] not in ("experimental","frozen") or (release/"model.tflite").stat().st_size!=runner.metadata["model_bytes"] or runner.metadata["model_bytes"]>15000000:
@@ -206,50 +213,39 @@ def check_test_model_binding(version,manifest_sha256,model_sha256,rows):
             raise ValueError('Independent test photos were already used by a different model; collect new independent photos')
 
 
-def evaluate(release,split="validation",test_version=None,confirm_model_hash=None):
-    release=Path(release)
-    verify(release)
-    runner=LiteRunner(release)
-    m=runner.metadata
-    version=test_version or m["data_version"]
-    if split=="test" and (m["status"]!="frozen" or confirm_model_hash!=m["sha256"]):
-        raise ValueError("Final test requires frozen model and explicit --confirm-model-hash")
-    rows,data=load_split(version,split,allow_test=split=="test")
-    if split=="test":
-        check_test_model_binding(version,data['files']['test']['sha256'],m['sha256'],rows)
-        if any(r.get("source_dataset") not in ("field","self_captured") or not r.get("object_id") for r in rows) or any(sum(int(r["category_id"])==i for r in rows)<20 for i in range(10)):
-            raise ValueError("Final test requires at least twenty independently captured photos per class")
-        train,_=load_split(m["data_version"],"train")
-        val,_=load_split(m["data_version"],"validation")
-        check_isolation(train,val,rows)
-    x,y=prepare(rows)
-    scores=np.stack([runner.predict_tensor(a) for a in x])
-    result={"at":now(),"split":split,"model_sha256":m["sha256"],"model_version":m["model_version"],"data_version":version,"manifest_sha256":data["files"][split]["sha256"],"metrics":metrics(y,scores),"predictions":[{"sample_id":r["sample_id"],"true_id":int(y[i]),"predicted_id":int(scores[i].argmax()),"confidence":float(scores[i].max())} for i,r in enumerate(rows)]}
-    if split=="test":
-        result['image_sha256s']=sorted(row['image_sha256'] for row in rows)
-        result["acceptance"]={"accuracy_passed":result["metrics"]["accuracy"]>=.85,"macro_f1_passed":result["metrics"]["macro_f1"]>=.8}
-    out=ROOT/"experiments/reports/evaluations"/m["model_version"]/f"{version}-{split}.json"
-    if out.exists():
-        raise ValueError("Evaluation exists; preserve original final-test evidence")
-    write_json(out,result)
+def validate_cached_evaluation(result,metadata,version,split,rows,manifest_sha256):
+    expected={'split':split,'model_sha256':metadata['sha256'],
+              'model_version':metadata['model_version'],'data_version':version,
+              'manifest_sha256':manifest_sha256}
+    if any(result.get(key)!=value for key,value in expected.items()) or ('labels_sha256' in result and result['labels_sha256']!=metadata.get('labels_sha256')):
+        raise ValueError('Existing evaluation identity differs; preserve the first evidence')
+    predictions=result.get('predictions',[])
+    if len(predictions)!=len(rows) or any(p.get('sample_id')!=r['sample_id'] or p.get('true_id')!=int(r['category_id']) or p.get('predicted_id') not in range(10) or not np.isfinite(p.get('confidence',np.nan)) or not 0<=p['confidence']<=1 for p,r in zip(predictions,rows)):
+        raise ValueError('Existing evaluation sample identity/predictions differ')
+    if split=='test' and tested_image_hashes(result)!={r['image_sha256'] for r in rows}:
+        raise ValueError('Existing evaluation photo identity differs')
+
+
+def render_evaluation(out,result,rows,labels):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     fig,ax=plt.subplots(figsize=(9,8))
     matrix=np.array(result["metrics"]["confusion_matrix"])
     image=ax.imshow(matrix,cmap="Blues")
-    names=runner.labels
-    ax.set(xticks=range(10),yticks=range(10),xticklabels=names,yticklabels=names,xlabel="Predicted",ylabel="Actual",title=split)
+    ax.set(xticks=range(10),yticks=range(10),xticklabels=labels,yticklabels=labels,xlabel="Predicted",ylabel="Actual",title=result['split'])
     plt.setp(ax.get_xticklabels(),rotation=45,ha="right")
     for i in range(10):
         for j in range(10):
             ax.text(j,i,str(matrix[i,j]),ha="center",va="center",color="white" if matrix[i,j]>matrix.max()/2 else "black")
     fig.colorbar(image,ax=ax)
-    fig.tight_layout();fig.savefig(out.with_suffix(".png"),dpi=160);plt.close(fig)
+    try:
+        fig.tight_layout();fig.savefig(out.with_suffix(".png"),dpi=160)
+    finally:
+        plt.close(fig)
     from PIL import Image,ImageOps,ImageDraw
-    wrong=[i for i in range(len(rows)) if int(scores[i].argmax())!=int(y[i])]
-    result["error_sample_ids"]=[rows[i]["sample_id"] for i in wrong]
-    write_json(out,result)
+    predictions=result['predictions']
+    wrong=[i for i,p in enumerate(predictions) if p['predicted_id']!=p['true_id']]
     if wrong:
         selected=wrong[:40]
         sheet=Image.new("RGB",(1000,220*((len(selected)+4)//5)),"white")
@@ -260,19 +256,93 @@ def evaluate(release,split="validation",test_version=None,confirm_model_hash=Non
                 thumb=ImageOps.exif_transpose(original).convert("RGB");thumb.thumbnail((190,170))
                 sheet.paste(thumb,(left+(190-thumb.width)//2,top))
             draw.text((left+3,top+173),rows[i]["sample_id"],fill="black")
-            draw.text((left+3,top+189),f"true={runner.labels[int(y[i])]} / pred={runner.labels[int(scores[i].argmax())]}",fill="black")
+            draw.text((left+3,top+189),f"true={labels[predictions[i]['true_id']]} / pred={labels[predictions[i]['predicted_id']]}",fill="black")
         sheet.save(out.with_name(out.stem+"-errors.png"))
+
+
+def annex_evaluation(release,out,result,metadata,journal_path):
+    if journal_path.exists():
+        journal=read_json(journal_path)
+    else:
+        updated={**metadata,'acceptance':{**metadata['acceptance'],
+                 'independent_field_accuracy':{'accuracy':result['metrics']['accuracy'],
+                 'macro_f1':result['metrics']['macro_f1'],**result['acceptance']}},
+                 'field_test':{'data_version':result['data_version'],
+                 'manifest_sha256':result['manifest_sha256'],'evaluated_at':result['at']}}
+        original_files=read_json(release/'release-files.json')
+        with tempfile.TemporaryDirectory(prefix='campus-annex-',dir=out.parent) as staging:
+            path=Path(staging)/'metadata.json'
+            write_json(path,updated)
+            files={**original_files,'metadata.json':digest(path),
+                   'evaluation-test.json':digest(out),'confusion-matrix-test.png':digest(out.with_suffix('.png'))}
+        journal={'report_sha256':digest(out),'original_metadata_sha256':digest(release/'metadata.json'),'original_metadata':metadata,
+                 'metadata':updated,'original_files':original_files,'files':files}
+        # Persist both valid package states before changing any annex file.
+        write_json(journal_path,journal)
+    for source,name in ((out,'evaluation-test.json'),(out.with_suffix('.png'),'confusion-matrix-test.png')):
+        if digest(source)!=journal['files'][name]:
+            raise ValueError('Interrupted evaluation artifact hash differs')
+        target=release/name
+        temporary=target.with_name(target.name+'.tmp')
+        shutil.copyfile(source,temporary);temporary.replace(target)
+    write_json(release/'metadata.json',journal['metadata'])
+    write_json(release/'release-files.json',journal['files'])
+
+
+def evaluate(release,split="validation",test_version=None,confirm_model_hash=None):
+    release=Path(release)
+    runner=LiteRunner(release)
+    m=runner.metadata
+    version=test_version or m["data_version"]
+    if split=="test" and (m["status"]!="frozen" or confirm_model_hash!=m["sha256"]):
+        raise ValueError("Final test requires frozen model and explicit --confirm-model-hash")
+    rows,data=load_split(version,split,allow_test=split=="test")
+    out=ROOT/"experiments/reports/evaluations"/safe_name(m["model_version"])/f"{version}-{split}.json"
+    completion=out.with_name(out.stem+'-completion.json')
+    journal_path=out.with_name(out.stem+'-handover.json')
+    result=read_json(out) if out.exists() else None
+    if result is not None:
+        validate_cached_evaluation(result,m,version,split,rows,data['files'][split]['sha256'])
     if split=="test":
-        # Annex test evidence after model/threshold freeze; no selection changes.
-        shutil.copyfile(out,release/"evaluation-test.json")
-        shutil.copyfile(out.with_suffix(".png"),release/"confusion-matrix-test.png")
-        m["acceptance"]["independent_field_accuracy"]={"accuracy":result["metrics"]["accuracy"],"macro_f1":result["metrics"]["macro_f1"],**result["acceptance"]}
-        m["field_test"]={"data_version":version,"manifest_sha256":result["manifest_sha256"],"evaluated_at":result["at"]}
-        write_json(release/"metadata.json",m)
-        files=read_json(release/"release-files.json")
-        for name in ("metadata.json","evaluation-test.json","confusion-matrix-test.png"):
-            files[name]=digest(release/name)
-        write_json(release/"release-files.json",files)
+        check_test_model_binding(version,data['files']['test']['sha256'],m['sha256'],rows)
+        if any(r.get("source_dataset") not in ("field","self_captured") or not r.get("object_id") for r in rows) or any(sum(int(r["category_id"])==i for r in rows)<20 for i in range(10)):
+            raise ValueError("Final test requires at least twenty independently captured photos per class")
+        train,_=load_split(m["data_version"],"train")
+        val,_=load_split(m["data_version"],"validation")
+        check_isolation(train,val,rows)
+    journal=None
+    if journal_path.exists():
+        journal=read_json(journal_path)
+        if result is None or journal['report_sha256']!=digest(out) or ('release_metadata_sha256' in result and result['release_metadata_sha256']!=journal['original_metadata_sha256']):
+            raise ValueError('Interrupted evaluation evidence hash differs')
+    elif result is not None and 'release_metadata_sha256' in result and result['release_metadata_sha256']!=digest(release/'metadata.json'):
+        raise ValueError('Existing evaluation release identity differs')
+    verify(release,_annex_recovery=journal if not completion.exists() else None)
+    if completion.exists():
+        finished=read_json(completion)
+        if result is None or finished['report_sha256']!=digest(out) or any(not (out.parent/name).resolve().is_relative_to(out.parent.resolve()) or digest(out.parent/name)!=sha for name,sha in finished['artifacts'].items()):
+            raise ValueError('Completed evaluation artifact hash differs')
+        return result
+    if result is None:
+        x,y=prepare(rows)
+        scores=np.stack([runner.predict_tensor(a) for a in x])
+        result={"at":now(),"split":split,"model_sha256":m["sha256"],"labels_sha256":m.get('labels_sha256'),"release_metadata_sha256":digest(release/'metadata.json'),"model_version":m["model_version"],"data_version":version,"manifest_sha256":data["files"][split]["sha256"],"metrics":metrics(y,scores),"predictions":[{"sample_id":r["sample_id"],"true_id":int(y[i]),"predicted_id":int(scores[i].argmax()),"confidence":float(scores[i].max())} for i,r in enumerate(rows)]}
+        result['error_sample_ids']=[p['sample_id'] for p in result['predictions'] if p['true_id']!=p['predicted_id']]
+        if split=="test":
+            result['image_sha256s']=sorted(row['image_sha256'] for row in rows)
+            result["acceptance"]={"accuracy_passed":result["metrics"]["accuracy"]>=.85,"macro_f1_passed":result["metrics"]["macro_f1"]>=.8}
+        # First predictions and metrics are immutable, including during recovery.
+        write_json(out,result)
+    if journal is None:
+        render_evaluation(out,result,rows,runner.labels)
+    if split=='test':
+        annex_evaluation(release,out,result,m,journal_path)
+        verify(release)
+    artifacts=[out.with_suffix('.png')]
+    errors=out.with_name(out.stem+'-errors.png')
+    if errors.exists():artifacts.append(errors)
+    write_json(completion,{'at':now(),'report_sha256':digest(out),
+                          'artifacts':{p.name:digest(p) for p in artifacts}})
     return result
 
 

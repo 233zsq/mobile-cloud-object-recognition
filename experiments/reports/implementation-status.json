@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-08T15:20:40+08:00",
+  "updated_at": "2026-10-08T16:01:18+08:00",
   "branch": "feat/ml-baseline",
   "category_version": "campus-10-v2",
   "keyboard_scope": "independent external computer keyboards only",
@@ -105,12 +105,12 @@
   },
   "accuracy_caveat": "All current accuracy/F1 values use public validation photos, never independent field acceptance.",
   "tests": {
-    "passed": 53,
-    "scope": "data isolation, connected object/review groups, preprocessing, checkpoint/optimizer/Dropout recovery, candidate comparability, photo-identity test isolation, historical report status preservation and release contract",
-    "evidence": "experiments/reports/environment/pr-review-fixes-20261008.json"
+    "passed": 69,
+    "scope": "Existing data/model contract checks plus campaign preflight, immutable evaluation recovery, release annex recovery and retained hash validation",
+    "evidence": "experiments/reports/environment/pr-resume-fixes-20261008.json"
   },
   "trained_code_snapshot_sha256": "e82cc002ba469f1dd09df4cc1976542d9938ecf40581c823abf0f9d283f93e45",
-  "current_code_snapshot_sha256": "b8fa71faef55d5210900a851af0674a417bf6375c6c90b4a799f4e2b34a6372e",
+  "current_code_snapshot_sha256": "b1dbab66b860b5552e8e708b57b1c60428576091541c031fa96cd910cc99d14e",
   "delivery": {
     "local_archive_verified": true,
     "archive_bytes": 588621459,
@@ -124,8 +124,9 @@
     "manual_resume": "user restarts Windows, completes Ubuntu24.04 setup and sends continue in this chat"
   },
   "post_training_review_fixes": {
-    "source_snapshot_sha256": "b8fa71faef55d5210900a851af0674a417bf6375c6c90b4a799f4e2b34a6372e",
+    "source_snapshot_sha256": "b1dbab66b860b5552e8e708b57b1c60428576091541c031fa96cd910cc99d14e",
     "historical_cpu_results_unchanged": true,
-    "new_training_requires_new_campaign": true
+    "new_training_requires_new_campaign": true,
+    "latest_evidence": "experiments/reports/environment/pr-resume-fixes-20261008.json"
   }
 }

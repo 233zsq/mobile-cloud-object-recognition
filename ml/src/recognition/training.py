@@ -3,6 +3,7 @@ import os
 os.environ.setdefault("KERAS_HOME", str(__import__("pathlib").Path(__file__).resolve().parents[3]/"experiments/checkpoints/keras-cache"))
 os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")
 import hashlib
+import json
 import platform
 import shutil
 import subprocess
@@ -348,6 +349,7 @@ def sweep(base_path,campaign,stage,previous=None,execute=False):
             base["learning_rate"]*=.1
     values={"learning_rate":[.0001,.0003,.001],"dropout":[0,.2,.4],"fine_tune":["frozen","last_1","last_2"]}[stage]
     jobs=[]
+    proposed={}
     for index,value in enumerate(values):
         config=dict(base)
         config["fine_tune_scope"]="frozen"
@@ -356,25 +358,49 @@ def sweep(base_path,campaign,stage,previous=None,execute=False):
             config["dropout"]=.2
         experiment=f"{campaign}-{stage}-{index+1}"
         path=ROOT/"ml/configs/generated"/campaign/f"{experiment}.json"
-        write_json(path,config)
+        proposed[path]=config
         jobs.append({"experiment_id":experiment,"config":path.relative_to(ROOT).as_posix(),"pc_slot":index+1,"initial_checkpoint":parent["winner"]["checkpoint"] if stage=="fine_tune" else None})
     plan={"campaign":campaign,"stage":stage,"jobs":jobs,"pc_4":"reproduction/development; does not share GPU memory","previous_summary":str(previous) if previous else None}
     plan_path=ROOT/"experiments/reports"/campaign/f"{stage}-jobs.json"
-    write_json(plan_path,plan)
+    proposed[plan_path]=plan
     for job in jobs:
         command=["python","-m","recognition","train","--config",job["config"],"--experiment",job["experiment_id"]]
         if job["initial_checkpoint"]:
             command.extend(["--initial-checkpoint",job["initial_checkpoint"]])
-        write_json(plan_path.parent/"pc-tasks"/f"{stage}-pc{job['pc_slot']}.json",{"pc_slot":job["pc_slot"],"data_version":base["data_version"],"category_version":base["category_version"],"config_sha256":digest(ROOT/job["config"]),"command":command,"job":job})
-    write_json(plan_path.parent/"pc-tasks"/f"{stage}-pc4.json",{"pc_slot":4,"task":"reproduce selected complete head and fine-tune procedure with seed43","status":"waiting_for_primary_selection","data_version":base["data_version"],"category_version":base["category_version"],"command_template":["python","-m","recognition","reproduce","--result","<selected-result.json>","--seed","43"],"must_match":"same frozen data, source snapshot, Python and installed dependencies"})
+        config_path=ROOT/job['config']
+        # Match write_json's UTF-8/platform newline bytes for a new file;
+        # keep the original bytes/hash when the same JSON already exists.
+        encoded=(json.dumps(proposed[config_path],ensure_ascii=False,indent=2)+'\n').replace('\n',os.linesep).encode('utf-8')
+        config_hash=digest(config_path) if config_path.exists() else hashlib.sha256(encoded).hexdigest()
+        proposed[plan_path.parent/"pc-tasks"/f"{stage}-pc{job['pc_slot']}.json"]={"pc_slot":job["pc_slot"],"data_version":base["data_version"],"category_version":base["category_version"],"config_sha256":config_hash,"command":command,"job":job}
+    proposed[plan_path.parent/"pc-tasks"/f"{stage}-pc4.json"]={"pc_slot":4,"task":"reproduce selected complete head and fine-tune procedure with seed43","status":"waiting_for_primary_selection","data_version":base["data_version"],"category_version":base["category_version"],"command_template":["python","-m","recognition","reproduce","--result","<selected-result.json>","--seed","43"],"must_match":"same frozen data, source snapshot, Python and installed dependencies"}
+    # Validate the whole campaign before the first mutation, even for jobs-only
+    # export. A late conflict must not change earlier configs or resume evidence.
+    for path,value in proposed.items():
+        if path.exists() and read_json(path)!=value:
+            raise ValueError('Existing campaign file differs; use a new campaign: '+str(path))
+    for job in jobs:
+        config=proposed[ROOT/job['config']]
+        run=ROOT/'experiments/checkpoints'/job['experiment_id']
+        result=ROOT/'experiments/reports'/job['experiment_id']/'result.json'
+        state=run/'state.json'
+        if run.exists() and not state.exists() and not result.exists():
+            raise ValueError('Existing candidate has no resumable state; use a new campaign')
+        for saved in (result,state):
+            if not saved.exists():
+                continue
+            old=read_json(saved)
+            identity=old['identity']
+            if identity['config']!=config or old.get('config',config)!=config or identity['code_snapshot_sha256']!=snapshot() or identity['data_metadata_sha256']!=digest(ROOT/'data/splits'/config['data_version']/'dataset.json'):
+                raise ValueError('Existing candidate config/code/data differs; use a new campaign')
+            validate_initial_checkpoint(old,job,stage)
+    for path,value in proposed.items():
+        if not path.exists():
+            write_json(path,value)
     if execute:
         for job in jobs:
             finished=ROOT/"experiments/reports"/job["experiment_id"]/"result.json"
             if finished.exists():
-                old=read_json(finished)
-                if old["config"]!=read_json(ROOT/job["config"]) or old["identity"]["code_snapshot_sha256"]!=snapshot() or old["identity"]["data_metadata_sha256"]!=digest(ROOT/"data/splits"/old["config"]["data_version"]/"dataset.json"):
-                    raise ValueError("Existing candidate config/code differs; use a new campaign")
-                validate_initial_checkpoint(old,job,stage)
                 continue
             resume=(ROOT/"experiments/checkpoints"/job["experiment_id"]/"state.json").exists()
             result=train(ROOT/job["config"],job["experiment_id"],resume=resume,initial_checkpoint=ROOT/job["initial_checkpoint"] if job["initial_checkpoint"] else None)

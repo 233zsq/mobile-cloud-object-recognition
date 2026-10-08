@@ -95,7 +95,7 @@ def test_renamed_and_refrozen_field_photos_cannot_be_evaluated_by_another_model(
         def predict_tensor(self,array):
             return np.eye(10,dtype=np.float32)[int(array[0])]
     monkeypatch.setattr(release,'LiteRunner',Runner)
-    monkeypatch.setattr(release,'verify',lambda *args:None)
+    monkeypatch.setattr(release,'verify',lambda *args,**kwargs:None)
     monkeypatch.setattr(release,'prepare',lambda rows:(
         np.array([[int(r['category_id'])] for r in rows]),np.array([int(r['category_id']) for r in rows])))
     result=release.evaluate(tmp_path/'model-a','test','field-v1','model-a')

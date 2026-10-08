@@ -34,7 +34,6 @@ meta=read_json(release/'metadata.json')
 if meta['experiment_id']!=winner['experiment_id'] or meta['checkpoint_sha256']!=winner['checkpoint_sha256'] or (a.formal and meta['status']!='frozen'):
     raise SystemExit('Existing release differs or has failed checks; choose a new version')
 print(verify(release),flush=True)
-evaluation=ROOT/'experiments/reports/evaluations'/a.version/(meta['data_version']+'-validation.json')
-if not evaluation.exists():evaluate(release)
+evaluate(release)
 benchmark(release)
 print('Completed '+str(release)+'; independent field and actual Android/cloud checks remain separate',flush=True)
