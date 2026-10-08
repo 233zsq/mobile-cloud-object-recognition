@@ -1,0 +1,21 @@
+{
+  "at": "2026-10-08T21:15:02+08:00",
+  "data_version": "campus-public-expanded-v1",
+  "dataset_sha256": "d49b776fc1bf33e162353d35357d8bb5d54effbf3c2b9dddf2928fed12d4689a",
+  "splits": {
+    "train": {
+      "samples": 659,
+      "manifest_sha256": "47e2bcfec5e0963e1594f115afe10de858ce684f751c56c1e71ef21e95531e0a",
+      "all_image_hashes_verified": true,
+      "category_version": "campus-10-v2"
+    },
+    "validation": {
+      "samples": 218,
+      "manifest_sha256": "d838ab5e92514ea55db55b3444dd2ebf5e579699561ceb077867baf539e29827",
+      "all_image_hashes_verified": true,
+      "category_version": "campus-10-v2"
+    }
+  },
+  "test_images_read": false,
+  "status": "passed"
+}

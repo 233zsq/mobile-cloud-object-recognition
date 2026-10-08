@@ -1,0 +1,351 @@
+{
+  "run_id": "REPLACE_WITH_UNIQUE_DEVICE_RUN_ID",
+  "mode": "image_chain",
+  "device": "REPLACE_WITH_ACTUAL_DEVICE_OS",
+  "runtime": "REPLACE_WITH_RUNTIME_VERSION_THREADS",
+  "model_sha256": "489032d33f105927f864b906b3679f39af358aef93839b15f73a19c498774e07",
+  "labels_sha256": "19b5879f196651ffc2171d43f9c954c02893d1d2893cc4d19c70bc0b24479871",
+  "input_contract": {
+    "version": "rgb-letterbox-v1",
+    "orientation": "EXIF transpose",
+    "color_order": "RGB",
+    "shape": [
+      1,
+      224,
+      224,
+      3
+    ],
+    "dtype": "float32",
+    "pixel_range": [
+      0,
+      255
+    ],
+    "crop": "none",
+    "resize": "bilinear half_pixel_centers; antialias=false; round half up",
+    "padding": "center; RGB 128; odd remainder right/bottom",
+    "normalization": "inside model: x / 127.5 - 1",
+    "byte_order": "little-endian"
+  },
+  "samples": [
+    {
+      "sample_id": "oi-30d38acdacfe06d0",
+      "scores": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "tensor_file": "oi-30d38acdacfe06d0.bin"
+    },
+    {
+      "sample_id": "commons-101801303",
+      "scores": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "tensor_file": "commons-101801303.bin"
+    },
+    {
+      "sample_id": "commons-67420116",
+      "scores": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "tensor_file": "commons-67420116.bin"
+    },
+    {
+      "sample_id": "oi-968288c82e121f36",
+      "scores": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "tensor_file": "oi-968288c82e121f36.bin"
+    },
+    {
+      "sample_id": "oi-d68f85d27f38f4ae",
+      "scores": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "tensor_file": "oi-d68f85d27f38f4ae.bin"
+    },
+    {
+      "sample_id": "oi-48dfa3049039bdc3",
+      "scores": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "tensor_file": "oi-48dfa3049039bdc3.bin"
+    },
+    {
+      "sample_id": "oi-34b0bbc8824f3225",
+      "scores": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "tensor_file": "oi-34b0bbc8824f3225.bin"
+    },
+    {
+      "sample_id": "commons-3926181",
+      "scores": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "tensor_file": "commons-3926181.bin"
+    },
+    {
+      "sample_id": "oi-65312e4ca5a6f947",
+      "scores": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "tensor_file": "oi-65312e4ca5a6f947.bin"
+    },
+    {
+      "sample_id": "commons-14491855",
+      "scores": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "tensor_file": "commons-14491855.bin"
+    },
+    {
+      "sample_id": "commons-112602361",
+      "scores": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "tensor_file": "commons-112602361.bin"
+    },
+    {
+      "sample_id": "commons-112602362",
+      "scores": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "tensor_file": "commons-112602362.bin"
+    },
+    {
+      "sample_id": "oi-04148d451d34d720",
+      "scores": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "tensor_file": "oi-04148d451d34d720.bin"
+    },
+    {
+      "sample_id": "commons-73831530",
+      "scores": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "tensor_file": "commons-73831530.bin"
+    },
+    {
+      "sample_id": "commons-114076786",
+      "scores": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "tensor_file": "commons-114076786.bin"
+    },
+    {
+      "sample_id": "commons-97158659",
+      "scores": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "tensor_file": "commons-97158659.bin"
+    },
+    {
+      "sample_id": "commons-125037354",
+      "scores": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "tensor_file": "commons-125037354.bin"
+    },
+    {
+      "sample_id": "commons-59318655",
+      "scores": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "tensor_file": "commons-59318655.bin"
+    },
+    {
+      "sample_id": "oi-c028944212bdc80c",
+      "scores": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "tensor_file": "oi-c028944212bdc80c.bin"
+    },
+    {
+      "sample_id": "oi-dc747e1d542bf243",
+      "scores": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "tensor_file": "oi-dc747e1d542bf243.bin"
+    }
+  ]
+}

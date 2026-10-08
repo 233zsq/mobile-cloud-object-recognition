@@ -1,0 +1,22 @@
+{
+  "pc_slot": 3,
+  "data_version": "campus-public-pilot-v1",
+  "category_version": "campus-10-v2",
+  "config_sha256": "de87212cb1fb9b8f2196595f0913240002f4531304398d81b21b8e4d7b3cacbf",
+  "command": [
+    "python",
+    "-m",
+    "recognition",
+    "train",
+    "--config",
+    "ml/configs/generated/pilot-cpu-20261007/pilot-cpu-20261007-learning_rate-3.json",
+    "--experiment",
+    "pilot-cpu-20261007-learning_rate-3"
+  ],
+  "job": {
+    "experiment_id": "pilot-cpu-20261007-learning_rate-3",
+    "config": "ml/configs/generated/pilot-cpu-20261007/pilot-cpu-20261007-learning_rate-3.json",
+    "pc_slot": 3,
+    "initial_checkpoint": null
+  }
+}

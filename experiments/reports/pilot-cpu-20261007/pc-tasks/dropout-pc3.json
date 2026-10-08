@@ -1,0 +1,22 @@
+{
+  "pc_slot": 3,
+  "data_version": "campus-public-pilot-v1",
+  "category_version": "campus-10-v2",
+  "config_sha256": "c683740f69f8fb886115a009d3909e5406734763513c7a22a0fc2fe98d57984a",
+  "command": [
+    "python",
+    "-m",
+    "recognition",
+    "train",
+    "--config",
+    "ml/configs/generated/pilot-cpu-20261007/pilot-cpu-20261007-dropout-3.json",
+    "--experiment",
+    "pilot-cpu-20261007-dropout-3"
+  ],
+  "job": {
+    "experiment_id": "pilot-cpu-20261007-dropout-3",
+    "config": "ml/configs/generated/pilot-cpu-20261007/pilot-cpu-20261007-dropout-3.json",
+    "pc_slot": 3,
+    "initial_checkpoint": null
+  }
+}

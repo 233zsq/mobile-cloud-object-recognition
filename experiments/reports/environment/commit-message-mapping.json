@@ -1,0 +1,31 @@
+{
+  "branch": "feat/ml-baseline",
+  "purpose": "Only commit subjects changed to Chinese; artifact metadata keeps its original experiment commit IDs. Use the mapped reachable commit with the identical tree for source verification.",
+  "local_recovery_ref": "refs/codex/local-backups/ml-english-subjects-20261007",
+  "commits": [
+    {
+      "original_commit": "a64f5f755ed81dacd03e3163a5a1a5191f3c24b7",
+      "published_equivalent_commit": "0feb8ae413f55b4a608ea61d90668e9d5e829b3e",
+      "subject": "feat:实现可复现模型训练和交接工具链",
+      "tree_sha1": "c8d8907d22a2adc5b89e25165e33b6c7d61ef92d",
+      "tree_unchanged": true,
+      "original_commit_object_base64": "dHJlZSBjOGQ4OTA3ZDIyYTJhZGM1Yjg5ZTI1MTY1ZTMzYjZjN2Q2MWVmOTJkCnBhcmVudCBjYTQ3ZTBlZGZmNGM4NGJkZDU5N2I5N2Y2MzQzNzMyYjc4ZDY4MGMxCmF1dGhvciAyMzN6c3EgPHpoZW5zaGVucWkyMzNAb3V0bG9vay5jb20+IDE3OTEzNzcwMDUgKzA4MDAKY29tbWl0dGVyIDIzM3pzcSA8emhlbnNoZW5xaTIzM0BvdXRsb29rLmNvbT4gMTc5MTM3NzAwNSArMDgwMAoKZmVhdChtbCk6IGltcGxlbWVudCByZXByb2R1Y2libGUgdHJhaW5pbmcgYW5kIG1vZGVsIGhhbmRvdmVyIHdvcmtmbG93Cg=="
+    },
+    {
+      "original_commit": "f445d336cbfa4a8ef49e2cb387a3d0d64f86746e",
+      "published_equivalent_commit": "89ec349d78b7910d5ffabf39c32aecd1922a5d62",
+      "subject": "feat:冻结审核数据并交付CPU试验模型",
+      "tree_sha1": "546bd7b1c9f74ebc203fb611fa77ef420b8fc555",
+      "tree_unchanged": true,
+      "original_commit_object_base64": "dHJlZSA1NDZiZDdiMWM5Zjc0ZWJjMjAzZmI2MTFmYTc3ZWY0MjBiOGZjNTU1CnBhcmVudCBhNjRmNWY3NTVlZDgxZGFjZDAzZTMxNjNhNWExYTUxOTFmM2MyNGI3CmF1dGhvciAyMzN6c3EgPHpoZW5zaGVucWkyMzNAb3V0bG9vay5jb20+IDE3OTEzNzk2NjkgKzA4MDAKY29tbWl0dGVyIDIzM3pzcSA8emhlbnNoZW5xaTIzM0BvdXRsb29rLmNvbT4gMTc5MTM3OTY2OSArMDgwMAoKZmVhdChtbCk6IGZyZWV6ZSByZXZpZXdlZCBkYXRhIGFuZCB2YWxpZGF0ZWQgQ1BVIG1vZGVsIGRlbGl2ZXJ5Cg=="
+    },
+    {
+      "original_commit": "8c8fcff635f02e1b789ea5bc861a31ce3989d895",
+      "published_equivalent_commit": "7d67fca4a8cd51141f27bf5ce04ab8050702871e",
+      "subject": "docs:记录重启后手动继续GPU训练",
+      "tree_sha1": "73da2f8ec78b9fd798c3715ed7a287b11120e796",
+      "tree_unchanged": true,
+      "original_commit_object_base64": "dHJlZSA3M2RhMmY4ZWM3OGI5ZmQ3OThjMzcxNWVkN2EyODdiMTExMjBlNzk2CnBhcmVudCBmNDQ1ZDMzNmNiZmE0YThlZjQ5ZTJjYjM4N2EzZDBkNjRmODY3NDZlCmF1dGhvciAyMzN6c3EgPHpoZW5zaGVucWkyMzNAb3V0bG9vay5jb20+IDE3OTEzNzk4MDQgKzA4MDAKY29tbWl0dGVyIDIzM3pzcSA8emhlbnNoZW5xaTIzM0BvdXRsb29rLmNvbT4gMTc5MTM3OTgwNCArMDgwMAoKZG9jcyhtbCk6IHJlY29yZCB1c2VyLXNlbGVjdGVkIG1hbnVhbCBHUFUgY29udGludWF0aW9uCg=="
+    }
+  ]
+}

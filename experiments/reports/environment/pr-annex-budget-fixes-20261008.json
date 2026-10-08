@@ -1,0 +1,47 @@
+{
+  "at": "2026-10-08T18:14:24+08:00",
+  "reviewed_head": "020f785bb9e5ff0029ce7765ea7ffcb4e60dd625",
+  "source_snapshot_sha256": "46b9c91f7c25f35bcc2634005fb8efd073cc32db71ced769ae39fbcd855c7749",
+  "resolved_findings": [
+    {
+      "finding": "Field-test annex invalidates cached validation evaluation",
+      "resolution": "Stable release identity excludes appended acceptance/field-test evidence while protecting model, labels, preprocessing, threshold and training identity; legacy reports recover a hash-verified original metadata snapshot from annex journals",
+      "regressions": [
+        "validation then field test then cached validation with no new predictions",
+        "completed and interrupted validation, current and legacy report formats",
+        "changed threshold/input/category/checkpoint rejected after annex"
+      ]
+    },
+    {
+      "finding": "Interrupted train-index scans reset the cumulative download budget",
+      "resolution": "One durable locked ledger for train and small indexes; reserve each bounded read before IO, reconcile successful byte counts and retain uncertain interrupted reservations",
+      "regressions": [
+        "disconnect then retry shares remaining budget",
+        "train inherits previously downloaded small-index bytes",
+        "process interruption retains reservation before read",
+        "known response size refused before body exceeds remaining quota",
+        "bounded reads and exact-budget cached reuse",
+        "successful train scans and legacy scan migration counted once"
+      ]
+    }
+  ],
+  "full_tests": {
+    "passed": 84,
+    "seconds": 32.47,
+    "command": ".venv/Scripts/python.exe -m pytest ml/tests -q --basetemp experiments/checkpoints/pytest-annex-budget-verified-20261008 --tb=short",
+    "warnings": "797 existing Keras NumPy copy deprecation and fresh empty Adam slot warnings; optimizer/Dropout continuation passes"
+  },
+  "standalone_litert_verify": {
+    "passed": true,
+    "examples": 20,
+    "max_score_difference": 0,
+    "runtime": "ai-edge-litert"
+  },
+  "preserved_cpu_artifacts": {
+    "model_sha256": "7bde6b570248b2795f6165a12d7bf763615ae2763c16ed17862da8cac5bc3558",
+    "dataset_sha256": "d49b776fc1bf33e162353d35357d8bb5d54effbf3c2b9dddf2928fed12d4689a",
+    "training_results_and_release_metadata": "unchanged"
+  },
+  "collection_regression_network": "mocked responses only; no new public indexes or photos downloaded",
+  "formal_gpu_field_and_device_acceptance": "pending; these regressions use isolated test fixtures"
+}

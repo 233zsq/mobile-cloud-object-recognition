@@ -1,0 +1,375 @@
+{
+  "experiment_id": "pilot-cpu-20261007-fine_tune-3",
+  "status": "complete",
+  "config": {
+    "schema_version": 1,
+    "architecture": "MobileNetV2",
+    "pretrained_weights": "imagenet",
+    "alpha": 1.0,
+    "input_shape": [
+      224,
+      224,
+      3
+    ],
+    "num_classes": 10,
+    "learning_rate": 0.0001,
+    "dropout": 0.4,
+    "batch_size": 32,
+    "max_epochs": 20,
+    "patience": 3,
+    "fine_tune_scope": "last_2",
+    "seed": 42,
+    "data_version": "campus-public-pilot-v1",
+    "category_version": "campus-10-v2",
+    "stop_hour": 23,
+    "augmentation": true,
+    "smoke": false
+  },
+  "identity": {
+    "config": {
+      "schema_version": 1,
+      "architecture": "MobileNetV2",
+      "pretrained_weights": "imagenet",
+      "alpha": 1.0,
+      "input_shape": [
+        224,
+        224,
+        3
+      ],
+      "num_classes": 10,
+      "learning_rate": 0.0001,
+      "dropout": 0.4,
+      "batch_size": 32,
+      "max_epochs": 20,
+      "patience": 3,
+      "fine_tune_scope": "last_2",
+      "seed": 42,
+      "data_version": "campus-public-pilot-v1",
+      "category_version": "campus-10-v2",
+      "stop_hour": 23,
+      "augmentation": true,
+      "smoke": false
+    },
+    "data_metadata_sha256": "d11b3ff1e764fe87fa6199dee59b6072b6c9d27d5edd88a6b9585a855a67ac06",
+    "code_snapshot_sha256": "38cce368f7892e9d88db8e1bb93b3270652cb3243bc0bd6626749a47c5f92b81",
+    "initial_checkpoint_sha256": "b0ac9263b4bf09fc4fd85b486a3162edc2e95ec5b8390aee48809538ddb9cdf1"
+  },
+  "validation": {
+    "accuracy": 0.8671875,
+    "macro_f1": 0.825014203816206,
+    "loss": 0.5616681575775146,
+    "classification_report": {
+      "cup": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 24.0
+      },
+      "umbrella": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 3.0
+      },
+      "book": {
+        "precision": 0.75,
+        "recall": 0.75,
+        "f1-score": 0.75,
+        "support": 4.0
+      },
+      "pencil_case": {
+        "precision": 0.7222222222222222,
+        "recall": 1.0,
+        "f1-score": 0.8387096774193549,
+        "support": 26.0
+      },
+      "mouse": {
+        "precision": 0.9230769230769231,
+        "recall": 0.75,
+        "f1-score": 0.8275862068965517,
+        "support": 16.0
+      },
+      "keyboard": {
+        "precision": 1.0,
+        "recall": 0.6666666666666666,
+        "f1-score": 0.8,
+        "support": 9.0
+      },
+      "earphones": {
+        "precision": 0.8,
+        "recall": 0.8421052631578947,
+        "f1-score": 0.8205128205128205,
+        "support": 19.0
+      },
+      "charger": {
+        "precision": 1.0,
+        "recall": 0.2,
+        "f1-score": 0.3333333333333333,
+        "support": 5.0
+      },
+      "key": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 9.0
+      },
+      "backpack": {
+        "precision": 0.9166666666666666,
+        "recall": 0.8461538461538461,
+        "f1-score": 0.88,
+        "support": 13.0
+      },
+      "accuracy": 0.8671875,
+      "macro avg": {
+        "precision": 0.9111965811965812,
+        "recall": 0.8054925775978408,
+        "f1-score": 0.825014203816206,
+        "support": 128.0
+      },
+      "weighted avg": {
+        "precision": 0.8879974626068378,
+        "recall": 0.8671875,
+        "f1-score": 0.8589393842160806,
+        "support": 128.0
+      }
+    },
+    "confusion_matrix": [
+      [
+        24,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        3,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        3,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        26,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        3,
+        12,
+        0,
+        1,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        1,
+        1,
+        0,
+        6,
+        1,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        2,
+        0,
+        0,
+        16,
+        0,
+        0,
+        1
+      ],
+      [
+        0,
+        0,
+        0,
+        1,
+        1,
+        0,
+        2,
+        1,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        9,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        11
+      ]
+    ],
+    "sample_count": 128
+  },
+  "threshold": {
+    "threshold": 0.55,
+    "status": "validation_selected",
+    "source": "validation only",
+    "candidates": [
+      {
+        "threshold": 0.5,
+        "count": 121,
+        "coverage": 0.9453125,
+        "accuracy": 0.8842975206611571
+      },
+      {
+        "threshold": 0.55,
+        "count": 116,
+        "coverage": 0.90625,
+        "accuracy": 0.9051724137931034
+      },
+      {
+        "threshold": 0.6,
+        "count": 114,
+        "coverage": 0.890625,
+        "accuracy": 0.9035087719298246
+      },
+      {
+        "threshold": 0.65,
+        "count": 111,
+        "coverage": 0.8671875,
+        "accuracy": 0.918918918918919
+      },
+      {
+        "threshold": 0.7,
+        "count": 107,
+        "coverage": 0.8359375,
+        "accuracy": 0.9345794392523364
+      },
+      {
+        "threshold": 0.75,
+        "count": 104,
+        "coverage": 0.8125,
+        "accuracy": 0.9326923076923077
+      },
+      {
+        "threshold": 0.8,
+        "count": 99,
+        "coverage": 0.7734375,
+        "accuracy": 0.9292929292929293
+      },
+      {
+        "threshold": 0.85,
+        "count": 93,
+        "coverage": 0.7265625,
+        "accuracy": 0.9247311827956989
+      },
+      {
+        "threshold": 0.9,
+        "count": 93,
+        "coverage": 0.7265625,
+        "accuracy": 0.9247311827956989
+      },
+      {
+        "threshold": 0.95,
+        "count": 82,
+        "coverage": 0.640625,
+        "accuracy": 0.9512195121951219
+      }
+    ]
+  },
+  "best_epoch": 1,
+  "checkpoint": "experiments\\checkpoints\\pilot-cpu-20261007-fine_tune-3\\best.keras",
+  "checkpoint_sha256": "d91be571386522dc56021592aedf32c0b582f21d32f750749b803af06f43296c",
+  "environment": {
+    "python": "3.13.0",
+    "tensorflow": "2.21.0",
+    "keras": "3.12.1",
+    "gpu": [],
+    "platform": "Windows-11-10.0.26200-SP0",
+    "dependencies_sha256": "96d1c9594ba665c2f28eb4010e25ff21edc519b8fba261abe066a8eddfe761d7"
+  },
+  "code_commit": "ca47e0edff4c84bdd597b97f6343732b78d680c1",
+  "started_at": "2026-10-07T18:47:24+08:00",
+  "training_seconds": 19.073374199986574,
+  "history": [
+    {
+      "epoch": 1,
+      "training_loss": 0.12897737324237823,
+      "validation_accuracy": 0.8671875,
+      "validation_macro_f1": 0.825014203816206,
+      "validation_loss": 0.5616681575775146,
+      "seconds": 7.141500099998666
+    },
+    {
+      "epoch": 2,
+      "training_loss": 0.07465798407793045,
+      "validation_accuracy": 0.8359375,
+      "validation_macro_f1": 0.7455838676198716,
+      "validation_loss": 0.574519157409668,
+      "seconds": 3.9462291999952868
+    },
+    {
+      "epoch": 3,
+      "training_loss": 0.024986915290355682,
+      "validation_accuracy": 0.8359375,
+      "validation_macro_f1": 0.7658893762183236,
+      "validation_loss": 0.5730021595954895,
+      "seconds": 4.016450299997814
+    },
+    {
+      "epoch": 4,
+      "training_loss": 0.026380395516753197,
+      "validation_accuracy": 0.8515625,
+      "validation_macro_f1": 0.7970249152292496,
+      "validation_loss": 0.6030110716819763,
+      "seconds": 3.9691945999948075
+    }
+  ]
+}

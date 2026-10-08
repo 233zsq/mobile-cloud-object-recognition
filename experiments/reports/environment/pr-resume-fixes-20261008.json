@@ -1,0 +1,46 @@
+{
+  "at": "2026-10-08T16:01:18+08:00",
+  "reviewed_head": "78300e4cb568b319af518d13a5a71028e2c1ebdc",
+  "source_snapshot_sha256": "b1dbab66b860b5552e8e708b57b1c60428576091541c031fa96cd910cc99d14e",
+  "resolved_findings": [
+    {
+      "finding": "sweep overwrites campaign files before detecting conflicts",
+      "resolution": "Preflight every config, task, result and resume identity before writing; preserve unchanged bytes and require a new campaign on conflict",
+      "regressions": [
+        "changed epochs with execute false/true",
+        "late task/result/state conflict leaves every file unchanged",
+        "identical campaign resumes without file rewrites"
+      ]
+    },
+    {
+      "finding": "evaluation report blocks recovery of interrupted handover",
+      "resolution": "Immutable first predictions and metrics; validate cached identities, resume rendering and journaled package updates, mark completion separately",
+      "regressions": [
+        "plot interruption",
+        "package manifest interruption after metadata update",
+        "no repeated independent test prediction or report rewrite",
+        "changed model/labels/manifest/sample/threshold rejected",
+        "model/labels/golden hash checks remain active during recovery"
+      ]
+    }
+  ],
+  "full_tests": {
+    "passed": 69,
+    "seconds": 30.49,
+    "command": ".venv/Scripts/python.exe -m pytest ml/tests -q --basetemp experiments/checkpoints/pytest-resume-final-20261008 --tb=short",
+    "warnings": "797 existing Keras NumPy copy deprecation and fresh empty Adam slot warnings; optimizer/Dropout continuation passes"
+  },
+  "standalone_litert_verify": {
+    "passed": true,
+    "examples": 20,
+    "max_score_difference": 0,
+    "runtime": "ai-edge-litert",
+    "tensorflow_installed": false
+  },
+  "preserved_cpu_artifacts": {
+    "model_sha256": "7bde6b570248b2795f6165a12d7bf763615ae2763c16ed17862da8cac5bc3558",
+    "dataset_sha256": "d49b776fc1bf33e162353d35357d8bb5d54effbf3c2b9dddf2928fed12d4689a",
+    "training_results_and_release_metadata": "unchanged"
+  },
+  "formal_gpu_field_and_device_acceptance": "pending; regression cases use isolated synthetic fixtures"
+}

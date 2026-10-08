@@ -1,0 +1,20 @@
+{
+  "at": "2026-10-07T18:57:33+08:00",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "processor": "Intel64 Family 6 Model 183 Stepping 1, GenuineIntel",
+  "runtime": "ai-edge-litert",
+  "threads": 1,
+  "warmup": 20,
+  "iterations": 100,
+  "model_bytes": 8939040,
+  "inference_ms": {
+    "p50": 9.646149999753106,
+    "p95": 10.361465001187753
+  },
+  "preprocess_and_inference_ms": {
+    "p50": 27.025750001484994,
+    "p95": 38.49901499270345
+  },
+  "network_wait_ms": null,
+  "location": "local CPU; not actual cloud or Android"
+}

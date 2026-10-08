@@ -1,0 +1,28 @@
+{
+  "at": "2026-10-08T20:54:58.015237+08:00",
+  "status": "wsl2_prerequisites_passed_ubuntu_installed_gpu_driver_visible",
+  "wsl_version": "3.0.1.0",
+  "kernel": "6.18.40.1-1",
+  "distribution": "Ubuntu-24.04",
+  "ubuntu_release": "24.04.5 LTS",
+  "python": "3.12.3",
+  "gpu_driver_probe": {
+    "name": "NVIDIA GeForce RTX 4060 Laptop GPU",
+    "memory_mib": 8188,
+    "windows_driver": "592.82"
+  },
+  "component_restart_pending": false,
+  "vmcompute_present": true,
+  "gpu_gradient_validated": false,
+  "formal_training_started": false,
+  "linux_commands_run_as": "root for installation and initial validation; no personal password collected",
+  "cpu_environment_snapshot": {
+    "directory": "experiments/reports/environment/history/windows-cpu-before-wsl-20261008",
+    "sha256": {
+      "doctor.json": "358c92942a32bb3cf22e35e2bb730b9eed9c406473e764f1738af775e237a57a",
+      "preflight.json": "34a9d10a358697dddf1e4b371799bc3fb5fdb7524e69bcd3d1d5ce7fbddfeb89"
+    }
+  },
+  "automatic_restart": false,
+  "automation_created": false
+}

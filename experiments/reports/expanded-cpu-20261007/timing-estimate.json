@@ -1,0 +1,11 @@
+{
+  "at": "2026-10-07T20:32:31+08:00",
+  "measured_run": "expanded-cpu-20261007-learning_rate-1",
+  "first_epoch_seconds": 35.50178919998871,
+  "steady_epoch_seconds": 11.472969933332125,
+  "candidate_count": 9,
+  "max_epochs_per_candidate": 20,
+  "seed43_repeat_budget_epochs": 40,
+  "epoch_compute_estimate_seconds": 2524.0533853330676,
+  "estimate_note": "Initial compile, per-run data preparation, Keras checkpoint IO and conversion add overhead; early stopping shortens compute. Estimate 40–55 minutes total CPU campaign, actual duration saved per run."
+}

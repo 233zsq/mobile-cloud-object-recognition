@@ -1,0 +1,11 @@
+{
+  "passed": true,
+  "example_count": 20,
+  "max_score_difference": 0,
+  "runtime": "ai-edge-litert",
+  "model_status": "experimental",
+  "at": "2026-10-07T18:39:41+08:00",
+  "tensorflow_installed": false,
+  "environment": ".venv-runtime",
+  "release": "pilot-cpu-baseline-v1"
+}

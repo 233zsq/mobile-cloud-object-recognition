@@ -1,0 +1,16 @@
+{
+  "at": "2026-10-07T18:15:18+08:00",
+  "source_split": "public-test",
+  "project_final_test_used": false,
+  "index_bytes_cumulative": 1195834724,
+  "counts": {
+    "cup": 103,
+    "umbrella": 43,
+    "book": 108,
+    "mouse": 50,
+    "keyboard": 94,
+    "earphones": 80,
+    "backpack": 61
+  },
+  "status": "requires_visual_review"
+}

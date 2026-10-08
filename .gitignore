@@ -44,6 +44,9 @@ coverage/
 
 # Python environments and caches
 .venv/
+.venv-wsl
+.venv-runtime/
+.venv-runtime-wsl
 venv/
 __pycache__/
 *.py[cod]
@@ -83,6 +86,15 @@ backups/
 !/experiments/checkpoints/.gitkeep
 /experiments/logs/**
 !/experiments/logs/.gitkeep
+
+# Preview contact sheets include raw candidate photos and attribution stays in manifests
+/experiments/reports/audit/*.png
+/experiments/reports/evaluations/*/*-errors.png
+/models/releases/**/examples/*.jpg
+/models/releases/**/examples/*.jpeg
+/models/releases/**/examples/*.png
+/models/releases/**/examples/*.webp
+/models/releases/**/examples/*.bin
 
 # Large delivery archives and recordings; store separately
 *.zip

@@ -1,0 +1,26 @@
+{
+  "campaign": "expanded-gpu-20261008",
+  "stage": "learning_rate",
+  "jobs": [
+    {
+      "experiment_id": "expanded-gpu-20261008-learning_rate-1",
+      "config": "ml/configs/generated/expanded-gpu-20261008/expanded-gpu-20261008-learning_rate-1.json",
+      "pc_slot": 1,
+      "initial_checkpoint": null
+    },
+    {
+      "experiment_id": "expanded-gpu-20261008-learning_rate-2",
+      "config": "ml/configs/generated/expanded-gpu-20261008/expanded-gpu-20261008-learning_rate-2.json",
+      "pc_slot": 2,
+      "initial_checkpoint": null
+    },
+    {
+      "experiment_id": "expanded-gpu-20261008-learning_rate-3",
+      "config": "ml/configs/generated/expanded-gpu-20261008/expanded-gpu-20261008-learning_rate-3.json",
+      "pc_slot": 3,
+      "initial_checkpoint": null
+    }
+  ],
+  "pc_4": "reproduction/development; does not share GPU memory",
+  "previous_summary": null
+}

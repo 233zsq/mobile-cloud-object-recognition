@@ -1,0 +1,20 @@
+{
+  "at": "2026-10-08T21:44:45+08:00",
+  "platform": "Linux-6.18.40.1-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "processor": "x86_64",
+  "runtime": "ai-edge-litert",
+  "threads": 1,
+  "warmup": 20,
+  "iterations": 100,
+  "model_bytes": 8939036,
+  "inference_ms": {
+    "p50": 5.923838000001069,
+    "p95": 6.660817549996523
+  },
+  "preprocess_and_inference_ms": {
+    "p50": 21.339055500007476,
+    "p95": 24.699203299989847
+  },
+  "network_wait_ms": null,
+  "location": "local CPU; not actual cloud or Android"
+}

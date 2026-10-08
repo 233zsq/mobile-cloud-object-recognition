@@ -1,0 +1,54 @@
+{
+  "at": "2026-10-08T15:20:40+08:00",
+  "reviewed_head": "674872f7a3588447d546ce6e008c9ad3e12180e9",
+  "source_snapshot_sha256": "b8fa71faef55d5210900a851af0674a417bf6375c6c90b4a799f4e2b34a6372e",
+  "resolved_findings": [
+    {
+      "finding": "Split ignores audited group when object_id exists",
+      "resolution": "Connected components across namespaced object_id/group_id, preserving both original fields",
+      "regressions": [
+        "same audited group with different objects",
+        "transitive object/group bridge",
+        "separate ID namespaces",
+        "connected label conflict"
+      ]
+    },
+    {
+      "finding": "A renamed/refrozen field version bypasses model binding",
+      "resolution": "Persist tested image SHA-256 identities and reject any overlap for another model; recover legacy identities only from original hash-verified test.csv",
+      "regressions": [
+        "200-photo evaluation then renamed/reordered refreeze rejected before prediction",
+        "partial photo overlap",
+        "legacy manifest lookup",
+        "unavailable history blocks evaluation"
+      ]
+    },
+    {
+      "finding": "Expanded CPU report overwrites current release",
+      "resolution": "Historical writers only generate historical chapters and use that release category table",
+      "regressions": [
+        "both writers preserve CPU selection and frozen GPU selection, hashes and acceptance"
+      ]
+    }
+  ],
+  "targeted_tests": {
+    "passed": 13,
+    "seconds": 4.87
+  },
+  "full_tests": {
+    "passed": 53,
+    "seconds": 48.8,
+    "command": ".venv/Scripts/python.exe -m pytest ml/tests -q --basetemp experiments/checkpoints/pytest-pr-review-final-20261008",
+    "warnings": "Existing Keras NumPy copy deprecation and fresh empty Adam slot warning; trained optimizer/Dropout continuation checked"
+  },
+  "preserved_cpu_artifacts": {
+    "data_version": "campus-public-expanded-v1",
+    "train": 659,
+    "validation": 218,
+    "dataset_sha256": "d49b776fc1bf33e162353d35357d8bb5d54effbf3c2b9dddf2928fed12d4689a",
+    "frozen_manifest_image_hashes_and_group_isolation": "passed",
+    "model_sha256": "7bde6b570248b2795f6165a12d7bf763615ae2763c16ed17862da8cac5bc3558",
+    "original_training_results_and_release_metadata": "unchanged"
+  },
+  "formal_gpu_field_and_device_acceptance": "pending as recorded; this regression run uses isolated test fixtures"
+}

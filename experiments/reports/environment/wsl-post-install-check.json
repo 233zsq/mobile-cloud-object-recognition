@@ -1,0 +1,30 @@
+[
+  {
+    "command": [
+      "wsl.exe",
+      "--version"
+    ],
+    "exit_code": 0,
+    "stdout": "WSL 版本: 3.0.1.0\r\n内核版本: 6.18.40.1-1\r\nWSLg 版本: 1.0.79\r\nMSRDC 版本: 1.2.7214\r\nDirect3D 版本: 1.611.1-81528511\r\nDXCore 版本: 10.0.26100.1-240331-1435.ge-release\r\nWindows 版本: 10.0.26200.9550\r\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "wsl.exe",
+      "--status"
+    ],
+    "exit_code": 4294967295,
+    "stdout": "拒绝访问。 \r\n错误代码： Wsl/E_ACCESSDENIED\r\n如果此错误是意外错误，请考虑搜索现有问题或在 https://github.com/microsoft/WSL/issues 提交新问题。\r\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "wsl.exe",
+      "-l",
+      "-v"
+    ],
+    "exit_code": 4294967295,
+    "stdout": "拒绝访问。 \r\n错误代码： Wsl/E_ACCESSDENIED\r\n如果此错误是意外错误，请考虑搜索现有问题或在 https://github.com/microsoft/WSL/issues 提交新问题。\r\n",
+    "stderr": ""
+  }
+]
