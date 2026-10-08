@@ -4,7 +4,7 @@
 
 | 模块 | 需要登记的信息 | 实际版本/设备 | 验证结果与日期 |
 | --- | --- | --- | --- |
-| Android | Android Studio、JDK、Gradle、AGP、compile/min/target SDK | 开发命令行 JDK 24.0.1；Gradle 9.4.1；AGP 9.2.1；compileSdk 37 / minSdk 26 / targetSdk 36；Kotlin 2.2.10（构建通过 2026-10-07） | 构建+单测通过，待真机安装验证 |
+| Android | Android Studio、Kotlin及相关编译插件、JDK、Gradle、AGP、compile/min/target SDK | 开发命令行 JDK 24.0.1；Gradle 9.4.1；AGP 9.2.1；Kotlin 2.2.10；KSP 2.3.12；compileSdk 37 / minSdk 26 / targetSdk 36（构建通过 2026-10-07） | 构建+单测通过，待真机安装验证 |
 | Android 依赖 | CameraX、Room、tflite/LiteRT 与网络库 | CameraX 1.6.2；Room 2.8.5（KSP 2.3.12）；LiteRT 1.4.1（`org.tensorflow.lite` API）；Retrofit 3.0.0 + OkHttp 5.5.0；WorkManager 2.12.0；DataStore 1.2.1；kotlinx-serialization 1.11.0；Compose BOM 2026.09.00（见 android/gradle/libs.versions.toml） | 版本锁定待真机回归后冻结 |
 | 真机 | 型号、Android 版本、处理器、内存 | 待填写（Android 8.0+ 均在兼容范围，minSdk 26） | 待验证 |
 | 后端 | Python、Flask、SQLAlchemy、PyMySQL、依赖与配置加载方式 | 待填写 | 待验证 |

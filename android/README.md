@@ -2,9 +2,9 @@
 
 负责人：Android 开发负责人（刘亮）。
 
-**当前状态：App 首版可构建。** Kotlin + Jetpack Compose 实现（经组内确认采用 Kotlin，
-计划书 1.4 的「Java」按泛指理解；如需严格一致需另行讨论），CameraX 采集、LiteRT 端侧推理、
-Room 本地记录、Retrofit 上报与补传均已实现，依赖版本见 `docs/environment.md`。
+**当前状态：App 首版可构建。** 采用 Kotlin + Jetpack Compose（计划书已同步切换为 Kotlin），
+CameraX 采集、LiteRT 端侧推理、Room 本地记录、Retrofit 上报与补传均已实现，
+依赖版本见 `docs/environment.md`。
 
 ## 构建
 
@@ -21,6 +21,8 @@ cd android
 安装：`adb install -r app/build/outputs/apk/debug/app-debug.apk` 或直接传 APK 安装。
 
 ## 目录与职责
+
+Kotlin 源码按 Android 约定放在 `java/` 目录下（`.kt` 文件），包名为 `com.mobilecloud.recognition`。
 
 | 目录 | 用途 |
 | --- | --- |
