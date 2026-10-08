@@ -216,3 +216,61 @@ def test_pending_evaluation_refuses_changed_identity(evaluation, monkeypatch, ch
     with pytest.raises(ValueError, match='identity|different model'):
         release.evaluate(bundle, 'test', 'field-v1', meta['sha256'])
     assert report.read_bytes() == evidence and len(calls) == 200
+
+
+@pytest.mark.parametrize('interrupted', [False, True])
+@pytest.mark.parametrize('legacy', [False, True])
+def test_validation_reused_after_field_annex_without_new_predictions(evaluation, monkeypatch, interrupted, legacy):
+    bundle, field_report, rows, data, calls = evaluation
+    import matplotlib.figure
+    validation = [{**r, 'sample_id': 'val-' + r['sample_id']} for r in rows[::10]]
+    data['files']['validation'] = {'sha256': 'validation-manifest'}
+    monkeypatch.setattr(release, 'load_split', lambda version, split, **k:
+                        (rows if split == 'test' else validation if split == 'validation' else [], data))
+    original = matplotlib.figure.Figure.savefig
+    if interrupted:
+        monkeypatch.setattr(matplotlib.figure.Figure, 'savefig', lambda *a, **k:
+                            (_ for _ in ()).throw(RuntimeError('validation plot interrupted')))
+        with pytest.raises(RuntimeError):
+            release.evaluate(bundle)
+        monkeypatch.setattr(matplotlib.figure.Figure, 'savefig', original)
+    else:
+        release.evaluate(bundle)
+    report = field_report.with_name('training-v1-validation.json')
+    if legacy:
+        old = common.read_json(report)
+        old.pop('release_identity_sha256', None)
+        common.write_json(report, old)
+        completion = report.with_name(report.stem + '-completion.json')
+        if completion.exists():
+            marker = common.read_json(completion)
+            marker['report_sha256'] = common.digest(report)
+            common.write_json(completion, marker)
+    evidence = report.read_bytes()
+    metadata_before = common.digest(bundle / 'metadata.json')
+    release.evaluate(bundle, 'test', 'field-v1', 'model-one')
+    assert metadata_before != common.digest(bundle / 'metadata.json')
+    predictions_before = len(calls)
+    monkeypatch.setattr(release, 'prepare', lambda *a: pytest.fail('Cached validation must not predict again'))
+    result = release.evaluate(bundle)
+    assert result == common.read_json(report)
+    assert report.read_bytes() == evidence and len(calls) == predictions_before
+    assert common.read_json(report.with_name(report.stem + '-completion.json'))['report_sha256'] == common.digest(report)
+
+
+@pytest.mark.parametrize('key,value', [
+    ('low_confidence_threshold', .85), ('input', {'normalization': 'wrong'}),
+    ('category_version', 'changed-classes'), ('checkpoint_sha256', 'another-checkpoint')])
+def test_appended_acceptance_does_not_allow_changed_model_contract(evaluation, monkeypatch, key, value):
+    bundle, report, _, _, calls = evaluation
+    release.evaluate(bundle, 'test', 'field-v1', 'model-one')
+    evidence = report.read_bytes()
+    metadata = common.read_json(bundle / 'metadata.json')
+    metadata[key] = value
+    common.write_json(bundle / 'metadata.json', metadata)
+    files = common.read_json(bundle / 'release-files.json')
+    files['metadata.json'] = common.digest(bundle / 'metadata.json')
+    common.write_json(bundle / 'release-files.json', files)
+    with pytest.raises(ValueError, match='identity'):
+        release.evaluate(bundle, 'test', 'field-v1', 'model-one')
+    assert report.read_bytes() == evidence and len(calls) == 200

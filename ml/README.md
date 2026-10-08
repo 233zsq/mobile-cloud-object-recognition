@@ -60,6 +60,7 @@ python -m recognition audit --manifest data/manifests/public-candidates.csv
 Open Images默认读取并缓存官方小型validation来源索引（该公开来源子集可进入本项目训练/验证，
 与独立实拍测试无关）。累计索引传输预算1.2GiB，包含首次train索引扫描；不重复扫描大型索引。
 `--source-split train`仅用于尚未扫描过索引且预算足够的首次采集。
+train和小型索引共用持久预算账本，读取前预留最多1MiB，成功后按实际字节结算；断线或进程中断时无法确认的读取额度保留计入预算，重试不重置。已核验的缓存可在预算用尽后继续使用。
 
 候选清单默认 pending，审核预览位于 `experiments/reports/audit/`。
 逐图查看后，填写 `data/manifests/public-review-decisions.csv`，再执行：

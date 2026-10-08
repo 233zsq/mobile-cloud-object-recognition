@@ -28,6 +28,8 @@ SOURCES = {
     "backpack": (["Backpacks"], ['"backpack"']),
 }
 MIDS = {"cup": "/m/02jvh9", "umbrella": "/m/0hnnb", "book": "/m/0bt_c3", "pencil_case": "/m/05676x", "mouse": "/m/020lf", "keyboard": "/m/01m2v", "earphones": "/m/01b7fy", "backpack": "/m/01940j"}
+INDEX_BUDGET = int(1.2 * 1024**3)
+INDEX_CHUNK_BYTES = 1024**2
 
 
 @contextmanager
@@ -65,6 +67,64 @@ def store_download(path,blob,key):
             raise ValueError("Global public-photo quota reached (240 per class / 3 GiB)")
         path.parent.mkdir(parents=True,exist_ok=True)
         path.write_bytes(blob)
+
+
+def index_ledger(cache):
+    """Load under quota_lock; account for an older completed train scan once."""
+    path=cache/'budget.json'
+    ledger=read_json(path) if path.exists() else {'bytes':0,'files':{}}
+    ledger.setdefault('legacy_train_scan_bytes',0)
+    ledger.setdefault('train_scan_bytes',0)
+    ledger.setdefault('uncertain_bytes',0)
+    legacy=read_json(cache/'scan.json')['bytes'] if (cache/'scan.json').exists() else 0
+    missing=max(0,legacy-ledger['legacy_train_scan_bytes']-ledger['train_scan_bytes'])
+    ledger['bytes']+=missing
+    ledger['legacy_train_scan_bytes']+=missing
+    return ledger
+
+
+def ensure_index_budget(cache):
+    with quota_lock():
+        ledger=index_ledger(cache)
+        write_json(cache/'budget.json',ledger)
+        if ledger['bytes']>=INDEX_BUDGET:
+            raise ValueError('Cumulative Open Images index budget exceeded')
+
+
+def index_chunks(response,cache,*,train=False,file_limit=None):
+    """Charge bounded reads durably before IO; reconcile successful reads."""
+    length=response.headers.get('Content-Length')
+    length=int(length) if length is not None else None
+    received=0
+    while length is None or received<length:
+        with quota_lock():
+            ledger=index_ledger(cache)
+            remaining=INDEX_BUDGET-ledger['bytes']
+            if remaining<=0 or (file_limit is not None and received>=file_limit) or (length is not None and (length-received>remaining or (file_limit is not None and length>file_limit))):
+                raise ValueError('Cumulative Open Images index budget exceeded')
+            size=min(INDEX_CHUNK_BYTES,remaining)
+            if length is not None:size=min(size,length-received)
+            if file_limit is not None:size=min(size,file_limit-received)
+            # A process killed during read cannot report its partial body.
+            # Its outstanding reservation remains charged, capped at one chunk.
+            ledger['bytes']+=size
+            ledger['uncertain_bytes']+=size
+            if train:ledger['train_scan_bytes']+=size
+            write_json(cache/'budget.json',ledger)
+            chunk=response.read(size)
+            if len(chunk)>size:
+                raise ValueError('Index response exceeded bounded read size')
+            unused=size-len(chunk)
+            ledger['bytes']-=unused
+            ledger['uncertain_bytes']-=size
+            if train:ledger['train_scan_bytes']-=unused
+            write_json(cache/'budget.json',ledger)
+        if not chunk:
+            if length is not None and received<length:
+                raise ValueError('Index response ended before Content-Length')
+            return
+        received+=len(chunk)
+        yield chunk
 
 
 def fetch(url, limit, retries=3):
@@ -221,6 +281,7 @@ def collect_openimages(keys, per_class=120, source_split="validation"):
     rows = read_csv(manifest) if manifest.exists() else []
     cache = ROOT / "data/raw/openimages-index"
     cache.mkdir(parents=True, exist_ok=True)
+    ensure_index_budget(cache)
     selected = {}
     index_bytes = 0
     streams = ["https://storage.googleapis.com/openimages/v5/train-annotations-human-imagelabels-boxable.csv", "https://storage.googleapis.com/openimages/2018_04/train/train-images-boxable-with-rotation.csv"]
@@ -228,14 +289,18 @@ def collect_openimages(keys, per_class=120, source_split="validation"):
     counts = {k: 0 for k in keys}
     for index, url in enumerate(streams):
         print("Scanning official index", url, flush=True)
+        ensure_index_budget(cache)
         with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": UA}), timeout=60) as response:
             def lines():
                 nonlocal index_bytes
-                for line in response:
-                    index_bytes += len(line)
-                    if index_bytes > 1.2 * 1024**3:
-                        raise ValueError("Open Images index budget exceeded")
-                    yield line.decode("utf-8-sig")
+                pending=b''
+                for chunk in index_chunks(response,cache,train=True):
+                    index_bytes+=len(chunk)
+                    parts=(pending+chunk).split(b'\n')
+                    pending=parts.pop()
+                    for line in parts:
+                        yield (line+b'\n').decode('utf-8-sig')
+                if pending:yield pending.decode('utf-8-sig')
             for item in csv.DictReader(lines()):
                 if index == 0:
                     key = needed.get(item.get("LabelName"))
@@ -262,7 +327,9 @@ def collect_openimages(keys, per_class=120, source_split="validation"):
                         write_csv(manifest, rows)
                     except Exception as exc:
                         print(f"{sid}: {exc}", flush=True)
-    write_json(cache / "scan.json", {"at": now(), "bytes": index_bytes, "keys": keys, "selected": selected})
+    with quota_lock():
+        ledger=index_ledger(cache)
+        write_json(cache / "scan.json", {"at": now(), "bytes": index_bytes, "index_bytes_cumulative":ledger['bytes'], "keys": keys, "selected": selected})
     return rows
 
 
@@ -272,8 +339,6 @@ def collect_openimages_validation(keys, per_class, source_split="validation"):
     cache=ROOT/"data/raw/openimages-index"
     cache.mkdir(parents=True,exist_ok=True)
     ledger_path=cache/"budget.json"
-    legacy=read_json(cache/"scan.json")["bytes"] if (cache/"scan.json").exists() else 0
-    ledger=read_json(ledger_path) if ledger_path.exists() else {"bytes":legacy,"files":{},"legacy_train_scan_bytes":legacy}
     subset="test" if source_split=="public-test" else "validation"
     urls={
         f"{subset}-labels.csv":f"https://storage.googleapis.com/openimages/v5/{subset}-annotations-human-imagelabels-boxable.csv",
@@ -283,32 +348,28 @@ def collect_openimages_validation(keys, per_class, source_split="validation"):
         urls["test-boxes.csv"]="https://storage.googleapis.com/openimages/v5/test-annotations-bbox.csv"
     for name,url in urls.items():
         path=cache/name
+        with quota_lock():
+            ledger=index_ledger(cache)
         previous=ledger["files"].get(name)
         if previous and path.exists() and digest(path)==previous["sha256"]:
             continue
         # A failed download consumes budget too; charge every received chunk.
         print(f"Caching bounded official index {name}",flush=True)
+        ensure_index_budget(cache)
         with urllib.request.urlopen(urllib.request.Request(url,headers={"User-Agent":UA}),timeout=60) as response:
-            length=response.headers.get("Content-Length")
-            if length and (int(length)>90*1024**2 or ledger["bytes"]+int(length)>1.2*1024**3):
-                raise ValueError("Cumulative Open Images index budget exceeded")
             tmp=path.with_suffix(".partial")
             try:
                 with tmp.open("wb") as output:
-                    received=0
-                    while chunk:=response.read(1024**2):
-                        ledger["bytes"]+=len(chunk)
-                        received+=len(chunk)
-                        write_json(ledger_path,ledger)
-                        if received>90*1024**2 or ledger["bytes"]>1.2*1024**3:
-                            raise ValueError("Cumulative Open Images index budget exceeded")
+                    for chunk in index_chunks(response,cache,file_limit=90*1024**2):
                         output.write(chunk)
                 tmp.replace(path)
             finally:
                 if tmp.exists():
                     tmp.unlink()
-        ledger["files"][name]={"url":url,"sha256":digest(path),"bytes":path.stat().st_size,"downloaded_at":now()}
-        write_json(ledger_path,ledger)
+        with quota_lock():
+            ledger=index_ledger(cache)
+            ledger["files"][name]={"url":url,"sha256":digest(path),"bytes":path.stat().st_size,"downloaded_at":now()}
+            write_json(ledger_path,ledger)
     positive={}
     reverse={v:k for k,v in MIDS.items()}
     with (cache/f"{subset}-labels.csv").open(encoding="utf-8-sig",newline="") as f:
@@ -367,5 +428,7 @@ def collect_openimages_validation(keys, per_class, source_split="validation"):
                 print(f"{sid}: {exc}",flush=True)
                 if "quota reached" in str(exc):
                     counts[key]=per_class
+    with quota_lock():
+        ledger=index_ledger(cache)
     write_json(ROOT/"experiments/reports/openimages-collection-status.json",{"at":now(),"source_split":source_split,"project_final_test_used":False,"index_bytes_cumulative":ledger["bytes"],"counts":{k:sum(r["category_id"]==str(mapping[k]) for r in rows) for k in keys},"status":"requires_visual_review"})
     return rows

@@ -1,5 +1,7 @@
 """FP32 export, full-validation comparison, independent evaluation and timing."""
 import shutil
+import hashlib
+import json
 import tempfile
 import time
 from pathlib import Path
@@ -213,12 +215,41 @@ def check_test_model_binding(version,manifest_sha256,model_sha256,rows):
             raise ValueError('Independent test photos were already used by a different model; collect new independent photos')
 
 
+def release_identity(metadata):
+    # Acceptance evidence may be appended after freezing; all model, label,
+    # preprocessing, threshold and training identity fields remain immutable.
+    stable={key:value for key,value in metadata.items() if key not in ('acceptance','field_test')}
+    return hashlib.sha256(json.dumps(stable,sort_keys=True,ensure_ascii=False,separators=(',',':')).encode('utf-8')).hexdigest()
+
+
+def validate_legacy_release_identity(result,release,directory,metadata):
+    original=result.get('release_metadata_sha256')
+    if original is None or original==digest(release/'metadata.json'):
+        return
+    # Reports created before stable identities can recover the original package
+    # snapshot from the test annex journal, without modifying the first report.
+    for path in directory.glob('*-test-handover.json'):
+        saved=read_json(path)
+        report=path.with_name(path.name.removesuffix('-handover.json')+'.json')
+        if saved.get('original_metadata_sha256')!=original or not report.is_file() or digest(report)!=saved.get('report_sha256'):
+            continue
+        snapshot=saved['original_metadata']
+        encoded=json.dumps(snapshot,ensure_ascii=False,indent=2)+'\n'
+        if original not in (hashlib.sha256(encoded.encode('utf-8')).hexdigest(),hashlib.sha256(encoded.replace('\n','\r\n').encode('utf-8')).hexdigest()):
+            raise ValueError('Historical evaluation metadata snapshot hash differs')
+        if release_identity(snapshot)==release_identity(metadata):
+            return
+    raise ValueError('Existing evaluation release identity differs')
+
+
 def validate_cached_evaluation(result,metadata,version,split,rows,manifest_sha256):
     expected={'split':split,'model_sha256':metadata['sha256'],
               'model_version':metadata['model_version'],'data_version':version,
               'manifest_sha256':manifest_sha256}
     if any(result.get(key)!=value for key,value in expected.items()) or ('labels_sha256' in result and result['labels_sha256']!=metadata.get('labels_sha256')):
         raise ValueError('Existing evaluation identity differs; preserve the first evidence')
+    if 'release_identity_sha256' in result and result['release_identity_sha256']!=release_identity(metadata):
+        raise ValueError('Existing evaluation release identity differs')
     predictions=result.get('predictions',[])
     if len(predictions)!=len(rows) or any(p.get('sample_id')!=r['sample_id'] or p.get('true_id')!=int(r['category_id']) or p.get('predicted_id') not in range(10) or not np.isfinite(p.get('confidence',np.nan)) or not 0<=p['confidence']<=1 for p,r in zip(predictions,rows)):
         raise ValueError('Existing evaluation sample identity/predictions differ')
@@ -315,8 +346,8 @@ def evaluate(release,split="validation",test_version=None,confirm_model_hash=Non
         journal=read_json(journal_path)
         if result is None or journal['report_sha256']!=digest(out) or ('release_metadata_sha256' in result and result['release_metadata_sha256']!=journal['original_metadata_sha256']):
             raise ValueError('Interrupted evaluation evidence hash differs')
-    elif result is not None and 'release_metadata_sha256' in result and result['release_metadata_sha256']!=digest(release/'metadata.json'):
-        raise ValueError('Existing evaluation release identity differs')
+    if result is not None and 'release_identity_sha256' not in result:
+        validate_legacy_release_identity(result,release,out.parent,m)
     verify(release,_annex_recovery=journal if not completion.exists() else None)
     if completion.exists():
         finished=read_json(completion)
@@ -326,7 +357,7 @@ def evaluate(release,split="validation",test_version=None,confirm_model_hash=Non
     if result is None:
         x,y=prepare(rows)
         scores=np.stack([runner.predict_tensor(a) for a in x])
-        result={"at":now(),"split":split,"model_sha256":m["sha256"],"labels_sha256":m.get('labels_sha256'),"release_metadata_sha256":digest(release/'metadata.json'),"model_version":m["model_version"],"data_version":version,"manifest_sha256":data["files"][split]["sha256"],"metrics":metrics(y,scores),"predictions":[{"sample_id":r["sample_id"],"true_id":int(y[i]),"predicted_id":int(scores[i].argmax()),"confidence":float(scores[i].max())} for i,r in enumerate(rows)]}
+        result={"at":now(),"split":split,"model_sha256":m["sha256"],"labels_sha256":m.get('labels_sha256'),"release_metadata_sha256":digest(release/'metadata.json'),"release_identity_sha256":release_identity(m),"model_version":m["model_version"],"data_version":version,"manifest_sha256":data["files"][split]["sha256"],"metrics":metrics(y,scores),"predictions":[{"sample_id":r["sample_id"],"true_id":int(y[i]),"predicted_id":int(scores[i].argmax()),"confidence":float(scores[i].max())} for i,r in enumerate(rows)]}
         result['error_sample_ids']=[p['sample_id'] for p in result['predictions'] if p['true_id']!=p['predicted_id']]
         if split=="test":
             result['image_sha256s']=sorted(row['image_sha256'] for row in rows)
