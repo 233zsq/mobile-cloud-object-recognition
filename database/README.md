@@ -1,6 +1,6 @@
 # 数据库结构与初始化
 
-负责人：数据与云端负责人。已实现MySQL首版四张核心表和记录写入。最低要求MySQL 8.0.16，使用InnoDB、utf8mb4及CHECK约束；云端部署版本还需在实际服务器验证。
+负责人：数据与云端负责人。已实现MySQL首版四张核心表和记录写入。最低要求MySQL 8.0.16，使用InnoDB、utf8mb4及CHECK约束；2026-10-08已在云端MySQL 8.4.11部署并通过验收。
 
 - `schema/001_initial.sql`：可在空应用数据库执行的初始建表SQL。
 - `seeds/categories.campus-10-v2.json`：模型分支已冻结的类别清单快照。
@@ -47,11 +47,12 @@
 
 ## 结构维护
 
-初始结构定义在 `backend/app/models/__init__.py`，首版SQL由同一SQLAlchemy metadata生成，测试会检查快照一致。当前首版尚未正式部署，更新后可重新生成：
+初始结构定义在 `backend/app/models/__init__.py`，首版SQL由同一SQLAlchemy metadata生成，测试会检查快照一致。001已部署并应保留；需要检查当前生成结果时写到临时文件，不覆盖已发布快照：
 
 ```powershell
 # backend目录
-.venv/Scripts/python.exe -m flask --app app:create_app db-schema --output ../database/schema/001_initial.sql
+New-Item -ItemType Directory ../tmp -Force | Out-Null
+.venv/Scripts/python.exe -m flask --app app:create_app db-schema --output ../tmp/schema-check.sql
 ```
 
 正式部署后保留001快照，结构变化通过新的版本化升级SQL或统一迁移工具管理；不能依靠create_all修改已有表。
@@ -73,4 +74,4 @@
 
 连接URL通过SQLAlchemy `URL.create` 构造，密码中的特殊字符不用手工转义；连接使用UTC会话，数据库异常返回统一503，健康检查仍可独立使用。相关机制参见[SQLAlchemy连接配置](https://docs.sqlalchemy.org/en/20/core/engines.html#database-urls)和[MySQL约束说明](https://dev.mysql.com/doc/refman/8.0/en/constraint-invalid-data.html)。
 
-数据库只保存元数据、路径和哈希，照片文件另行管理。目标云端的备份、恢复和账号权限配置仍待实施，结果记录在 `deploy/README.md`；真实配置和数据库备份不提交到Git。
+数据库只保存元数据、路径和哈希，照片文件另行管理。云端已配置应用库受限账号、每日备份及七天保留，并通过隔离恢复验证；运维说明在 `deploy/README.md`，服务器验收证据在 `tests/evidence/server-deployment-20261008.json`。真实配置及数据库备份不提交到Git。

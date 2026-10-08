@@ -125,7 +125,7 @@ python3 -m venv .venv
 .venv/bin/gunicorn --workers 1 --threads 2 --bind 127.0.0.1:8080 wsgi:app
 ```
 
-Gunicorn监听地址由命令行决定；该命令是服务启动示例，Nginx、HTTPS和systemd尚未配置。当前仅在Windows验证Flask工程，Linux/Gunicorn部署需后续实测。应用工厂和错误处理参考[Flask官方文档](https://flask.palletsprojects.com/en/stable/tutorial/factory/)与[HTTP错误处理说明](https://flask.palletsprojects.com/en/stable/errorhandling/)。
+Gunicorn监听地址由命令行决定；上面的命令是手动启动示例。2026-10-08已在Ubuntu 26.04 / Python 3.14.4 / MySQL 8.4.11上完成75项测试，3项SQLite参数下的MySQL专用用例跳过；已配置systemd、Nginx、自签名HTTPS及代理层Bearer认证，并验证公网入库与去重。应用自身鉴权仍待实现。实际路径、证书、令牌位置及运维命令见[部署说明](../deploy/README.md)，证据见 `tests/evidence/server-deployment-20261008.json`。应用工厂和错误处理参考[Flask官方文档](https://flask.palletsprojects.com/en/stable/tutorial/factory/)与[HTTP错误处理说明](https://flask.palletsprojects.com/en/stable/errorhandling/)。
 
 ## 数据库初始化与记录上传
 

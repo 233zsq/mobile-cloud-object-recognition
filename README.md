@@ -8,7 +8,7 @@
 
 ## 当前状态
 
-当前工作区已建立Flask工程、MySQL四张核心表，以及记录上传、UUID去重和内容冲突保护。查询、纠错、统计、Web、认证和云端模型仍待接入；Android与模型功能分支整体成果尚未集成，尚无完整系统验收。数据库初始化、后端启动及验证方式见 [后端说明](backend/README.md) 和 [数据库说明](database/README.md)，依赖版本登记在 [环境清单](docs/environment.md)。
+当前工作区已建立Flask工程、MySQL四张核心表，以及记录上传、UUID去重和内容冲突保护，并在腾讯云完成Gunicorn、Nginx、自签名HTTPS和代理层Bearer认证部署，公网记录接口已验证。查询、纠错、统计、Web、应用自身鉴权和云端模型仍待接入；Android与模型功能分支整体成果尚未集成，尚无完整系统验收。数据库初始化与启动见 [后端说明](backend/README.md) 和 [数据库说明](database/README.md)，服务器运维见 [部署说明](deploy/README.md)，版本见 [环境清单](docs/environment.md)。
 
 ## 技术栈
 
@@ -42,7 +42,7 @@ mobile-cloud-object-recognition/
 ├── database/            # MySQL 建表文件与初始化数据
 │   ├── schema/
 │   └── seeds/
-├── deploy/              # 腾讯云部署，预留 Nginx 与 systemd 配置
+├── deploy/              # 腾讯云部署，Nginx/systemd 配置、证书及验收脚本
 ├── tests/               # 系统联调、验收记录与测试证据
 ├── scripts/             # 后续数据检查、备份与交付辅助脚本
 ├── docs/                # 计划、接口、模型契约、报告、PPT 与演示资料

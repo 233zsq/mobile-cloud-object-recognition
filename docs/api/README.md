@@ -50,7 +50,7 @@ Content-Type为 `application/json`，请求体必须包含且只包含以下8个
 
 去重覆盖全部8个原始字段。UUID大小写、同一时刻的不同时区表示及数值1/1.0会规范化；采集时间、置信度等实质内容变化会冲突。不同UUID分别计数，即使其他字段相同。数据库UUID主键约束处理并发竞争；事务失败回滚后读取已提交记录，再判断重复或冲突。后续人工纠错字段不参与原始上传去重，重试不会清空人工标签。
 
-调用前按 [数据库初始化说明](../../database/README.md) 建表、导入类别并登记模型。本期未实现Bearer认证，配置API_TOKEN尚不会限制访问；公网部署前需补齐认证。
+调用前按 [数据库初始化说明](../../database/README.md) 建表、导入类别并登记模型。Flask自身尚未实现Bearer认证，本地直接调用Gunicorn时API_TOKEN不限制访问。当前公网部署由Nginx检查 `Authorization: Bearer <API_TOKEN>`，缺失或错误返回401；令牌位置、IP地址和自签名证书信任方式见 [部署说明](../../deploy/README.md)。
 
 ## 接口总览（除health及POST records外仍待实现）
 
