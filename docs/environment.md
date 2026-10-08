@@ -1,13 +1,13 @@
 # 环境与版本清单
 
-状态：待验证填写。计划书没有锁定完整版本，此表不代表已安装或兼容性验证通过。
+状态：后端基础工程已在Windows验证，其余模块按实际结果填写。未填写的版本不代表已安装或兼容性验证通过。
 
 | 模块 | 需要登记的信息 | 实际版本/设备 | 验证结果与日期 |
 | --- | --- | --- | --- |
 | Android | Android Studio、Kotlin及相关编译插件、JDK、Gradle、AGP、compile/min/target SDK | 待填写 | 待验证 |
 | Android 依赖 | CameraX、Room、tflite/LiteRT 与网络库 | 待填写 | 待验证 |
 | 真机 | 型号、Android 版本、处理器、内存 | 待填写 | 待验证 |
-| 后端 | Python、Flask、SQLAlchemy、PyMySQL、依赖与配置加载方式 | 待填写 | 待验证 |
+| 后端 | Python、Flask、SQLAlchemy、PyMySQL、依赖与配置加载方式 | Windows Python 3.11.4；Flask 3.1.3；python-dotenv 1.2.4；Werkzeug 3.1.9；pytest 9.1.1；backend独立.venv；根目录.env及进程环境；SQLAlchemy/PyMySQL待接入 | 2026-10-08：19项测试通过；实际启动并验证HTTP健康、404、405及WSGI入口；MySQL及Linux部署待验证 |
 | 云端推理 | LiteRT Python运行时、模型与标签哈希、CPU线程与推理并发 | 待填写 | 待验证 |
 | 数据库 | MySQL 版本、字符集、时区与备份方式 | 待填写 | 待验证 |
 | Web | 浏览器版本与支持范围 | 待填写 | 待验证 |
