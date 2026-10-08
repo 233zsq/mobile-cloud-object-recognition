@@ -13,7 +13,10 @@ from __future__ import annotations
 import argparse
 import csv
 import hashlib
+import os
+import stat
 import sys
+import tempfile
 from collections import Counter, defaultdict
 from pathlib import Path
 
@@ -35,6 +38,44 @@ def sha256_of(path: Path) -> str:
         for chunk in iter(lambda: f.read(1 << 20), b""):
             h.update(chunk)
     return h.hexdigest()
+
+
+def read_manifest(path: Path) -> list[dict[str, str]]:
+    """校验 CSV 结构并统一去除字段首尾空白，供检查和划分共用。"""
+    with path.open(newline="", encoding="utf-8-sig") as f:
+        reader = csv.DictReader(f)
+        if reader.fieldnames != REQUIRED_COLUMNS:
+            raise ValueError(
+                f"表头与模板不一致：{reader.fieldnames}，应为 {REQUIRED_COLUMNS}"
+            )
+        rows = []
+        for i, row in enumerate(reader, start=2):
+            if None in row or any(value is None for value in row.values()):
+                raise ValueError(f"第{i}行字段数量与表头不一致")
+            rows.append({column: value.strip() for column, value in row.items()})
+    return rows
+
+
+def write_manifest_atomic(path: Path, rows: list[dict[str, str]]) -> None:
+    """完整写入同目录临时文件后替换清单；失败时保留原文件。"""
+    temporary_path = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w", newline="", encoding="utf-8", dir=path.parent,
+            prefix=f".{path.name}.", suffix=".tmp", delete=False,
+        ) as f:
+            temporary_path = Path(f.name)
+            writer = csv.DictWriter(f, fieldnames=REQUIRED_COLUMNS)
+            writer.writeheader()
+            writer.writerows(rows)
+            f.flush()
+            os.fsync(f.fileno())
+        temporary_path.chmod(stat.S_IMODE(path.stat().st_mode))
+        temporary_path.replace(path)
+    finally:
+        if temporary_path is not None and temporary_path.exists():
+            temporary_path.chmod(0o600)
+            temporary_path.unlink()
 
 
 def sharpness(path: Path) -> float:
@@ -69,16 +110,14 @@ def main() -> int:
         print(f"错误：清单不存在 {manifest_path}")
         return 1
 
-    with manifest_path.open(newline="", encoding="utf-8-sig") as f:
-        reader = csv.DictReader(f)
-        columns = reader.fieldnames or []
-        rows = list(reader)
+    try:
+        rows = read_manifest(manifest_path)
+    except (OSError, ValueError) as exc:
+        print(f"错误：{exc}")
+        return 1
 
     errors: list[str] = []
     warnings: list[str] = []
-
-    if columns != REQUIRED_COLUMNS:
-        errors.append(f"表头与模板不一致：{columns}，应为 {REQUIRED_COLUMNS}")
 
     seen_ids: set[str] = set()
     hash_to_ids: dict[str, list[str]] = defaultdict(list)
@@ -154,12 +193,15 @@ def main() -> int:
     for e in errors:
         print(f"  [错误] {e}")
 
-    if changed:
-        with manifest_path.open("w", newline="", encoding="utf-8") as f:
-            writer = csv.DictWriter(f, fieldnames=REQUIRED_COLUMNS)
-            writer.writeheader()
-            writer.writerows(rows)
+    if changed and not errors:
+        try:
+            write_manifest_atomic(manifest_path, rows)
+        except (OSError, ValueError) as exc:
+            print(f"错误：回填失败，原清单未替换：{exc}")
+            return 1
         print(f"\n已回填 SHA-256 并写回 {manifest_path}")
+    elif changed:
+        print("\n存在错误，未回填 SHA-256，原清单保持不变。")
 
     return 1 if errors else 0
 

@@ -22,7 +22,7 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
-from check_manifest import REQUIRED_COLUMNS, sha256_of
+from check_manifest import REQUIRED_COLUMNS, read_manifest, sha256_of
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
@@ -69,8 +69,11 @@ def main() -> int:
         print(f"错误：{out_dir} 已存在。冻结清单不可覆盖，请使用新数据版本。")
         return 1
 
-    with manifest_path.open(newline="", encoding="utf-8-sig") as f:
-        rows = list(csv.DictReader(f))
+    try:
+        rows = read_manifest(manifest_path)
+    except (OSError, ValueError) as exc:
+        print(f"错误：{exc}")
+        return 1
 
     usable = [r for r in rows
               if r.get("review_status") == "approved"

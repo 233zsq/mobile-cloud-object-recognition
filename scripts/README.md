@@ -36,4 +36,14 @@ GPU环境预跑和正式训练完成后可加 `--formal`；CPU试验不能标为
 | `check_manifest.py` | 样本清单字段校验、文件存在与可解码检查、SHA-256 核对与回填、重复与模糊检测、类别/采集者统计 | `python scripts/check_manifest.py data/manifests/sample-manifest.csv [--check-files] [--fill-sha256] [--blur-threshold 50]` | 仅标准库；`--check-files` 需 Pillow 与 numpy。报告打印到终端，退出码 1 表示存在错误 |
 | `split_dataset.py` | 按 object_id 分组做 60/20/20 训练/验证/测试划分并冻结清单（同实物不跨集合） | `python scripts/split_dataset.py data/manifests/sample-manifest.csv --data-version v1 [--seed 42] [--include-pending]` | 仅标准库。输出 `data/splits/<版本>/{train,validation,test}.csv` 与 `split-info.json`；已存在的版本目录拒绝覆盖 |
 
+两个脚本共用清单读取规则：表头必须与模板一致，每行字段数必须完整，读取时统一去除字段首尾空白。因此 `cup-01` 与 `cup-01 ` 会作为同一实物统计、划分，冻结清单中的字段也使用去除空白后的值。划分不改写源清单。
+
+SHA-256 回填只在检查无错误时执行（警告不阻止回填）：先完整写入同目录临时文件，再替换原清单；校验或写入失败时不覆盖原文件。
+
+回归验证（仅标准库，仓库根目录运行）：
+
+```bash
+python -m unittest discover -s tests -p test_data_scripts.py -v
+```
+
 加入脚本时说明用途、运行目录、参数、依赖与输出位置。清单和文件路径相对仓库根目录；本机绝对路径和凭据通过本地配置提供，不能写死在脚本里。Windows 脚本使用 PowerShell，云端 Linux 脚本放在相应部署目录或在此明确运行平台。
