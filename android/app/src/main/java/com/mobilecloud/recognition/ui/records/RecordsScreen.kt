@@ -1,6 +1,5 @@
 package com.mobilecloud.recognition.ui.records
 
-import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -156,7 +155,8 @@ private fun RecordThumbnail(photoPath: String?) {
         value = photoPath?.let { path ->
             withContext(Dispatchers.IO) {
                 runCatching {
-                    BitmapFactory.decodeFile(path)?.asImageBitmap()
+                    // 原始照片可达 4000+ 像素，必须按缩略图尺寸采样解码，避免多条记录同时占用数百 MiB
+                    AppGraph.photoStore.decodeUpright(File(path), maxDimension = 168)?.asImageBitmap()
                 }.getOrNull()
             }
         }
