@@ -65,8 +65,9 @@ class TfliteClassifier(private val bundle: ModelBundle) {
         }
         buffer.rewind()
 
-        val output = FloatArray(bundle.outputClasses)
+        // LiteRT 按张量形状严格校验数组输出：输出张量是 [1, N]，必须给二维数组
+        val output = Array(1) { FloatArray(bundle.outputClasses) }
         bundle.interpreter.run(buffer, output)
-        return output
+        return output[0]
     }
 }
