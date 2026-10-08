@@ -2,9 +2,10 @@ package com.mobilecloud.recognition.ui.capture
 
 import android.Manifest
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
+import android.net.Uri
+import android.provider.Settings
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
@@ -130,13 +131,10 @@ fun CameraCaptureView(
     }
 }
 
-/** 权限被拒时的说明界面（T01）：明确提示、可重新申请、可跳系统设置 */
+/** 权限被拒时的说明界面（T01）：明确提示、可重新申请、可跳系统设置；申请结果由父页统一处理 */
 @Composable
-fun CameraPermissionRationale(modifier: Modifier = Modifier) {
+fun CameraPermissionRationale(onRequest: () -> Unit, modifier: Modifier = Modifier) {
     val context = LocalContext.current
-    val permissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { }
 
     Column(
         modifier = modifier.padding(24.dp),
@@ -151,19 +149,17 @@ fun CameraPermissionRationale(modifier: Modifier = Modifier) {
             style = MaterialTheme.typography.bodyMedium,
         )
         Spacer(Modifier.height(16.dp))
-        Button(onClick = {
-            permissionLauncher.launch(Manifest.permission.CAMERA)
-        }) { Text("重新申请权限") }
+        Button(onClick = onRequest) { Text("重新申请权限") }
         Spacer(Modifier.height(8.dp))
         OutlinedButton(onClick = { openAppSettings(context) }) { Text("去系统设置开启") }
     }
 }
 
 private fun openAppSettings(context: Context) {
-    val intent = android.content.Intent(
-        android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-        android.net.Uri.fromParts("package", context.packageName, null),
-    ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+    val intent = Intent(
+        Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+        Uri.fromParts("package", context.packageName, null),
+    ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     runCatching { context.startActivity(intent) }
 }
 
