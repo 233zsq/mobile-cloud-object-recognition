@@ -122,12 +122,19 @@ def restore_dropout_rng(model,states):
         layer.seed_generator.state.assign(value)
 
 
+def configure_fp32():
+    """Use full float32 GPU math for CPU/LiteRT handover comparisons."""
+    import tensorflow as tf
+    tf.config.experimental.enable_tensor_float_32_execution(False)
+
+
 def preflight(require_gpu=False):
     """Measure the common batch under frozen and largest fine-tuning scopes."""
     import keras
     import tensorflow as tf
     import tempfile
     from ai_edge_litert.interpreter import Interpreter
+    configure_fp32()
     gpus=tf.config.list_physical_devices("GPU")
     if require_gpu and not gpus:
         raise ValueError("GPU preflight requires a real TensorFlow GPU; CPU fallback is not GPU validation")
@@ -174,7 +181,7 @@ def preflight(require_gpu=False):
             delta=float(np.max(np.abs(interpreter.get_tensor(out["index"])-restored(x[:1],training=False).numpy())))
             if delta>.001:
                 raise ValueError("Preflight Keras/LiteRT mismatch")
-            result={"at":now(),"status":"gpu_passed" if gpus else "cpu_only_gpu_pending","recommended_common_batch":batch,"device":[p.name for p in gpus] or ["CPU"],"checks":records,"optimizer_restored":True,"fp32_builtin_conversion_passed":True,"max_score_difference":delta,"code_snapshot_sha256":snapshot()}
+            result={"at":now(),"status":"gpu_passed" if gpus else "cpu_only_gpu_pending","recommended_common_batch":batch,"device":[p.name for p in gpus] or ["CPU"],"checks":records,"optimizer_restored":True,"fp32_builtin_conversion_passed":True,"tensor_float_32_enabled":tf.config.experimental.tensor_float_32_execution_enabled(),"max_score_difference":delta,"code_snapshot_sha256":snapshot()}
             write_json(ROOT/"experiments/reports/environment/preflight.json",result)
             return result
         except tf.errors.ResourceExhaustedError:
@@ -187,6 +194,7 @@ def preflight(require_gpu=False):
 def train(config_path,experiment_id,resume=False,initial_checkpoint=None):
     import tensorflow as tf
     import keras
+    configure_fp32()
     config=read_json(config_path)
     safe_name(experiment_id)
     if config.get("category_version")!=categories(config.get("category_version"))["category_version"]:
@@ -249,7 +257,7 @@ def train(config_path,experiment_id,resume=False,initial_checkpoint=None):
         else:
             model=build(config)
         model.compile(optimizer=keras.optimizers.Adam(config["learning_rate"]),loss="sparse_categorical_crossentropy")
-        state={"identity":identity,"next_epoch":0,"best":None,"best_loss":float("inf"),"bad_epochs":0,"history":[],"started_at":now(),"code_commit":code_commit(),"environment":{"python":platform.python_version(),"tensorflow":tf.__version__,"keras":keras.__version__,"gpu":[g.name for g in tf.config.list_physical_devices("GPU")],"platform":platform.platform(),"dependencies_sha256":digest(run/"installed-dependencies.lock")},"status":"running","training_seconds":0}
+        state={"identity":identity,"next_epoch":0,"best":None,"best_loss":float("inf"),"bad_epochs":0,"history":[],"started_at":now(),"code_commit":code_commit(),"environment":{"python":platform.python_version(),"tensorflow":tf.__version__,"keras":keras.__version__,"gpu":[g.name for g in tf.config.list_physical_devices("GPU")],"platform":platform.platform(),"tensor_float_32_enabled":tf.config.experimental.tensor_float_32_execution_enabled(),"dependencies_sha256":digest(run/"installed-dependencies.lock")},"status":"running","training_seconds":0}
         save_progress(model,run,state)
     epochs=range(state["next_epoch"],config["max_epochs"])
     if state['status'] in ('finalizing','complete') or state['bad_epochs']>=config.get('patience',3):

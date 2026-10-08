@@ -1,0 +1,20 @@
+{
+  "status": "frozen",
+  "purpose": "smoke",
+  "data_version": "smoke-gpu-fp32-20261008-data",
+  "category_version": "campus-10-v2",
+  "categories_sha256": "b008bd5e1224a58430292ebf71d01a9e736de8cef73f5c0e6ebbe62929b44dc9",
+  "created_at": "2026-10-08T21:44:10+08:00",
+  "seed": 42,
+  "files": {
+    "train": {
+      "sha256": "5b5cd65145c1fbfabe76caed23512472b8d28b5e21f28b181d0358cdd86b7301",
+      "count": 20
+    },
+    "validation": {
+      "sha256": "07d0d483c0a92edbdd0c043439706d6b4e7c16d668264470c6d9bc1d17063406",
+      "count": 20
+    }
+  },
+  "final_test_status": "not_applicable"
+}

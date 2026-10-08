@@ -10,12 +10,13 @@ from .common import ROOT, categories, digest, image_path, now, read_csv, read_js
 from .data import check_isolation, load_split
 from .inference import LiteRunner
 from .preprocessing import SPEC, preprocess
-from .training import metrics, predict, prepare
+from .training import configure_fp32, metrics, predict, prepare
 
 
 def export(result_path,version,formal=False,reproduction=None,additional_reproduction=None):
     import tensorflow as tf
     import keras
+    configure_fp32()
     result=read_json(result_path)
     safe_name(version)
     if formal and (result["status"]!="complete" or not reproduction):

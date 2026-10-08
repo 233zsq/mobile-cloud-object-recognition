@@ -7,6 +7,9 @@
 - Git Bash：`bash scripts/wsl-setup-wizard.sh` 引导完成管理员安装、重启和首次Linux账号创建。
 - Ubuntu 24.04：`bash scripts/setup-ml-wsl.sh` 建立Python3.12训练及独立LiteRT环境，锁定实际版本，验证GPU梯度更新、显存、模型保存及FP32转换。显存不足时将公共batch统一改为16，重新生成全部候选。
 
+`ML_TRAIN_ENV`、`ML_RUNTIME_ENV` 可分别指定Linux环境目录；脚本解析目录链接，拒绝两个目录实际相同，并检查独立推理环境中没有TensorFlow。仓库在Windows挂载盘上时，优先把环境放在Linux文件系统，具体示例见 `ml/README.md`。
+每个新的Ubuntu终端先 `source scripts/activate-ml-wsl.sh`，加载训练解释器及NVIDIA动态库路径，再运行训练入口。自定义路径时使用相同的 `ML_TRAIN_ENV`。此设置只影响当前终端；独立LiteRT环境仍使用它自己的解释器。
+
 数据、训练、哈希、评估和模型交接使用安装后的 `python -m recognition`，命令详见 `ml/README.md`。本期不包含数据库备份脚本。
 
 完成同一数据版本的训练后，运行 `python scripts/package-ml-delivery.py --release models/releases/<version>`。
@@ -18,6 +21,7 @@
 随后用 `python -m recognition verify --release ... --external-report ...` 核对并保存通过或失败记录。
 `write-ml-report.py` 只重生成历史CPU先导章节 `docs/ml-experiments.md`，不修改当前发布状态；未来正式实验应使用各阶段summarize输出重新整理实际指标。
 `write-expanded-ml-report.py` 重生成已完成的877张公开照片CPU历史实验章节，保留该版本的类别和实验记录，不修改当前模型选择、发布状态、哈希或验收进度。
+`write-gpu-ml-report.py --campaign <ID> --version <模型版本>` 从已冻结的完整FP32 GPU发布包和三阶段结果生成 `docs/ml-gpu-experiments.md`，包含候选表、复核、全类别指标、阈值扫描和报告配图，不修改当前发布选择。实际环境说明见 `docs/ml-gpu-environment.md`。
 
 独立LiteRT环境运行 `check-local-runtime.py --release models/releases/<version> --run-id <唯一ID>`，
 实际检查20张参考张量和20次图片预处理，并保存没有安装/导入TensorFlow的记录。

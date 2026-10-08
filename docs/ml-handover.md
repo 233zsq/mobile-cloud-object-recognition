@@ -2,25 +2,33 @@
 
 ## 当前交付状态
 
-当前选定试验包为 `models/releases/expanded-cpu-v1/`：ImageNet
-MobileNetV2 + 10 类头，659张公开训练照片、218张公开验证照片。
-验证准确率90.37%、宏平均F1=0.8993，仅为公开验证集成绩。FP32文件8,939,040字节，
-完整验证集Keras/TFLite最大分数差3.34e-6，Top-1一致；20张参考张量和20次图片链路
-已在不含TensorFlow的LiteRT2.2.0独立环境实际复核，最大分数差0。
-种子43完整复核宏F1=0.8842，差0.01509；低置信阈值0.50。分阶段记录见 `ml-expanded-experiments.md`。
-本机CPU单线程、20次预热/100次计时：纯推理P50/P95=19.49/31.18ms，
-预处理加推理=43.73/64.26ms，循环全部20张样例。这些不是手机或真实云端结果。
-模型SHA-256：`7bde6b570248b2795f6165a12d7bf763615ae2763c16ed17862da8cac5bc3558`。
-实验时源码提交为`a64f5f7`，中文提交信息调整后的等价提交为`0feb8ae`，与训练源码摘要逐文件核对通过。
-模型元数据保留实验时提交ID；对应关系及相同源码树证明见 `experiments/reports/environment/commit-message-mapping.json`。
-后续PR审查修复了训练完成阶段的中断恢复、Dropout随机状态恢复、微调初始头比较和独立测试版本复用保护。
-当前工具源码与试验训练源码分开记录；已有模型与实验不改写。新训练使用最新源码和新的campaign，历史复现使用对应归档源码。
+当前选定GPU发布包为 `models/releases/campus-gpu-v1/`：ImageNet
+MobileNetV2 + 10 类头，659张公开训练照片、218张公开验证照片，类别campus-10-v2。
+验证准确率90.37%、宏平均F1=0.8993，仅为公开验证集成绩。三阶段GPU调参及种子43完整复核已完成；
+种子43宏F1=0.8846，差0.01474，未超过0.05。低置信阈值0.50，由验证集选择。
+模型、阈值和输入合同已冻结为frozen；独立实拍、Android和真实腾讯云验收保持pending。
+
+FP32文件8,939,040字节，仅内置算子，无量化或Flex。
+完整218张验证图Keras/TFLite最大分数差4.71e-6，Top-1一致；每类2张共20张交接照片
+在Linux和Windows不含TensorFlow的LiteRT2.2.0环境分别核对参考张量及图片链路，输入及分数差均为0。
+本机Linux CPU单线程、20次预热/100次计时：纯推理P50/P95=6.36/6.88ms，
+预处理加推理=20.71/33.60ms，循环20张样例。这不是手机或真实云端性能。
+
+模型SHA-256：`a58ca2be234d0d7e7db6bdec3853b3e077df6a88321da4f6bd7a8a5d5be51d13`。
+标签SHA-256：`3148fcb53e5859041bf7f6af5acbfb952a9d3fbd52a4fd334525b7d3af6a1064`。
+接收方必须领取同一发布包的模型与标签，不能混用旧CPU包的文件或哈希。
+训练提交`222ff37e777ea4cc076f644c23fd09c4ec3ab113`，源码摘要
+`1d77a1f2b326f9c84623ad1ec0efe89ad9292e6e79a6405ff4a95829585c600f`，逐文件核对证据见environment/gpu-training-source-20261008.json。
+完整候选、全类别指标、阈值和图表见 `ml-gpu-experiments.md`，GPU安装与激活记录见 `ml-gpu-environment.md`。
+
+历史CPU包 `expanded-cpu-v1` 保持experimental和原指标，记录见 `ml-expanded-experiments.md`。
+旧源码和当前工具分开保存；新训练使用新的campaign，历史复现使用对应归档源码。
 `sweep`在写入前校验整组配置、PC任务和已有运行身份；相同任务可续作，配置、源码或数据改变时需使用新campaign，冲突不会覆盖旧文件。
 旧版514张数据先导结果保留在 `ml-experiments.md`，两版划分不同，不直接比较提升率。
 类别版本campus-10-v2，键盘只包含独立外接计算机键盘。
 较早的 `smoke-20261007-export-v3/` 和 `smoke-20261007-current/` 使用合成fixture，
 只作加载、输入、哈希和一致性验证，不作真实物品识别成绩。
-正式训练、真实独立测试、Android 性能和真实腾讯云性能均单独登记。
+真实独立测试、Android 性能和真实腾讯云性能单独登记。
 实际进度见 `experiments/reports/implementation-status.json`，禁止把本机 CPU
 耗时当作手机或腾讯云结果。
 
@@ -70,7 +78,7 @@ LiteRunner 本身只需要 NumPy、Pillow 和 ai-edge-litert。
 ```bash
 python -m recognition split --test-only --manifest data/manifests/field-test.csv \
   --training-version campus-public-expanded-v1 --version campus-field-v1
-python -m recognition evaluate --release models/releases/campus-v1 --split test \
+python -m recognition evaluate --release models/releases/campus-gpu-v1 --split test \
   --test-version campus-field-v1 --confirm-model-hash <metadata中的sha256>
 ```
 
@@ -96,11 +104,11 @@ Android/真实云端检查项在 `tests/model-handover-cases.csv`，未实测保
 每个端分别提交两份记录，先直接使用参考张量，再从图片生成输入：
 
 ```bash
-python scripts/make-handover-report.py --release models/releases/expanded-cpu-v1 \
+python scripts/make-handover-report.py --release models/releases/campus-gpu-v1 \
   --mode reference_tensor --out experiments/reports/android-tensor.json
-python scripts/make-handover-report.py --release models/releases/expanded-cpu-v1 \
+python scripts/make-handover-report.py --release models/releases/campus-gpu-v1 \
   --mode image_chain --out experiments/reports/android-image.json
-python -m recognition verify --release models/releases/expanded-cpu-v1 \
+python -m recognition verify --release models/releases/campus-gpu-v1 \
   --external-report experiments/reports/android-tensor.json
 ```
 
@@ -112,20 +120,23 @@ little-endian float32输入文件，tensor_file相对结果JSON目录。两个�
 JPEG解码或插值差异需要先定位，不能把失败记录标成通过；输入范围检查本身不能发现所有重复归一化，
 必须与参考张量比较。核对通过只证明该端同图一致性，手机性能和独立测试仍单独验收。
 
-## 复现、备份和GPU续作
+## 复现、备份和GPU任务
 
-本地交付归档为 `backups/expanded-cpu-v1-delivery.zip`，归档SHA-256及逐项核验记录在
-`experiments/reports/delivery/expanded-cpu-v1/archive.json`，包内有 `delivery-files.json`。
+当前GPU本地交付归档为 `backups/campus-gpu-v1-delivery.zip`，归档SHA-256及逐项核验记录在
+`experiments/reports/delivery/campus-gpu-v1/archive.json`，包内有 `delivery-files.json`。
 包含877张实际训练/验证照片、冻结清单、源码、依赖锁、各候选最佳及续训检查点、
 使用过的ImageNet初始权重和交接样例。虚拟环境需按锁文件重建；未提供组内异机备份位置。
-归档保存生成此CPU模型时的源码，未包含后续PR审查修复。为最新仓库补齐数据/模型时，只取归档中的原始照片、模型二进制和交接样例，不覆盖当前训练代码及脚本。
+GPU归档保存本次完整FP32训练源码和工具。较早的 `backups/expanded-cpu-v1-delivery.zip` 保存CPU历史源码，未包含后续修复；补齐最新仓库文件时，从对应归档取照片、模型和样例，保留当前代码。
 
 将归档解压到新的工作目录，先核对归档及包内文件哈希，再按 `ml/README.md` 安装。
 使用相同Python、依赖锁、数据和源码，在新campaign/model版本运行，保留旧实验和评估。
-本机可执行：`./.venv/Scripts/python.exe scripts/run-ml-campaign.py --config ml/configs/public-expanded-cpu.json --campaign <新ID> --version <新版本>`。
+本机WSL2/Ubuntu24.04及RTX4060梯度、显存和转换均已实测。每个新的Ubuntu终端先激活：
 
-WSL3.0.1和系统组件已安装，重启后先核对 `wsl --status`。
-安装Ubuntu24.04并创建本人Linux账号后，在仓库目录运行
-`bash scripts/setup-ml-wsl.sh campus-public-expanded-v1`，由GPU实测生成公共batch配置。
-执行 `./.venv-wsl/bin/python scripts/run-ml-campaign.py --config ml/configs/wsl-campus-public-expanded-v1.json --campaign expanded-gpu-v1 --version campus-gpu-v1 --formal`。
-GPU梯度/显存检查和完整训练完成前，现有CPU试验包保持experimental。
+```bash
+source scripts/activate-ml-wsl.sh
+python scripts/run-ml-campaign.py --config ml/configs/wsl-campus-public-expanded-v1.json \
+  --campaign expanded-gpu-20261008 --version campus-gpu-v1 --formal
+```
+
+这是已完成任务的原命令；相同源码、配置和数据可复用完成记录。重训使用新的campaign及模型版本。
+北京时间23:00前保存并暂停长训练，次日06:00后用同一命令续作。未创建自动跟进任务。

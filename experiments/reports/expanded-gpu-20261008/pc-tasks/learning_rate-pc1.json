@@ -1,0 +1,22 @@
+{
+  "pc_slot": 1,
+  "data_version": "campus-public-expanded-v1",
+  "category_version": "campus-10-v2",
+  "config_sha256": "c62e0017b925d052f71ef8b206a910b192212e70b3908f1701f5ee025ea9fab4",
+  "command": [
+    "python",
+    "-m",
+    "recognition",
+    "train",
+    "--config",
+    "ml/configs/generated/expanded-gpu-20261008/expanded-gpu-20261008-learning_rate-1.json",
+    "--experiment",
+    "expanded-gpu-20261008-learning_rate-1"
+  ],
+  "job": {
+    "experiment_id": "expanded-gpu-20261008-learning_rate-1",
+    "config": "ml/configs/generated/expanded-gpu-20261008/expanded-gpu-20261008-learning_rate-1.json",
+    "pc_slot": 1,
+    "initial_checkpoint": null
+  }
+}

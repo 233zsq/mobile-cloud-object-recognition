@@ -1,7 +1,7 @@
 # 模型交接约定
 
 由模型训练负责人提供，Android开发负责人接入手机，数据与云端负责人部署云端CPU推理，组长验证。
-当前真实公开照片训练的FP32试验发布包为 `models/releases/expanded-cpu-v1/`，用于链路联调；完整结果见 `ml-expanded-experiments.md`。较早的合成fixture包只作工具链验证。正式GPU模型及独立实拍指标另行登记。
+当前GPU发布包为 `models/releases/campus-gpu-v1/`，模型、阈值和输入合同已冻结。公开验证准确率90.37%、宏F1=0.8993；独立实拍及Android/真实云端验收仍待完成，完整实验见 `ml-gpu-experiments.md`。历史CPU试验包保持原状态，较早合成fixture只作工具链验证。
 完整可执行接入、预处理和测试说明见 `ml-handover.md`。
 
 ## 类别与输出
@@ -18,6 +18,8 @@ half-pixel缩放、灰色128居中补边，不裁剪、不额外抗锯齿，奇�
 模型内部归一化 `x/127.5-1`，等价于`(x-127.5)/127.5`，映射到[-1,1]；Android和云端不得再执行该变换。输出 `[1,10]` float32 Softmax。实际模型张量须校验一致。
 
 本期只导出FP32模型，使用TFLite内置算子，无量化和Flex依赖。
+GPU预跑、训练、续训及导出入口统一关闭TensorFloat-32，使用完整float32计算，设置写入环境记录。
+GPU默认TensorFloat-32会降低部分卷积与矩阵运算精度；同图比较仍以实际FP32 LiteRT输出和0.001分数差上限为准。
 
 ## 发布包
 

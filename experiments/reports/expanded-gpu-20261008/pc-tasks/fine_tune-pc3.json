@@ -1,0 +1,24 @@
+{
+  "pc_slot": 3,
+  "data_version": "campus-public-expanded-v1",
+  "category_version": "campus-10-v2",
+  "config_sha256": "76de4be3d12a6e9875e211c5dfe619564d94d58ce9b16969d91563db21b52b0c",
+  "command": [
+    "python",
+    "-m",
+    "recognition",
+    "train",
+    "--config",
+    "ml/configs/generated/expanded-gpu-20261008/expanded-gpu-20261008-fine_tune-3.json",
+    "--experiment",
+    "expanded-gpu-20261008-fine_tune-3",
+    "--initial-checkpoint",
+    "experiments/checkpoints/expanded-gpu-20261008-dropout-3/best.keras"
+  ],
+  "job": {
+    "experiment_id": "expanded-gpu-20261008-fine_tune-3",
+    "config": "ml/configs/generated/expanded-gpu-20261008/expanded-gpu-20261008-fine_tune-3.json",
+    "pc_slot": 3,
+    "initial_checkpoint": "experiments/checkpoints/expanded-gpu-20261008-dropout-3/best.keras"
+  }
+}

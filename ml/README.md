@@ -2,7 +2,7 @@
 
 负责人：模型训练负责人。采用 TensorFlow/Keras 与 MobileNetV2 迁移学习。
 
-已实现可安装的 `recognition` 包及以下训练、采集、审核、评估与交接入口。Windows CPU 工具链已实测；WSL GPU 环境需系统组件安装与重启后验证。实际状态见 `experiments/reports/implementation-status.json`，训练环境版本见 `docs/environment.md`。
+已实现可安装的 `recognition` 包及以下训练、采集、审核、评估与交接入口。Windows CPU和WSL2/Ubuntu24.04 GPU工具链已实测；GPU预跑、完整FP32数值检查及小样本链路均通过。实际状态见 `experiments/reports/implementation-status.json`，GPU版本锁为 `requirements-wsl-gpu.lock`、独立运行时锁为 `requirements-wsl-runtime.lock`。
 
 实际配置模板为 `configs/baseline.json`；`configs/pilot-cpu.json` 显式引用首个真实照片试验集。旧的 `baseline.example.json` 保留作原始模板，不作为实际运行配置。
 
@@ -32,20 +32,34 @@ WSL2/Ubuntu 24.04：管理员运行 `scripts/setup-wsl-admin.ps1`，按其提示
 更新WSL、安装Ubuntu和创建Linux账号。Git Bash可用
 `bash scripts/wsl-setup-wizard.sh` 逐步完成这些人工步骤。
 Ubuntu安装python3.12-venv后运行 `bash scripts/setup-ml-wsl.sh`。
+仓库位于Windows挂载盘时，可用 `ML_TRAIN_ENV` 和 `ML_RUNTIME_ENV` 指定Linux文件系统中的两个独立目录，减少依赖安装的文件读写开销：
+
+```bash
+ML_TRAIN_ENV="$HOME/.venvs/campus-gpu" ML_RUNTIME_ENV="$HOME/.venvs/campus-runtime" \
+  bash scripts/setup-ml-wsl.sh campus-public-expanded-v1
+```
+
+脚本解析已有目录链接并输出实际解释器路径；自定义目录时，后续命令使用对应的 `bin/python`。
+两个环境不能指向同一目录，独立推理环境检查不得安装TensorFlow。
+安装脚本按TensorFlow官方说明补齐NVIDIA动态库及ptxas链接，并在预跑前设置库加载路径。
+每个新的Ubuntu终端先运行 `source scripts/activate-ml-wsl.sh`，再使用 `python -m recognition`；
+自定义环境目录时，先设置同一个 `ML_TRAIN_ENV`。此激活脚本只改变当前终端，不修改系统驱动或全局库配置。
 该脚本验证GPU可见性，并实测冻结骨干和最大微调范围下batch32（显存不足时统一16）的
 梯度更新、优化器保存恢复及FP32内置算子转换，保存显存峰值。脚本完成后手动执行：
 
 ```bash
-./.venv-wsl/bin/python -m recognition smoke --id <唯一ID> --epochs 1
-./.venv-wsl/bin/python -m pytest ml/tests -q -c ml/pytest.ini
+source scripts/activate-ml-wsl.sh
+python -m recognition smoke --id <唯一ID> --epochs 1
+python -m pytest ml/tests -q -c ml/pytest.ini
 ```
 单独重测：`python -m recognition doctor --training-check --require-gpu`。
 
 当前新增冻结数据为 `campus-public-expanded-v1`，659张公开训练、218张公开验证。
 WSL环境安装可运行 `bash scripts/setup-ml-wsl.sh campus-public-expanded-v1`，
 生成 `ml/configs/wsl-campus-public-expanded-v1.json`，使用实测推荐公共batch。
-然后运行 `./.venv-wsl/bin/python scripts/run-ml-campaign.py --config ml/configs/wsl-campus-public-expanded-v1.json --campaign expanded-gpu-v1 --version campus-gpu-v1 --formal`。
-完整GPU训练前必须通过环境梯度/显存检查；CPU版本保持试验状态。
+已完成GPU实验 `expanded-gpu-20261008` 的三阶段调参和种子43完整复核，发布包 `models/releases/campus-gpu-v1/` 已冻结。公开验证准确率90.37%、宏F1=0.8993，独立实拍及端云验收仍待完成；报告见 `docs/ml-gpu-experiments.md`，本机环境和激活说明见 `docs/ml-gpu-environment.md`。
+原任务续作命令：`python scripts/run-ml-campaign.py --config ml/configs/wsl-campus-public-expanded-v1.json --campaign expanded-gpu-20261008 --version campus-gpu-v1 --formal`。重新训练时使用新的campaign和模型版本，不能覆盖已冻结包。
+完整GPU训练前必须通过环境梯度/显存检查；历史CPU版本保持试验状态。
 
 独立运行时按 `requirements-runtime.txt` 安装，详见 `docs/ml-handover.md`。
 本机独立Windows环境锁为 `requirements-windows-runtime.lock`，已确认不含TensorFlow。
