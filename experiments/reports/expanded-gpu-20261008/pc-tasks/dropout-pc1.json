@@ -1,0 +1,22 @@
+{
+  "pc_slot": 1,
+  "data_version": "campus-public-expanded-v1",
+  "category_version": "campus-10-v2",
+  "config_sha256": "f2bbab4311552ce357a1aa3f0374e8f15f726338e5a51d82aeae10be23814975",
+  "command": [
+    "python",
+    "-m",
+    "recognition",
+    "train",
+    "--config",
+    "ml/configs/generated/expanded-gpu-20261008/expanded-gpu-20261008-dropout-1.json",
+    "--experiment",
+    "expanded-gpu-20261008-dropout-1"
+  ],
+  "job": {
+    "experiment_id": "expanded-gpu-20261008-dropout-1",
+    "config": "ml/configs/generated/expanded-gpu-20261008/expanded-gpu-20261008-dropout-1.json",
+    "pc_slot": 1,
+    "initial_checkpoint": null
+  }
+}

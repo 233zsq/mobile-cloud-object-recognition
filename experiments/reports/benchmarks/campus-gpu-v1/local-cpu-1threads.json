@@ -1,0 +1,27 @@
+{
+  "at": "2026-10-08T22:21:36+08:00",
+  "platform": "Linux-6.18.40.1-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "processor": "x86_64",
+  "runtime": "ai-edge-litert",
+  "threads": 1,
+  "warmup": 20,
+  "iterations": 100,
+  "model_bytes": 8939040,
+  "inference_ms": {
+    "p50": 6.3609070000438805,
+    "p95": 6.882105900069746
+  },
+  "preprocess_and_inference_ms": {
+    "p50": 20.70822849987053,
+    "p95": 33.601985249913426
+  },
+  "network_wait_ms": null,
+  "location": "local CPU; not actual cloud or Android",
+  "runtime_version": "2.2.0",
+  "python_version": "3.12.3",
+  "tensorflow_installed": false,
+  "model_sha256": "a58ca2be234d0d7e7db6bdec3853b3e077df6a88321da4f6bd7a8a5d5be51d13",
+  "labels_sha256": "3148fcb53e5859041bf7f6af5acbfb952a9d3fbd52a4fd334525b7d3af6a1064",
+  "run_id": "standalone-campus-gpu-v1-20261008",
+  "sample_strategy": "cycle all 20 handover photos"
+}

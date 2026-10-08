@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "architecture": "MobileNetV2",
+  "pretrained_weights": "imagenet",
+  "alpha": 1.0,
+  "input_shape": [
+    224,
+    224,
+    3
+  ],
+  "num_classes": 10,
+  "learning_rate": 0.0001,
+  "dropout": 0.4,
+  "batch_size": 32,
+  "max_epochs": 20,
+  "patience": 3,
+  "fine_tune_scope": "frozen",
+  "seed": 42,
+  "data_version": "campus-public-expanded-v1",
+  "category_version": "campus-10-v2",
+  "stop_hour": 23,
+  "augmentation": true,
+  "smoke": false
+}

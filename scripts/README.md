@@ -21,6 +21,7 @@
 随后用 `python -m recognition verify --release ... --external-report ...` 核对并保存通过或失败记录。
 `write-ml-report.py` 只重生成历史CPU先导章节 `docs/ml-experiments.md`，不修改当前发布状态；未来正式实验应使用各阶段summarize输出重新整理实际指标。
 `write-expanded-ml-report.py` 重生成已完成的877张公开照片CPU历史实验章节，保留该版本的类别和实验记录，不修改当前模型选择、发布状态、哈希或验收进度。
+`write-gpu-ml-report.py --campaign <ID> --version <模型版本>` 从已冻结的完整FP32 GPU发布包和三阶段结果生成 `docs/ml-gpu-experiments.md`，包含候选表、复核、全类别指标、阈值扫描和报告配图，不修改当前发布选择。实际环境说明见 `docs/ml-gpu-environment.md`。
 
 独立LiteRT环境运行 `check-local-runtime.py --release models/releases/<version> --run-id <唯一ID>`，
 实际检查20张参考张量和20次图片预处理，并保存没有安装/导入TensorFlow的记录。
