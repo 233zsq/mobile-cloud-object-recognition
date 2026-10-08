@@ -23,9 +23,13 @@ def create_app(
     from .observability import configure_logging, register_request_logging
     from .errors import register_error_handlers
     from .api import api
+    from .extensions import init_database
+    from .cli import register_commands
 
     configure_logging(app)
     register_request_logging(app)
     register_error_handlers(app)
+    init_database(app)
+    register_commands(app)
     app.register_blueprint(api)
     return app

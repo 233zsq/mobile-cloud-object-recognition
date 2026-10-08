@@ -2,6 +2,7 @@
 
 from flask import Flask, g
 from werkzeug.exceptions import HTTPException
+from sqlalchemy.exc import SQLAlchemyError
 
 
 class ApiError(Exception):
@@ -38,3 +39,10 @@ def register_error_handlers(app: Flask) -> None:
     def handle_unexpected_error(error: Exception):
         app.logger.exception("Unhandled exception request_id=%s", g.request_id)
         return body("INTERNAL_SERVER_ERROR", "服务器内部错误，请凭请求编号联系维护人员。"), 500
+
+    @app.errorhandler(SQLAlchemyError)
+    def handle_database_error(error: SQLAlchemyError):
+        from .extensions import db
+        db.session.rollback()
+        app.logger.exception("Database operation failed request_id=%s", g.request_id)
+        return body("DATABASE_UNAVAILABLE", "数据库暂不可用，请稍后使用相同UUID重试。"), 503

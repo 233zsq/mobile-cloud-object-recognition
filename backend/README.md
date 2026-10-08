@@ -2,7 +2,7 @@
 
 负责人：数据与云端负责人。采用Python Flask、SQLAlchemy、PyMySQL与MySQL，同一应用提供记录管理、统计和单图片推理。云端使用LiteRT Python运行时加载与Android相同的FP32 tflite模型；训练在本地PC完成。
 
-当前已建立可启动的Flask基础工程，包含应用工厂、环境配置、UTC控制台日志、请求编号、统一JSON错误及 `GET /api/health`。服务无需数据库或模型即可启动。记录、统计、纠错、认证及云端推理业务仍待实现，尚未连接MySQL或部署正式模型。
+当前已建立Flask工程和MySQL四张核心表，实现 `POST /api/records` 入库、UUID去重、内容冲突保护及字段校验，另有类别/模型登记命令。服务启动和健康检查不依赖数据库或模型；上传接口需要先初始化MySQL。查询、统计、纠错、认证及云端推理仍待实现。
 
 | 目录 | 用途 |
 | --- | --- |
@@ -10,17 +10,20 @@
 | `app/config.py` | 默认值、根目录.env及进程环境配置，启动时检查非法配置 |
 | `app/observability.py` | UTC控制台日志、服务端生成的请求编号及响应头 |
 | `app/errors.py` | HTTP错误、业务错误和未预期异常的JSON响应 |
-| `app/api/` | 已实现health，后续加入records、stats、categories和infer |
-| `app/services/` | 预留校验、UUID去重、修订控制、统计与推理调度 |
-| `app/models/` | 预留SQLAlchemy实体、数据库事务和数据访问 |
+| `app/api/` | 已实现health和POST records，后续加入查询、纠错、stats、categories和infer |
+| `app/services/` | 已实现上传校验、规范化、事务入库和UUID冲突处理 |
+| `app/models/` | category、model_version、inference_record和sample实体 |
+| `app/extensions.py` | Flask-SQLAlchemy、MySQL连接池、UTC会话及连接超时 |
+| `app/cli.py` | 初始SQL导出、建表、冻结类别导入与模型元数据登记 |
 | `app/inference/` | 预留LiteRT模型加载、预处理、标签与版本校验 |
-| `tests/` | 应用、配置、错误处理、请求大小和日志验证 |
+| `tests/` | 应用、配置、上传、数据库约束、冲突保护和MySQL并发验证 |
+| `scripts/verify_mysql.py` | 可选隔离MySQL及完整HTTP验证，不改动已有服务/数据库 |
 | `requirements.in`、`requirements.txt` | 运行依赖范围及固定版本清单 |
 | `requirements-dev.in`、`requirements-dev.txt` | 测试依赖范围及固定版本清单 |
 | `app/__main__.py` | 本地开发启动入口 |
 | `wsgi.py` | Linux Gunicorn启动入口 |
 
-原 `src/main/java/` 等Java占位目录保留，Python程序不读取它们。数据库与推理依赖在对应模块接入时再安装。
+原 `src/main/java/` 等Java占位目录保留，Python程序不读取它们。数据库依赖已加入固定清单；推理运行时后续接入。
 
 ## 本地启动（Windows PowerShell）
 
@@ -56,7 +59,7 @@ Invoke-RestMethod http://127.0.0.1:8080/api/health
 | `LOG_LEVEL` | `INFO` | DEBUG/INFO/WARNING/ERROR/CRITICAL |
 | `SERVER_HOST`、`SERVER_PORT` | `127.0.0.1`、`8080` | 本地开发监听设置；真机局域网联调可将HOST设为0.0.0.0 |
 | `MAX_CONTENT_LENGTH` | `10485760` | 请求体限制，字节；不是图片解码或像素限制 |
-| `DB_HOST/PORT/NAME/USER/PASSWORD` | 见根目录.env.example | 已读取并预留，尚未建立数据库连接 |
+| `DB_HOST/PORT/NAME/USER/PASSWORD` | 见根目录.env.example | MySQL连接配置，首次数据库操作时建立连接 |
 | `API_TOKEN` | 空 | 已读取并预留，尚未实现认证 |
 | `MODEL_DIR` | 空 | 已读取并预留；相对路径以仓库根目录解析，尚未加载模型 |
 
@@ -97,6 +100,8 @@ Invoke-RestMethod http://127.0.0.1:8080/api/health
 .venv/Scripts/python.exe -m pytest -q
 ```
 
+没有TEST_MYSQL_ADMIN_URL时，真实MySQL用例会跳过；普通测试使用临时SQLite验证业务逻辑。运行 `scripts/verify_mysql.py` 可启动独立MySQL实例，覆盖数据库约束、并发首次提交、SQL快照和真实HTTP调用，详见 [数据库说明](../database/README.md)。
+
 依赖固定清单通过uv生成，跨平台保留环境标记；Gunicorn仅在非Windows平台安装。需要更新时，从仓库根目录依次执行：
 
 ```powershell
@@ -106,7 +111,9 @@ uv pip compile backend/requirements-dev.in --universal --python-version 3.11 --o
 
 更新后重新安装并验证，避免手工改固定清单造成依赖不一致。
 
-2026-10-08验证：Windows Python 3.11.4下19项测试通过；实际启动 `python -m app`，通过HTTP检查health=200、未实现业务路径=404、错误方法=405及请求编号；`wsgi:app` 可导入且健康检查通过。验证服务已停止。结果见 `tests/evidence/backend-scaffold-20261008.json`（仓库根目录）。
+首次基础工程验证（2026-10-08）：Windows Python 3.11.4下19项测试通过，HTTP健康及错误响应、WSGI入口通过，存档见 `tests/evidence/backend-scaffold-20261008.json`（仓库根目录）。
+
+记录接口最终验证（2026-10-08）：隔离MySQL 8.0.25及SQLite共75项测试通过，3项SQLite下的MySQL专用用例跳过。执行了初始SQL、CLI初始化和登记；实际HTTP首次提交201、重试200、冲突409；Flask重启后仍只有一条记录。MySQL四个并发首次上传的去重及冲突验证通过。测试实例已停止，临时数据已清理；存档见 `tests/evidence/backend-records-mysql-20261008.json`。
 
 ## Linux WSGI启动入口
 
@@ -120,9 +127,40 @@ python3 -m venv .venv
 
 Gunicorn监听地址由命令行决定；该命令是服务启动示例，Nginx、HTTPS和systemd尚未配置。当前仅在Windows验证Flask工程，Linux/Gunicorn部署需后续实测。应用工厂和错误处理参考[Flask官方文档](https://flask.palletsprojects.com/en/stable/tutorial/factory/)与[HTTP错误处理说明](https://flask.palletsprojects.com/en/stable/errorhandling/)。
 
-建表与初始化文件统一放在 `database/`；后续若采用迁移工具，在此登记实际迁移入口，避免维护两份不同的数据库结构。
+## 数据库初始化与记录上传
 
-接口以 [API草案](../docs/api/README.md) 为准，模型接入以 [交接约定](../docs/model-contract.md) 为准。后续业务接口仍需与Android冻结；本期已实现范围为工程基础和健康检查。
+在MySQL创建应用数据库，并在根目录.env填写连接信息后，在backend目录运行：
+
+```powershell
+.venv/Scripts/python.exe -m flask --app app:create_app db-init
+.venv/Scripts/python.exe -m flask --app app:create_app db-seed
+.venv/Scripts/python.exe -m flask --app app:create_app register-model --metadata ../database/seeds/expanded-cpu-v1.metadata.json
+.venv/Scripts/python.exe -m app
+```
+
+`db-init`只建缺失表，不创建数据库或升级旧表。类别和模型登记不覆盖已有不同版本内容；试验模型登记只保存元数据，不加载tflite。完整顺序、SQL和种子来源见 [数据库说明](../database/README.md)。
+
+上传验证（另一PowerShell终端）：
+
+```powershell
+$recordBody = @{
+    record_id = "550e8400-e29b-41d4-a716-446655440000"
+    client_id = "9f1c3a20-7b52-4a1e-8a3f-2f4d5e6a7b8c"
+    inference_source = "device"
+    model_version = "expanded-cpu-v1"
+    predicted_id = 0
+    confidence = 0.874
+    latency_ms = 123
+    captured_at = "2026-10-08T16:30:00.123+08:00"
+} | ConvertTo-Json
+Invoke-WebRequest -Uri http://127.0.0.1:8080/api/records -Method Post -ContentType application/json -Body $recordBody
+```
+
+首次201；同一请求再次提交为200，只存一条；改变原内容但保留同一record_id为409。未知模型和非法字段返回400，数据库未就绪返回503。health仍独立可用。响应、字段规则与统计口径见 [API说明](../docs/api/README.md)。
+
+建表与种子资料统一放在 `database/`，初始SQL由实体metadata生成并有一致性检查；后续结构升级应增加版本化迁移，不能只改实体或调用create_all。
+
+模型接入以 [交接约定](../docs/model-contract.md) 为准。上传字段沿用Android功能分支现有提案，真实客户端联调和其余接口冻结仍需完成。
 
 ## 推理与记录分离
 

@@ -23,7 +23,7 @@ def test_health_is_honest_and_does_not_expose_config(app, client):
 
 
 def test_missing_route_has_json_error_and_matching_request_id(client):
-    response = client.get("/api/records")
+    response = client.get("/api/not-implemented")
     assert response.status_code == 404
     assert response.json["error"]["code"] == "NOT_FOUND"
     assert response.json["request_id"] == response.headers["X-Request-ID"]

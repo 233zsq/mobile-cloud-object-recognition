@@ -46,7 +46,7 @@ def load_config(env_file: str | Path | None = None) -> dict:
         "SERVER_HOST": host,
         "SERVER_PORT": _integer(values, "SERVER_PORT", 8080, 65535),
         "MAX_CONTENT_LENGTH": _integer(values, "MAX_CONTENT_LENGTH", 10 * 1024 * 1024),
-        # Reserved for database, authentication and inference integration.
+        # MySQL connectivity; authentication and inference remain reserved.
         "DB_HOST": values.get("DB_HOST", "127.0.0.1"),
         "DB_PORT": _integer(values, "DB_PORT", 3306, 65535),
         "DB_NAME": values.get("DB_NAME", "object_recognition"),

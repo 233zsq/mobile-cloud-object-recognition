@@ -8,7 +8,7 @@
 
 ## 当前状态
 
-当前主分支已完成目录初始化、协作约定，并建立可启动的Flask基础工程，包含配置加载、日志、统一错误和健康检查。后端业务接口、数据库、Web和云端模型仍待接入；Android与模型功能分支的成果尚未集成到本工作区，也没有已通过的系统验收记录。后端启动及测试方式见 [后端说明](backend/README.md)，依赖版本登记在 [环境清单](docs/environment.md)。
+当前工作区已建立Flask工程、MySQL四张核心表，以及记录上传、UUID去重和内容冲突保护。查询、纠错、统计、Web、认证和云端模型仍待接入；Android与模型功能分支整体成果尚未集成，尚无完整系统验收。数据库初始化、后端启动及验证方式见 [后端说明](backend/README.md) 和 [数据库说明](database/README.md)，依赖版本登记在 [环境清单](docs/environment.md)。
 
 ## 技术栈
 
@@ -28,7 +28,7 @@
 mobile-cloud-object-recognition/
 ├── android/             # Kotlin Android App：拍照、推理、本地保存与同步
 │   └── app/src/main/    # java/、res/、assets/models/
-├── backend/             # Flask工程已建立；记录、纠错、统计与单图推理待接入
+├── backend/             # Flask记录入库与去重已实现；查询、纠错、统计、推理待接入
 ├── web/                 # HTML/JavaScript 统计页，计划每 5 秒刷新
 │   └── assets/          # css/、js/、images/
 ├── ml/                  # TensorFlow/Keras：训练、评估与 tflite 导出
