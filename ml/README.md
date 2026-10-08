@@ -57,8 +57,9 @@ python -m pytest ml/tests -q -c ml/pytest.ini
 当前新增冻结数据为 `campus-public-expanded-v1`，659张公开训练、218张公开验证。
 WSL环境安装可运行 `bash scripts/setup-ml-wsl.sh campus-public-expanded-v1`，
 生成 `ml/configs/wsl-campus-public-expanded-v1.json`，使用实测推荐公共batch。
-激活环境后运行 `python scripts/run-ml-campaign.py --config ml/configs/wsl-campus-public-expanded-v1.json --campaign expanded-gpu-v1 --version campus-gpu-v1 --formal`。
-完整GPU训练前必须通过环境梯度/显存检查；CPU版本保持试验状态。
+已完成GPU实验 `expanded-gpu-20261008` 的三阶段调参和种子43完整复核，发布包 `models/releases/campus-gpu-v1/` 已冻结。公开验证准确率90.37%、宏F1=0.8993，独立实拍及端云验收仍待完成；报告见 `docs/ml-gpu-experiments.md`，本机环境和激活说明见 `docs/ml-gpu-environment.md`。
+原任务续作命令：`python scripts/run-ml-campaign.py --config ml/configs/wsl-campus-public-expanded-v1.json --campaign expanded-gpu-20261008 --version campus-gpu-v1 --formal`。重新训练时使用新的campaign和模型版本，不能覆盖已冻结包。
+完整GPU训练前必须通过环境梯度/显存检查；历史CPU版本保持试验状态。
 
 独立运行时按 `requirements-runtime.txt` 安装，详见 `docs/ml-handover.md`。
 本机独立Windows环境锁为 `requirements-windows-runtime.lock`，已确认不含TensorFlow。

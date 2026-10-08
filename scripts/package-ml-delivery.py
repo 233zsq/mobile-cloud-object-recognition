@@ -46,7 +46,7 @@ def main():
         files.update(p for p in directory.rglob('*') if p.is_file() and '__pycache__' not in p.parts)
     for pattern in ['ml/*.toml', 'ml/*.txt', 'ml/*.lock', 'ml/*.ini', 'ml/README.md', 'tests/model-handover-cases.csv']:
         files.update(ROOT.glob(pattern))
-    for name in ['model-contract.md', 'ml-handover.md', 'ml-experiments.md', 'ml-expanded-experiments.md', 'ml-photo-gaps.md', 'environment.md']:
+    for name in ['model-contract.md', 'ml-handover.md', 'ml-experiments.md', 'ml-expanded-experiments.md', 'ml-gpu-experiments.md', 'ml-gpu-environment.md', 'ml-photo-gaps.md', 'environment.md']:
         path = ROOT/'docs'/name
         if path.exists(): files.add(path)
     files.update(p for p in (ROOT/'experiments/reports').rglob('*') if p.is_file() and not (p.parent.name=='audit' and p.suffix=='.png'))
