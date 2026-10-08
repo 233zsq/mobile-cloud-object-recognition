@@ -1,0 +1,9 @@
+case_id,scenario,expected,status,actual,device,model_sha256,evidence
+M01,model/label hashes,match metadata,pending,,,,
+M02,20 golden tensors,same top1 and score error <=0.001,pending,,,,
+M03,EXIF/letterbox/RGB,reference input matches,pending,,,,
+M04,normalization,"0..255 input, normalization inside model",pending,,,,
+M05,Android timing,warm20 measure100 P95<=1000ms preprocessing+inference,pending,,,,
+M06,cloud CPU,same model/labels and golden predictions,pending,,,,
+M07,independent field test,accuracy>=0.85 macroF1>=0.80,pending,,,,
+M08,low confidence,prompt confirmation; retain original prediction,pending,,,,

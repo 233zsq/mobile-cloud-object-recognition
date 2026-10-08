@@ -1,0 +1,18 @@
+{
+  "at": "2026-10-07T18:46:07+08:00",
+  "snapshot_sha256": "7b416daaa7279b514764e76d53ea8de0aa879a931ab024cf8aa91cf98171d97b",
+  "reviewer": "Codex visual image inspection",
+  "sample_ids": [
+    "commons-30712323",
+    "commons-30712329",
+    "commons-36214633",
+    "commons-36214699",
+    "commons-51616009",
+    "commons-58585352",
+    "commons-162967821",
+    "commons-32309905"
+  ],
+  "sheets": "new Commons book page05 through commons-32309905",
+  "category_version": "campus-10-v2",
+  "limitations": "Historical books are overrepresented; modern course/textbooks need supplementary capture"
+}

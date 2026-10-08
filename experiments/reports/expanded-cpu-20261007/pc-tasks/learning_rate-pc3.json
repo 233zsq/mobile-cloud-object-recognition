@@ -1,0 +1,22 @@
+{
+  "pc_slot": 3,
+  "data_version": "campus-public-expanded-v1",
+  "category_version": "campus-10-v2",
+  "config_sha256": "32db98d01f6aa63f27985ebad5cc9cfecec8dd11ab59c4eb2743eba31cd78423",
+  "command": [
+    "python",
+    "-m",
+    "recognition",
+    "train",
+    "--config",
+    "ml/configs/generated/expanded-cpu-20261007/expanded-cpu-20261007-learning_rate-3.json",
+    "--experiment",
+    "expanded-cpu-20261007-learning_rate-3"
+  ],
+  "job": {
+    "experiment_id": "expanded-cpu-20261007-learning_rate-3",
+    "config": "ml/configs/generated/expanded-cpu-20261007/expanded-cpu-20261007-learning_rate-3.json",
+    "pc_slot": 3,
+    "initial_checkpoint": null
+  }
+}

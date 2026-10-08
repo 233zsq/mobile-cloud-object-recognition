@@ -1,0 +1,132 @@
+{
+  "updated_at": "2026-10-08T18:14:24+08:00",
+  "branch": "feat/ml-baseline",
+  "category_version": "campus-10-v2",
+  "keyboard_scope": "independent external computer keyboards only",
+  "implemented_commands": [
+    "doctor",
+    "collect",
+    "audit",
+    "split",
+    "train",
+    "sweep",
+    "summarize",
+    "evaluate",
+    "export",
+    "verify",
+    "benchmark",
+    "smoke",
+    "reproduce"
+  ],
+  "environment": {
+    "native_windows_cpu": "validated",
+    "independent_litert_without_tensorflow": "validated",
+    "wsl2_gpu": "WSL 3.0.1 and system components installed; restart, Ubuntu 24.04 registration and GPU preflight pending",
+    "wsl_installation": "completed installer exit 0; distro not registered; no automatic restart"
+  },
+  "data": {
+    "frozen_pilot_version": "campus-public-pilot-v1",
+    "train_count": 659,
+    "validation_count": 218,
+    "independent_field_test": "pending team supplied photos",
+    "target_public_count": 800,
+    "collection_and_review": "complete",
+    "current_reviewed_count": 877,
+    "approved_by_class": {
+      "3": 103,
+      "7": 41,
+      "6": 141,
+      "8": 104,
+      "0": 97,
+      "1": 30,
+      "4": 124,
+      "5": 64,
+      "9": 114,
+      "2": 59
+    },
+    "remaining_to_80_by_class": {
+      "0": 0,
+      "1": 50,
+      "2": 21,
+      "3": 0,
+      "4": 0,
+      "5": 16,
+      "6": 0,
+      "7": 39,
+      "8": 0,
+      "9": 0
+    },
+    "candidate_count": 2288,
+    "expanded_version": "campus-public-expanded-v1",
+    "expanded_train_count": 659,
+    "expanded_validation_count": 218,
+    "photo_bytes": 541061545,
+    "index_bytes": 1195834724,
+    "selected_version": "campus-public-expanded-v1",
+    "pilot_train_count": 386,
+    "pilot_validation_count": 128
+  },
+  "training": {
+    "baseline": "complete",
+    "baseline_validation_accuracy": 0.8203125,
+    "baseline_validation_macro_f1": 0.7348496077588493,
+    "staged_cpu_pilot": "complete",
+    "formal_gpu_training": "pending",
+    "winner": "expanded-cpu-20261007-fine_tune-2",
+    "winner_validation_accuracy": 0.9036697247706422,
+    "winner_validation_macro_f1": 0.8993386925702364,
+    "seed43_macro_f1_difference": 0.015090700565854931,
+    "expanded_cpu_campaign": "complete",
+    "expanded_winner": "expanded-cpu-20261007-fine_tune-2",
+    "expanded_validation_accuracy": 0.9036697247706422,
+    "expanded_validation_macro_f1": 0.8993386925702364,
+    "expanded_seed43_f1_difference": 0.015090700565854931,
+    "pilot_winner": "pilot-cpu-20261007-fine_tune-3"
+  },
+  "release": {
+    "pilot-cpu-baseline-v1": "experimental; validated FP32 and 20 real-photo fixtures",
+    "model_bytes": 8939040,
+    "full_validation_max_score_difference": 3.337860107421875e-06,
+    "independent_litert_golden_max_score_difference": 0,
+    "selected": "expanded-cpu-v1",
+    "status": "experimental",
+    "model_sha256": "7bde6b570248b2795f6165a12d7bf763615ae2763c16ed17862da8cac5bc3558",
+    "independent_runtime_evidence": "experiments/reports/environment/standalone-expanded-cpu-v1-20261007.json",
+    "cpu_inference_p95_ms": 31.179604998033028,
+    "cpu_preprocess_and_inference_p95_ms": 64.26129500177922,
+    "low_confidence_threshold": 0.5
+  },
+  "acceptance": {
+    "independent_field_accuracy_and_f1": "pending",
+    "android_preprocess_and_inference_p95": "pending",
+    "android_consistency": "pending",
+    "actual_cloud_consistency_and_latency": "pending",
+    "external_backup": "pending destination"
+  },
+  "accuracy_caveat": "All current accuracy/F1 values use public validation photos, never independent field acceptance.",
+  "tests": {
+    "passed": 84,
+    "scope": "Existing contract/data/training/recovery tests plus validation reuse after field annex, legacy identity restoration and persistent cross-source index quotas",
+    "evidence": "experiments/reports/environment/pr-annex-budget-fixes-20261008.json"
+  },
+  "trained_code_snapshot_sha256": "e82cc002ba469f1dd09df4cc1976542d9938ecf40581c823abf0f9d283f93e45",
+  "current_code_snapshot_sha256": "46b9c91f7c25f35bcc2634005fb8efd073cc32db71ced769ae39fbcd855c7749",
+  "delivery": {
+    "local_archive_verified": true,
+    "archive_bytes": 588621459,
+    "archive_sha256": "cd2f8319c7f5a8fe3aeaccbca6b4db737369dc211e3da9879469404d69b82cc1",
+    "archive_files": 1362,
+    "receipt": "experiments/reports/delivery/expanded-cpu-v1/archive.json",
+    "external_backup": "pending team destination"
+  },
+  "gpu_followup": {
+    "status": "manual continuation selected by user; no recurring automation created",
+    "manual_resume": "user restarts Windows, completes Ubuntu24.04 setup and sends continue in this chat"
+  },
+  "post_training_review_fixes": {
+    "source_snapshot_sha256": "46b9c91f7c25f35bcc2634005fb8efd073cc32db71ced769ae39fbcd855c7749",
+    "historical_cpu_results_unchanged": true,
+    "new_training_requires_new_campaign": true,
+    "latest_evidence": "experiments/reports/environment/pr-annex-budget-fixes-20261008.json"
+  }
+}

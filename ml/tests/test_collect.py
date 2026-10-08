@@ -1,0 +1,79 @@
+from pathlib import Path
+import pytest
+from recognition import collect
+
+
+def test_small_commons_original_gets_a_supported_scaled_thumbnail(monkeypatch):
+    calls=[]
+    def api(params):
+        calls.append(params)
+        if params.get('list')=='categorymembers':
+            return {'query':{'categorymembers':[{'pageid':5,'title':'File:cup.jpg'}] if params['cmtitle']=='Category:Mugs' else []}}
+        if params.get('list')=='search':return {'query':{'search':[]}}
+        width=params['iiurlwidth']
+        return {'query':{'pages':{'5':{'pageid':5,'title':'File:cup.jpg','imageinfo':[{'width':550,'height':400,'mime':'image/jpeg','url':'original','thumburl':'original' if width==960 else 'scaled-500','thumbwidth':550 if width==960 else 500,'thumbheight':400 if width==960 else 364}]}}}}
+    monkeypatch.setattr(collect,'api',api)
+    _,_,info=next(collect.candidates('cup'))
+    assert info['thumburl']=='scaled-500' and info['requested_thumbnail_width']==500
+    assert [c['iiurlwidth'] for c in calls if 'iiurlwidth' in c]==[960,500]
+
+
+def test_download_quota_counts_both_providers(tmp_path,monkeypatch):
+    monkeypatch.setattr(collect,"ROOT",tmp_path)
+    for provider,n in (("commons",120),("openimages",120)):
+        directory=tmp_path/"data/raw"/provider/"pencil_case"
+        directory.mkdir(parents=True)
+        for i in range(n):
+            (directory/f"{i}.jpg").write_bytes(b"x")
+    with pytest.raises(ValueError,match="quota reached"):
+        collect.store_download(tmp_path/"data/raw/commons/pencil_case/new.jpg",b"x","pencil_case")
+    collect.store_download(tmp_path/"data/raw/commons/pencil_case/0.jpg",b"updated","pencil_case")
+
+
+def test_bad_openimages_category_refused_before_network():
+    with pytest.raises(ValueError,match="eight boxable"):
+        collect.collect_openimages(["charger"])
+
+
+def test_response_limit_is_checked_before_read(monkeypatch):
+    class Response:
+        headers={"Content-Length":"1000"}
+        def __enter__(self):return self
+        def __exit__(self,*args):pass
+        def read(self,n):raise AssertionError("Oversize body should never be read")
+    monkeypatch.setattr(collect.urllib.request,"urlopen",lambda *a,**k:Response())
+    with pytest.raises(ValueError,match="byte limit"):
+        collect.fetch("https://example.org/image",100)
+
+
+def test_openimages_index_cumulative_budget_blocks_repeated_large_scan(tmp_path,monkeypatch):
+    from recognition.common import write_json
+    monkeypatch.setattr(collect,"ROOT",tmp_path)
+    write_json(tmp_path/"data/raw/openimages-index/scan.json",{"bytes":1015172531})
+    monkeypatch.setattr(collect.urllib.request,"urlopen",lambda *a,**k:pytest.fail("Do not repeat the full train index scan"))
+    with pytest.raises(ValueError,match="already scanned"):
+        collect.collect_openimages(["book"],80,"train")
+
+
+def test_small_openimages_indexes_are_cached_and_conflicting_targets_skipped(tmp_path,monkeypatch):
+    import io
+    from PIL import Image
+    monkeypatch.setattr(collect,"ROOT",tmp_path)
+    monkeypatch.setattr(collect,"categories",lambda:{"categories":[{"id":2,"label_key":"book"},{"id":0,"label_key":"cup"}]})
+    labels=b'ImageID,LabelName,Confidence\na,/m/0bt_c3,1\nb,/m/0bt_c3,1\nb,/m/02jvh9,1\n'
+    metadata=b'ImageID,OriginalLandingURL,OriginalURL,Author,License\na,https://example.org/a,https://example.org/a.jpg,Author,CC-BY\nb,https://example.org/b,https://example.org/b.jpg,Author,CC-BY\n'
+    requests=[]
+    class Response(io.BytesIO):
+        def __init__(self,blob):
+            super().__init__(blob);self.headers={"Content-Length":str(len(blob))}
+    def urlopen(request,**kwargs):
+        requests.append(request.full_url)
+        return Response(labels if 'imagelabels' in request.full_url else metadata)
+    monkeypatch.setattr(collect.urllib.request,"urlopen",urlopen)
+    image=io.BytesIO();Image.new('RGB',(128,128)).save(image,format='JPEG')
+    monkeypatch.setattr(collect,"fetch",lambda *a,**k:image.getvalue())
+    first=collect.collect_openimages(["book","cup"],80)
+    assert [r['source_id'] for r in first]==['a']
+    second=collect.collect_openimages(["book","cup"],80)
+    assert len(second)==1 and len(requests)==2
+    assert collect.read_json(tmp_path/"data/raw/openimages-index/budget.json")['bytes']==len(labels)+len(metadata)

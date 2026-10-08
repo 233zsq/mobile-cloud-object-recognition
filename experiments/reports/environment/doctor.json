@@ -1,0 +1,18 @@
+{
+  "at": "2026-10-07T17:48:37+08:00",
+  "root": "D:\\projects\\计算机系统项目实践\\mobile-cloud-object-recognition",
+  "python": "3.13.0 (tags/v3.13.0:60403a5, Oct  7 2024, 09:38:07) [MSC v.1941 64 bit (AMD64)]",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "category_version": "campus-10-v1",
+  "dependencies": {
+    "tensorflow": "2.21.0",
+    "keras": "3.12.1",
+    "numpy": "2.1.3",
+    "Pillow": "12.3.0",
+    "ai-edge-litert": "2.2.0",
+    "matplotlib": "3.11.2",
+    "scikit-learn": "1.9.1"
+  },
+  "gpu": [],
+  "tensor_test": 4.0
+}

@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "campus-recognition"
+version = "0.1.0"
+requires-python = ">=3.12,<3.14"
+dependencies = ["numpy==2.1.3", "Pillow>=11"]
+
+[project.optional-dependencies]
+train = ["tensorflow==2.21.0", "keras==3.12.1", "matplotlib>=3.9", "scikit-learn>=1.6"]
+gpu = ["tensorflow[and-cuda]==2.21.0", "keras==3.12.1", "matplotlib>=3.9", "scikit-learn>=1.6"]
+analysis = ["matplotlib>=3.9", "scikit-learn>=1.6"]
+runtime = ["ai-edge-litert==2.2.0"]
+test = ["pytest>=8"]
+
+[tool.setuptools.packages.find]
+where = ["src"]

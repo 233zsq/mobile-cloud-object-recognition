@@ -1,0 +1,8 @@
+{
+  "primary": "pilot-cpu-20261007-fine_tune-3",
+  "repeat": "pilot-cpu-20261007-fine_tune-3-repeat43",
+  "seed": 43,
+  "macro_f1_difference": 0.0016877655485914023,
+  "needs_seed44": false,
+  "test_data_used": false
+}

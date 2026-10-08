@@ -1,0 +1,18 @@
+{
+  "pc_slot": 4,
+  "task": "reproduce selected complete head and fine-tune procedure with seed43",
+  "status": "waiting_for_primary_selection",
+  "data_version": "campus-public-pilot-v1",
+  "category_version": "campus-10-v2",
+  "command_template": [
+    "python",
+    "-m",
+    "recognition",
+    "reproduce",
+    "--result",
+    "<selected-result.json>",
+    "--seed",
+    "43"
+  ],
+  "must_match": "same frozen data, source snapshot, Python and installed dependencies"
+}

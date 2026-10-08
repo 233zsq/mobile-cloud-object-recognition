@@ -1,0 +1,124 @@
+{
+  "status": "experimental",
+  "requested_status": "experimental",
+  "model_version": "pilot-cpu-baseline-v1",
+  "model_file": "model.tflite",
+  "sha256": "79dc44d5519280ba19263654840cab344ca050a89b1dad4058ecaf718d462bd7",
+  "labels_file": "labels.txt",
+  "labels_sha256": "19b5879f196651ffc2171d43f9c954c02893d1d2893cc4d19c70bc0b24479871",
+  "category_version": "campus-10-v2",
+  "categories": [
+    {
+      "id": 0,
+      "label_key": "cup",
+      "display_name": "水杯",
+      "definition": "饮水杯，排除酒瓶和饮料包装"
+    },
+    {
+      "id": 1,
+      "label_key": "umbrella",
+      "display_name": "雨伞"
+    },
+    {
+      "id": 2,
+      "label_key": "book",
+      "display_name": "书本",
+      "definition": "实体书，排除扫描页和纯封面图"
+    },
+    {
+      "id": 3,
+      "label_key": "pencil_case",
+      "display_name": "笔袋",
+      "definition": "软质笔袋及普通硬壳文具盒"
+    },
+    {
+      "id": 4,
+      "label_key": "mouse",
+      "display_name": "鼠标",
+      "definition": "计算机鼠标"
+    },
+    {
+      "id": 5,
+      "label_key": "keyboard",
+      "display_name": "键盘",
+      "definition": "仅独立外接计算机键盘，排除笔记本内置键盘、笔记本整机和乐器键盘"
+    },
+    {
+      "id": 6,
+      "label_key": "earphones",
+      "display_name": "耳机",
+      "definition": "入耳或头戴式耳机，排除拆下的元件"
+    },
+    {
+      "id": 7,
+      "label_key": "charger",
+      "display_name": "充电器",
+      "definition": "手机、平板或电脑电源适配器，排除充电桩、车用电池充电器和独立线材"
+    },
+    {
+      "id": 8,
+      "label_key": "key",
+      "display_name": "钥匙",
+      "definition": "门锁或车钥匙，排除键盘按键"
+    },
+    {
+      "id": 9,
+      "label_key": "backpack",
+      "display_name": "背包"
+    }
+  ],
+  "data_version": "campus-public-pilot-v1",
+  "experiment_id": "pilot-cpu-baseline-42",
+  "code_commit": "ca47e0edff4c84bdd597b97f6343732b78d680c1",
+  "code_snapshot_sha256": "38cce368f7892e9d88db8e1bb93b3270652cb3243bc0bd6626749a47c5f92b81",
+  "input": {
+    "version": "rgb-letterbox-v1",
+    "orientation": "EXIF transpose",
+    "color_order": "RGB",
+    "shape": [
+      1,
+      224,
+      224,
+      3
+    ],
+    "dtype": "float32",
+    "pixel_range": [
+      0,
+      255
+    ],
+    "crop": "none",
+    "resize": "bilinear half_pixel_centers; antialias=false; round half up",
+    "padding": "center; RGB 128; odd remainder right/bottom",
+    "normalization": "inside model: x / 127.5 - 1",
+    "byte_order": "little-endian"
+  },
+  "output": {
+    "shape": [
+      1,
+      10
+    ],
+    "dtype": "float32",
+    "interpretation": "softmax"
+  },
+  "low_confidence_threshold": 0.55,
+  "threshold_status": "validation_selected",
+  "created_at": "2026-10-07T18:33:43+08:00",
+  "model_bytes": 8939036,
+  "acceptance": {
+    "size_passed": true,
+    "independent_field_accuracy": "pending",
+    "android_latency": "pending",
+    "android_consistency": "pending",
+    "actual_cloud_consistency": "pending"
+  },
+  "export_environment": {
+    "python": "3.13.0",
+    "tensorflow": "2.21.0",
+    "keras": "3.12.1",
+    "gpu": [],
+    "platform": "Windows-11-10.0.26200-SP0",
+    "dependencies_sha256": "96d1c9594ba665c2f28eb4010e25ff21edc519b8fba261abe066a8eddfe761d7"
+  },
+  "checkpoint_sha256": "8b7efc9d4a89e96638581ab9dc18b03f1d26a121ac17c02b115a619e77648d13",
+  "final_test_status": "pending_field_photos"
+}

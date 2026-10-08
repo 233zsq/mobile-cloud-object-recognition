@@ -1,0 +1,4 @@
+# Independent CPU package; no TensorFlow needed for LiteRunner.
+ai-edge-litert==2.2.0
+numpy==2.1.3
+Pillow==12.3.0

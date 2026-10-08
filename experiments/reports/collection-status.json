@@ -1,0 +1,24 @@
+{
+  "at": "2026-10-07T20:10:24+08:00",
+  "bytes": 541061545,
+  "counts": {
+    "cup": 40,
+    "umbrella": 197,
+    "book": 132,
+    "pencil_case": 120,
+    "mouse": 190,
+    "keyboard": 146,
+    "earphones": 160,
+    "charger": 240,
+    "key": 240,
+    "backpack": 179
+  },
+  "errors": [
+    {
+      "category": "backpack",
+      "source": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/79/Cloud_%2848026137968%29.png/960px-Cloud_%2848026137968%29.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "error": "Response exceeds byte limit"
+    }
+  ],
+  "status": "candidate_only"
+}
