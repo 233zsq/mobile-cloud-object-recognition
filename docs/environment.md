@@ -2,6 +2,23 @@
 
 状态：待验证填写。计划书没有锁定完整版本，此表不代表已安装或兼容性验证通过。
 
+## 训练 PC 登记（组长汇总，10月8日首日完成）
+
+| PC 标识 | 日常使用人 | CPU | GPU | 显存 | 驱动版本 | 系统 / WSL2 情况 | TensorFlow 可见 GPU | 登记日期 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| PC-A | 赵高剑 | 待填写 | 待填写 | 待填写 | 待填写 | 待填写 | 待验证 | |
+| PC-B | 鲁涵宇 | 待填写 | 待填写 | 待填写 | 待填写 | 待填写 | 待验证 | |
+| PC-C | 刘亮 | 待填写 | 待填写 | 待填写 | 待填写 | 待填写 | 待验证 | |
+| PC-D | 张弓羿 | 待填写 | 待填写 | 待填写 | 待填写 | 待填写 | 待验证 | |
+
+GPU 可用性验证命令（WSL2/Linux 的 Python 环境内执行，输出截图或文本随登记保存）：
+
+```bash
+python -c "import tensorflow as tf; print(tf.__version__); print(tf.config.list_physical_devices('GPU'))"
+```
+
+原生 Windows 上现代 TensorFlow 默认不可用 GPU，优先 WSL2 或 Linux 方案；若 GPU 未跑通，登记为"CPU 基线"并注明，不阻塞 App 联调。
+
 | 模块 | 需要登记的信息 | 实际版本/设备 | 验证结果与日期 |
 | --- | --- | --- | --- |
 | Android | Android Studio、Kotlin及相关编译插件、JDK、Gradle、AGP、compile/min/target SDK | 待填写 | 待验证 |
