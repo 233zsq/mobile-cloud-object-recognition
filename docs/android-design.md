@@ -15,15 +15,28 @@ Kotlin + Jetpack Compose（组内确认；计划书「Java」按泛指理解）�
 ## 关键设计约定
 
 ### 模型包加载（T04）
-启动/重载时校验：输入 4 维批 1 正方形 3 通道 float32；输出 [1, N] 且 N = labels.txt 行数；
-metadata.json 必须含 model_version；SHA-256（模型与标签）填写即强制比对；归一化取
-`input.normalization`（mobilenet_v2_minus1_1 默认 / unit_0_1）。任何校验失败 → 停止识别并
-显示中文原因，不产生伪结果。量化模型当前显式拒绝（契约要求另行适配输入输出编码）。
+启动/重载时校验：输入 4 维批 1 正方形 3 通道 float32；输出 `[1, N]` 且 N = labels.txt 行数；
+metadata.json 必须含 model_version；SHA-256（模型与标签）填写即强制比对；
+`input.pixel_range` 必须为 `[0,255]`；归一化约定必须可解析；metadata 声明的
+`input/output.shape` 必须与实际张量一致。任何校验失败 → 停止识别并显示中文原因，
+不产生伪结果。量化模型当前显式拒绝（契约要求另行适配输入输出编码）。
 
-### 预处理
+### 预处理（契约 rgb-letterbox-v1，与云端/PC 参考实现逐字一致）
 EXIF 由 PhotoStore 解码时统一应用（CameraX 写入 EXIF，BitmapFactory 不自动旋转，T02），
-推理侧假设输入已是直立图；中心裁剪 → 双线性缩放到模型输入边长 → 按 metadata 预设归一化。
-RGB 通道顺序；耗时分开计量：预处理（裁剪+缩放+归一化）与推理（interpreter.run）。
+透明图片先在灰色(128)背景合成；推理路径以**原始分辨率**解码（不采样，避免改变插值结果），
+缩略图等展示用途才采样。随后按契约 `docs/ml-handover.md`：
+
+1. `scale = 224 / max(宽, 高)`，内框宽高 `floor(原尺寸 × scale + 0.5)`（round half up）；
+2. 双线性、half-pixel 坐标（`source_x = (target_x + 0.5) × 源宽 / 内框宽 − 0.5`），
+   不额外抗锯齿；**四邻域加权结果保留 float32 直接写入输入缓冲，不取整为 uint8**；
+3. 灰色 128 居中补边至 224×224，奇数余量位于右/下，不裁剪；
+4. 输入 `[1,224,224,3]` RGB float32、像素 0–255、little-endian 连续 NHWC（602112 字节）；
+5. **归一化 `x/127.5−1` 在模型内部完成，端侧恒等直送**——重复归一化会被参考张量对照
+   （`shared/device-results/`）检出，`NormalizationPreset.IDENTITY` 为契约路径，
+   旧包的客户端归一化仅作兼容保留。
+
+耗时分开计量：`preprocessMs` 覆盖 letterbox 缩放到输入缓冲就绪（含像素编码），
+`inferenceMs` 只覆盖 `interpreter.run`。
 
 ### UUID 与幂等（T07/T08）
 recordId 在照片识别成功时生成（UUID v4），入库后永不变更；上报、补传、手动同步都用同一
@@ -44,6 +57,18 @@ uploaded=1 且 correctionPending=0 ──纠错──> correctionPending=1 ─�
 三条触发路径：新记录入库后；ConnectivityManager 网络恢复回调（T07）；记录页「立即同步」。
 后台触发走 WorkManager（网络约束 + 指数退避 10s，最多 3 次重试后放行等待下次触发），
 手动触发直接调用同一 RecordUploader（幂等，无并发风险：单设备串行上传）。
+
+### 并发与资源约束
+- **模型重载与推理共用同一把锁**：`classify` 全程持锁，`reload()` 必须等待在途推理结束，
+  避免 `bundle.close()` 释放在用的 Interpreter（原生资源访问崩溃，PR 审查修复项）。
+- 相机选择器先探测 `hasCamera`：无后置相机回退前置，均无则明确提示而不崩溃；绑定失败
+  经 `runCatching` 转为采集页错误提示。
+- 设置页保存前校验服务器地址格式，无效输入不写入持久化配置（否则重启后回退默认地址，
+  上报与补传持续失败）。
+
+### 类别清单
+`assets/categories.json` 为 `shared/categories.json`（冻结版 campus-10-v2，2026-10-07）的
+仓库内副本，类别 ID/标签键/中文名与模型输出索引一致；冻结清单变更时同步更新此副本。
 
 ### 设置
 baseURL / 访问令牌存 DataStore，改后即时生效（OkHttp 拦截器重写 URL，无需重装）；

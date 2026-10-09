@@ -48,14 +48,17 @@ Kotlin 源码按 Android 约定放在 `java/` 目录下（`.kt` 文件），包�
 
 ## 模型文件
 
-模型二进制被根 `.gitignore` 忽略。占位模型（链路验证用，不得用于准确率结论）：
+模型二进制被根 `.gitignore` 忽略。正式发布包为 `models/releases/campus-gpu-v1/`：
+`labels.txt` 与 `metadata.json` 可直接复制，`model.tflite` 从交付归档/组内共享存储领取，
+三者必须同包（App 强制校验 SHA-256）。输入契约 `rgb-letterbox-v1` 由
+`util/PreprocessMath.kt` 与 `inference/TfliteClassifier.kt` 实现，细节见
+`app/src/main/assets/models/README.md`。
+
+占位模型（链路验证用，不得用于准确率结论，输入输出与契约一致）：
 
 ```bash
 python scripts/make_placeholder_model.py   # 仓库根目录执行，需要 tensorflow
 ```
-
-正式模型按 `docs/model-contract.md` 领取后复制到 `app/src/main/assets/models/`，
-App 启动时自动校验哈希、标签数与形状。
 
 ## 联调说明
 
