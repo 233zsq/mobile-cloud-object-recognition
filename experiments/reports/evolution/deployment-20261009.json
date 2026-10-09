@@ -1,0 +1,46 @@
+{
+  "checked_at": "2026-10-09T08:11:13+00:00",
+  "service": "campus-review",
+  "url": "https://49.232.195.47:8443",
+  "source_commit": "f8fcb0dc106a859de20d5e2102d49440cedd7dac",
+  "source_working_tree_dirty": false,
+  "source_archive_sha256": "10ea2ba90f23c297b4e7d3f652a573b82f98bfb6a26f28d9fccd2442b01a1b89",
+  "server_release": "/home/ubuntu/apps/campus-review/releases/10ea2ba90f23",
+  "runtime": {
+    "user": "ubuntu",
+    "python": "3.14.4",
+    "service_active": true,
+    "public_https_port": 8443,
+    "loopback_upstream_port": 8081,
+    "memory_current_bytes_at_check": 43040768,
+    "tls": "Existing self-signed IP certificate; client trust installation required. Checks verify the supplied public certificate."
+  },
+  "existing_backend": {
+    "service_active": true,
+    "health": "ok",
+    "model_status": "ready",
+    "model_version": "campus-gpu-v1",
+    "nginx_config_unchanged": true,
+    "nginx_config_sha256": "bb970fbfc3253a82dd8154fcf169b4eaa5e050e813adca954c2db9e0258dffad"
+  },
+  "verification": {
+    "ml_gpu_regression_passed": 93,
+    "ml_final_targeted_passed": 47,
+    "test_counts_overlap": true,
+    "web_windows_passed": 7,
+    "web_server_passed": 7,
+    "public_https_report": "web-http-20261009.json",
+    "baseline_train_readable": 659,
+    "baseline_validation_readable": 218,
+    "baseline_tflite_sha256": "a58ca2be234d0d7e7db6bdec3853b3e077df6a88321da4f6bd7a8a5d5be51d13"
+  },
+  "handoff": {
+    "initial_admin": "One-use invitation saved locally outside Git; administrator chooses their own password.",
+    "new_series": "campus-evolve-v1",
+    "new_series_training": "pending_new_reviewed_photos",
+    "deployment_approval": "manual",
+    "automatic_model_replacement": false,
+    "android_integration": "pending",
+    "independent_field_acceptance": "pending"
+  }
+}
