@@ -23,6 +23,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.exceptions import SecurityError
 from werkzeug.middleware.proxy_fix import ProxyFix
 from .assets import PUBLIC_SOURCES, SOURCE_FIELDS, crop_box, renditions, source_metadata
+from .decisions import CHOICES, initial_choice, resolve_choice
 from .workflow import SCHEMA as WORKFLOW_SCHEMA, Workflow
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -414,9 +415,8 @@ def create_app(config=None):
             intent = request.form.get('action', 'save')
             if intent not in ('save', 'next'):
                 abort(400, '未知审核操作')
-            status = request.form.get('status')
+            status, reason = resolve_choice(request.form.get('decision'), request.form.get('status'), text('reason', False))
             category = request.form.get('category')
-            reason = text('reason', False)
             if status not in ('pending', 'approved', 'rejected') or category not in {str(i) for i in range(10)}:
                 abort(400)
             if status == 'rejected' and not reason:
@@ -431,7 +431,7 @@ def create_app(config=None):
                 abort(400, '裁剪坐标无效或原图裁剪区域小于128×128')
             work.save(sid, request.form.get('lease', ''), request.form.get('revision', ''),
                       (status, int(category), reason, object_id, session_id, group_id, crop),
-                      lambda: event('review', sid, {'status': status, 'category': category, 'category_version': cat['category_version'], 'reason': reason, 'object_id': object_id, 'session_id': session_id, 'group_id': group_id, 'crop': crop}))
+                      lambda: event('review', sid, {'status': status, 'decision': request.form.get('decision'), 'category': category, 'category_version': cat['category_version'], 'reason': reason, 'object_id': object_id, 'session_id': session_id, 'group_id': group_id, 'crop': crop}))
             if intent == 'next':
                 return redirect(url_for('next_review', exclude=sid, **filters))
             flash('审核已保存。')
@@ -439,7 +439,9 @@ def create_app(config=None):
         row, lease, notice = work.open(sid)
         related = [r for r in db().execute('SELECT * FROM samples WHERE id<>?', (sid,)) if (row['object_id'] and r['object_id'] == row['object_id']) or r['group_id'] == row['group_id'] or (int(r['phash'], 16) ^ int(row['phash'], 16)).bit_count() <= 6]
         history = db().execute('SELECT e.*,u.username FROM events e JOIN users u ON e.actor=u.id WHERE subject=? ORDER BY e.id DESC', (sid,)).fetchall()
+        decision, review_note = initial_choice(row)
         return render_template('sample.html', sample=row, lease=lease, notice=notice, filters=filters,
+                               decision=decision, decision_choices=CHOICES, review_note=review_note,
                                source_meta=json.loads(row['source_meta']), related=related[:20], history=history)
 
     @app.post('/samples/<sid>/skip')

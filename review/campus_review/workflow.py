@@ -94,7 +94,9 @@ class Workflow:
         now = time.time()
         if existing and existing['expires'] > now and existing['user_id'] != self.user['id']:
             return None, '正在由 ' + existing['username'] + ' 审核，请选择其他照片。'
-        token = existing['token'] if existing and existing['user_id'] == self.user['id'] and existing['expires'] > now else secrets.token_urlsafe(24)
+        # A refreshed page needs a fresh token: a delayed pagehide beacon from the
+        # previous view must not release the new view's claim.
+        token = secrets.token_urlsafe(24)
         expires = now + self.ttl
         self.db.execute('INSERT OR REPLACE INTO review_leases VALUES(?,?,?,?)',
                         (sid, self.user['id'], token, expires))

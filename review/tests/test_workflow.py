@@ -155,3 +155,14 @@ def test_heartbeat_release_and_logout_preserve_photo_content(app):
         row = db.execute('SELECT revision,status FROM samples').fetchone()
         assert (row['revision'], row['status']) == (1, 'pending')
         assert db.execute('SELECT COUNT(*) FROM review_leases').fetchone()[0] == 0
+
+
+def test_delayed_release_from_old_page_cannot_cancel_a_refreshed_page(app):
+    owner = admin(app)
+    path = upload(owner)
+    old = review_body(owner, path)
+    current = review_body(owner, path)
+    assert old['lease'] != current['lease']
+    assert owner.post(path + '/release', data={'csrf': old['csrf'], 'lease': old['lease']}).status_code == 204
+    assert owner.post(path, data=old).status_code == 409
+    assert owner.post(path, data=current).status_code == 302

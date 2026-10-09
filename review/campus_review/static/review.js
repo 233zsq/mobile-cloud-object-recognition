@@ -3,9 +3,22 @@ const reviewForm = document.querySelector('#review-form');
 if (reviewForm && reviewForm.elements.lease.value) {
   const leaseMessage = document.querySelector('#lease-message');
   const reason = reviewForm.elements.reason;
-  const requireReason = () => { reason.required = reviewForm.elements.status.value === 'rejected'; };
-  reviewForm.elements.status.addEventListener('change', requireReason);
-  requireReason();
+  const notePanel = document.querySelector('#review-note');
+  const updateDecision = () => {
+    const choice = reviewForm.elements.decision.value;
+    reason.required = choice === 'other';
+    if (reason.required) notePanel.open = true;
+    document.querySelector('#reason-label').textContent = reason.required ? '其他拒绝原因（必填）' : '审核说明（可选）';
+    document.querySelector('#decision-hint').textContent = choice === 'approved' ? '已选通过，保存后才会生效。' :
+      choice === 'pending' ? '已选暂不判断，保存后保持待审核。' :
+      choice === 'other' ? '请填写其他拒绝原因，再保存。' : '已选拒绝，原因会自动记录；可直接保存。';
+  };
+  reviewForm.querySelectorAll('input[name="decision"]').forEach(input => input.addEventListener('change', updateDecision));
+  updateDecision();
+  reviewForm.addEventListener('invalid', event => {
+    const details = event.target.closest('details');
+    if (details) details.open = true;
+  }, true);
   const credentials = () => {
     const body = new FormData();
     body.append('csrf', reviewForm.elements.csrf.value);
