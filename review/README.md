@@ -34,7 +34,7 @@
 
 ### 百炼视觉初审
 
-初审固定使用 `qwen3-vl-flash-2026-01-22`、非思考模式及JSON输出。仅处理Commons/Open Images网图，成员实拍不外发。向百炼发送最长边512像素的JPEG预览，移除EXIF；已有人工裁剪时只审该区域，建议框再换算回原图。请求只包含图像、类别口径和建议类别，不包含人工通过/拒绝答案、账号、实物ID或分组信息。API密钥保存在Git外的0600文件，以 `REVIEW_AI_KEY_FILE` 指向；也支持 `DASHSCOPE_API_KEY`。请求仅发送至百炼北京官方HTTPS端点，不跟随重定向，不输出密钥或供应商错误正文。[官方调用说明](https://help.aliyun.com/zh/model-studio/vision)、[JSON输出说明](https://help.aliyun.com/zh/model-studio/qwen-structured-output)。
+初审固定使用 `qwen3-vl-flash-2026-01-22`、非思考模式及JSON输出。仅处理Commons/Open Images网图，成员实拍不外发。向百炼发送最长边512像素的JPEG预览，移除EXIF；已有人工裁剪时只审该区域，建议框再换算回原图。v3提示先独立判断实际主要主体，只发送图像和完整类别口径，不向模型透露抓取类别或人工通过/拒绝答案，也不发送账号、实物ID或分组信息；返回类别不匹配当前标签时转为人工确认。API密钥保存在Git外的0600文件，以 `REVIEW_AI_KEY_FILE` 指向；也支持 `DASHSCOPE_API_KEY`。请求仅发送至百炼北京官方HTTPS端点，不跟随重定向，不输出密钥或供应商错误正文。[官方调用说明](https://help.aliyun.com/zh/model-studio/vision)、[JSON输出说明](https://help.aliyun.com/zh/model-studio/qwen-structured-output)。
 
 ```bash
 # 在服务器的current/review目录执行，先加载已有服务环境；不要打印环境内容

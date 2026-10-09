@@ -181,6 +181,11 @@ def test_unsolicited_localization_box_cannot_change_training_crop():
     assert result['decision'] == 'pass' and result['bbox'] is None
 
 
+def test_collection_label_is_not_disclosed_to_the_vision_model():
+    assert ai_review.prompt(categories(), 0) == ai_review.prompt(categories(), 9)
+    assert '未向你提供抓取标签' in ai_review.prompt(categories(), 3)
+
+
 def test_pending_batches_progress_without_recharging_cached_photos(app, monkeypatch, tmp_path):
     owner = admin(app)
     rows = [public_sample(app, owner, color) for color in ('orange', 'blue')]
