@@ -12,17 +12,30 @@ import java.util.UUID
 private val Context.dataStore by preferencesDataStore(name = "settings")
 
 /**
- * App 设置：服务器地址、访问令牌、客户端标识。
- * baseURL 可配置以适配联调环境；client_id 首次启动生成并固定，用于服务端区分客户端。
+ * App 设置：服务器地址与访问令牌作为单个 [ServerConfig] 快照读写（原子），
+ * client_id 首次启动生成并固定，用于服务端区分客户端。
  */
 class SettingsStore(private val context: Context) {
 
-    val baseUrlFlow: Flow<String> = context.dataStore.data.map { it[KEY_BASE_URL] ?: DEFAULT_BASE_URL }
-    val tokenFlow: Flow<String> = context.dataStore.data.map { it[KEY_TOKEN] ?: "" }
+    val configFlow: Flow<ServerConfig> = context.dataStore.data.map { prefs ->
+        ServerConfig(
+            baseUrl = prefs[KEY_BASE_URL] ?: DEFAULT_BASE_URL,
+            token = prefs[KEY_TOKEN] ?: "",
+        )
+    }
+
     val clientIdFlow: Flow<String> = context.dataStore.data.map { it[KEY_CLIENT_ID] ?: "" }
 
-    suspend fun currentBaseUrl(): String = baseUrlFlow.first()
-    suspend fun currentToken(): String = tokenFlow.first()
+    /** 单次读取整个配置快照：地址与令牌必然同源 */
+    suspend fun currentConfig(): ServerConfig = configFlow.first()
+
+    /** 单次事务写入地址与令牌，避免只写入一半 */
+    suspend fun setConfig(config: ServerConfig) {
+        context.dataStore.edit { prefs ->
+            prefs[KEY_BASE_URL] = config.baseUrl.trim()
+            prefs[KEY_TOKEN] = config.token.trim()
+        }
+    }
 
     /** 返回已存在的 client_id，不存在则生成并持久化 */
     suspend fun ensureClientId(): String {
@@ -32,17 +45,12 @@ class SettingsStore(private val context: Context) {
         return id
     }
 
-    suspend fun setBaseUrl(value: String) {
-        context.dataStore.edit { it[KEY_BASE_URL] = value.trim() }
-    }
-
-    suspend fun setToken(value: String) {
-        context.dataStore.edit { it[KEY_TOKEN] = value.trim() }
-    }
-
     companion object {
-        /** 与仓库根 .env.example 的 API_BASE_URL 保持一致 */
+        /** 与仓库根 .env.example 的 API_BASE_URL 保持一致；表示"未配置"的占位值 */
         const val DEFAULT_BASE_URL = "http://localhost:8080"
+
+        /** 组内腾讯云实例（deploy/README.md），证书信任见 res/xml/network_security_config.xml */
+        const val TEAM_SERVER_URL = "https://49.232.195.47"
 
         private val KEY_BASE_URL = stringPreferencesKey("base_url")
         private val KEY_TOKEN = stringPreferencesKey("api_token")

@@ -9,6 +9,9 @@ import java.net.URI
  */
 object BaseUrl {
 
+    /** 显式端口必须落在 TCP 合法范围（PR 审查修复项：>65535 会被接受并覆盖有效配置） */
+    private val VALID_PORTS = 1..65535
+
     data class Parsed(val scheme: String, val host: String, val port: Int)
 
     fun parse(raw: String?): Parsed? {
@@ -17,7 +20,9 @@ object BaseUrl {
         val uri = runCatching { URI(value) }.getOrNull() ?: return null
         val scheme = uri.scheme?.lowercase()?.takeIf { it == "http" || it == "https" } ?: return null
         val host = uri.host?.takeIf { it.isNotBlank() } ?: return null
-        val port = if (uri.port > 0) uri.port else if (scheme == "https") 443 else 80
+        val explicitPort = uri.port
+        if (explicitPort != -1 && explicitPort !in VALID_PORTS) return null
+        val port = if (explicitPort > 0) explicitPort else if (scheme == "https") 443 else 80
         return Parsed(scheme, host, port)
     }
 

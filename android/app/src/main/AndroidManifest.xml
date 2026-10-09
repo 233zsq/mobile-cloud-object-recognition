@@ -13,11 +13,12 @@
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
+        android:networkSecurityConfig="@xml/network_security_config"
         android:supportsRtl="true"
-        android:theme="@style/Theme.CampusRecognition"
-        android:usesCleartextTraffic="true">
+        android:theme="@style/Theme.CampusRecognition">
 
-        <!-- usesCleartextTraffic 仅用于本地/局域网 http 联调，正式部署后端启用 HTTPS 后关闭 -->
+        <!-- 明文 http 与自签名证书信任由 res/xml/network_security_config.xml 逐域控制；
+             联调期 base-config 允许明文，后端全面转 HTTPS 后收紧。 -->
 
         <activity
             android:name=".MainActivity"

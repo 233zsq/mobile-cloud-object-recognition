@@ -1,6 +1,7 @@
 package com.mobilecloud.recognition.data.remote
 
-import com.mobilecloud.recognition.data.settings.SettingsStore
+import com.mobilecloud.recognition.data.settings.ServerConfig
+import java.net.URI
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 import kotlinx.serialization.json.Json
@@ -8,39 +9,30 @@ import okhttp3.HttpUrl
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
-import okhttp3.Response
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 
 /**
- * Retrofit 客户端。服务器地址与令牌可在设置页修改并即时生效（拦截器重写 URL），
- * 避免联调期间改地址要重装 App。
+ * Retrofit 客户端。服务器地址与令牌以单个 [ServerConfig] 快照保存，
+ * 拦截器每个请求只读取一次快照（地址与令牌必然同源，见 [RequestRewriter]），
+ * 设置页修改后即时生效，无需重装。
  */
-class ApiClient(settings: SettingsStore) {
+class ApiClient {
 
-    private val baseUrlRef = AtomicReference(SettingsStore.DEFAULT_BASE_URL)
-    private val tokenRef = AtomicReference("")
-
-    /** 从设置的服务器地址解析出 scheme/host/port；非法或仍是默认占位地址时返回 null（保留原地址快速报错） */
-    private fun parseBaseUrl(): BaseUrl.Parsed? {
-        val base = baseUrlRef.get()
-        if (base == SettingsStore.DEFAULT_BASE_URL) return null
-        return BaseUrl.parse(base)
-    }
+    /** 原子替换的配置快照：更新与读取都以整个对象为单位 */
+    private val configRef = AtomicReference(ServerConfig.DEFAULT)
 
     private val dynamicConfigInterceptor = Interceptor { chain ->
+        val snapshot = configRef.get()
+        val plan = RequestRewriter.plan(chain.request().url.toString(), snapshot)
         val original = chain.request()
         val rewrittenUrl: HttpUrl = original.url.newBuilder().apply {
-            val config = parseBaseUrl()
-            if (config != null) {
-                scheme(config.scheme)
-                host(config.host)
-                port(config.port)
-            }
+            plan.scheme?.let { scheme(it) }
+            plan.host?.let { host(it) }
+            plan.port?.let { port(it) }
         }.build()
         val request = original.newBuilder().url(rewrittenUrl).let { builder ->
-            val token = tokenRef.get()
-            if (token.isNotBlank()) builder.header("Authorization", "Bearer $token") else builder
+            plan.token?.let { builder.header("Authorization", "Bearer $it") } ?: builder
         }.build()
         chain.proceed(request)
     }
@@ -59,27 +51,24 @@ class ApiClient(settings: SettingsStore) {
         .build()
 
     private val retrofit: Retrofit = Retrofit.Builder()
-        .baseUrl(SettingsStore.DEFAULT_BASE_URL)
+        .baseUrl(ServerConfig.DEFAULT.baseUrl)
         .client(okHttp)
         .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
         .build()
 
     val api: ApiService = retrofit.create(ApiService::class.java)
 
-    /** 设置变更时调用；地址非法时保留原值并返回 false */
-    fun updateConfig(baseUrl: String, token: String): Boolean {
-        val previous = baseUrlRef.get()
-        val previousToken = tokenRef.get()
-        baseUrlRef.set(baseUrl.trim())
-        tokenRef.set(token.trim())
-        val valid = baseUrl.trim() == SettingsStore.DEFAULT_BASE_URL || parseBaseUrl() != null
-        if (!valid) {
-            baseUrlRef.set(previous)
-            tokenRef.set(previousToken)
-            return false
-        }
+    /** 设置变更时调用，整份快照原子替换；地址非法时保留原值并返回 false */
+    fun updateConfig(config: ServerConfig): Boolean {
+        if (!isAcceptable(config.baseUrl)) return false
+        configRef.set(config)
         return true
     }
 
-    fun currentBaseUrl(): String = baseUrlRef.get()
+    fun currentConfig(): ServerConfig = configRef.get()
+
+    private fun isAcceptable(baseUrl: String): Boolean {
+        val trimmed = baseUrl.trim()
+        return trimmed == ServerConfig.DEFAULT.baseUrl || BaseUrl.isValid(trimmed)
+    }
 }

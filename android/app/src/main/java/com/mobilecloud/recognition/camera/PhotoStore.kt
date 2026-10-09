@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import androidx.exifinterface.media.ExifInterface
+import com.mobilecloud.recognition.util.GrayCompositeMath
 import com.mobilecloud.recognition.util.PreprocessMath
 import java.io.File
 import java.util.UUID
@@ -118,10 +119,10 @@ internal fun compositeTransparencyOnGray(bitmap: Bitmap): Bitmap {
         val pixel = pixels[i]
         val alpha = (pixel ushr 24) and 0xFF
         if (alpha == 0xFF) continue
-        val ratio = alpha / 255f
-        val r = (((pixel shr 16) and 0xFF) * ratio + 128f * (1f - ratio)).toInt()
-        val g = (((pixel shr 8) and 0xFF) * ratio + 128f * (1f - ratio)).toInt()
-        val b = ((pixel and 0xFF) * ratio + 128f * (1f - ratio)).toInt()
+        // 与 Python 参考实现（PIL Image.alpha_composite）一致的四舍五入口径，见 GrayCompositeMath
+        val r = GrayCompositeMath.composite((pixel shr 16) and 0xFF, alpha)
+        val g = GrayCompositeMath.composite((pixel shr 8) and 0xFF, alpha)
+        val b = GrayCompositeMath.composite(pixel and 0xFF, alpha)
         pixels[i] = (0xFF shl 24) or (r shl 16) or (g shl 8) or b
     }
     val composed = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
