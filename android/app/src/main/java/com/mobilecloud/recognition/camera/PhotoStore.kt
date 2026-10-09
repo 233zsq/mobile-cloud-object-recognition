@@ -14,13 +14,38 @@ import java.util.UUID
  * 照片本地管理：保存到应用私有目录（无需存储权限），解码时按 EXIF 旋转为直立图（用例 T02）。
  * 提供 internal 级辅助函数供端云一致性自检复用（示例图片从 assets 解码走同一套方向与灰底规则）。
  */
-class PhotoStore(context: Context) {
+class PhotoStore(private val context: Context) {
 
     private val photoDir = File(context.filesDir, "photos")
 
     fun newPhotoFile(): File {
         photoDir.mkdirs()
         return File(photoDir, "${UUID.randomUUID()}.jpg")
+    }
+
+    /**
+     * 把相册/文件选择器返回的图片复制进应用私有目录，供识别与记录使用。
+     * 按字节复制以保留 EXIF 方向信息（重新编码会丢失 EXIF，破坏方向处理契约）；
+     * 复制后校验可解码，避免把非图片或损坏文件写入记录。
+     */
+    fun importToPrivateStorage(uri: android.net.Uri): File {
+        val target = newPhotoFile()
+        try {
+            val input = context.contentResolver.openInputStream(uri)
+                ?: throw IllegalStateException("无法读取所选图片")
+            input.use { source ->
+                target.outputStream().use { destination -> source.copyTo(destination) }
+            }
+            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeFile(target.absolutePath, bounds)
+            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
+                throw IllegalStateException("所选文件不是可识别的图片")
+            }
+            return target
+        } catch (e: Exception) {
+            target.delete()
+            throw e
+        }
     }
 
     /**

@@ -80,6 +80,13 @@ uploaded=1 且 correctionPending=0 ──纠错──> correctionPending=1 ─�
 - debug 构建额外信任设备上用户安装的 CA（`debug-overrides`），便于局域网/自签环境联调；
   release 构建不生效。
 
+### 采集与导入
+拍照走 CameraX（ImageCapture 写 EXIF，解码时统一应用方向，T02）。**导入图片**使用系统
+图片选择器（`PickVisualMedia`，无需存储权限），按**字节复制**进应用私有目录以保留 EXIF，
+随后进入与拍照完全相同的链路（解码直立化 → 透明图灰底合成 → letterbox 预处理 → 推理 →
+Room 记录 → 触发上报）；复制后校验可解码，非图片/损坏文件不产生记录。
+相机权限被拒时导入入口仍可用（同一识别链路不依赖相机权限）。
+
 ### 类别清单
 `assets/categories.json` 为 `shared/categories.json`（冻结版 campus-10-v2，2026-10-07）的
 仓库内副本，类别 ID/标签键/中文名与模型输出索引一致；冻结清单变更时同步更新此副本。

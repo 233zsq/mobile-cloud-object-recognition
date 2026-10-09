@@ -15,6 +15,7 @@ import androidx.camera.view.PreviewView
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -51,6 +52,7 @@ fun CameraCaptureView(
     captureEnabled: Boolean,
     onPhotoSaved: (File) -> Unit,
     onCaptureError: (String) -> Unit,
+    onImportClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -98,43 +100,51 @@ fun CameraCaptureView(
             modifier = Modifier.fillMaxSize(),
         )
 
-        Button(
-            onClick = {
-                if (capturing || !captureEnabled) return@Button
-                capturing = true
-                val file = AppGraph.photoStore.newPhotoFile()
-                val options = ImageCapture.OutputFileOptions.Builder(file).build()
-                imageCapture.takePicture(
-                    options,
-                    ContextCompat.getMainExecutor(context),
-                    object : ImageCapture.OnImageSavedCallback {
-                        override fun onImageSaved(output: ImageCapture.OutputFileResults) {
-                            capturing = false
-                            onPhotoSaved(file)
-                        }
-
-                        override fun onError(exception: ImageCaptureException) {
-                            capturing = false
-                            file.delete()
-                            onCaptureError(exception.message ?: "未知相机错误")
-                        }
-                    },
-                )
-            },
-            enabled = captureEnabled,
+        Row(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 24.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            if (capturing) {
-                CircularProgressIndicator(
-                    modifier = Modifier.height(18.dp),
-                    strokeWidth = 2.dp,
-                    color = MaterialTheme.colorScheme.onPrimary,
-                )
+            OutlinedButton(onClick = onImportClick, enabled = captureEnabled) {
+                Text("导入图片")
             }
-            Spacer(Modifier.height(2.dp))
-            Text("拍照识别")
+            Button(
+                onClick = {
+                    if (capturing || !captureEnabled) return@Button
+                    capturing = true
+                    val file = AppGraph.photoStore.newPhotoFile()
+                    val options = ImageCapture.OutputFileOptions.Builder(file).build()
+                    imageCapture.takePicture(
+                        options,
+                        ContextCompat.getMainExecutor(context),
+                        object : ImageCapture.OnImageSavedCallback {
+                            override fun onImageSaved(output: ImageCapture.OutputFileResults) {
+                                capturing = false
+                                onPhotoSaved(file)
+                            }
+
+                            override fun onError(exception: ImageCaptureException) {
+                                capturing = false
+                                file.delete()
+                                onCaptureError(exception.message ?: "未知相机错误")
+                            }
+                        },
+                    )
+                },
+                enabled = captureEnabled,
+            ) {
+                if (capturing) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.height(18.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
+                }
+                Spacer(Modifier.height(2.dp))
+                Text("拍照识别")
+            }
         }
     }
 }

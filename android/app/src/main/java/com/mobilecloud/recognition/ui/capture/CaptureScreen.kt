@@ -2,6 +2,7 @@ package com.mobilecloud.recognition.ui.capture
 
 import android.Manifest
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
@@ -23,6 +24,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -70,6 +72,16 @@ fun CaptureScreen(
         ActivityResultContracts.RequestPermission()
     ) { granted -> hasPermission = granted }
 
+    // 系统图片选择器：无需存储权限，导入的图片走与拍照相同的识别链路
+    val importLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickVisualMedia()
+    ) { uri -> uri?.let(viewModel::onPhotoImport) }
+    val launchImport: () -> Unit = {
+        importLauncher.launch(
+            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+        )
+    }
+
     LaunchedEffect(Unit) {
         if (!hasPermission) permissionLauncher.launch(Manifest.permission.CAMERA)
     }
@@ -103,12 +115,27 @@ fun CaptureScreen(
                         captureEnabled = state.modelState is ModelState.Ready && !state.capturing,
                         onPhotoSaved = viewModel::onPhotoSaved,
                         onCaptureError = viewModel::onCaptureError,
+                        onImportClick = launchImport,
                     )
                 } else {
-                    CameraPermissionRationale(
-                        onRequest = { permissionLauncher.launch(Manifest.permission.CAMERA) },
-                        modifier = Modifier.fillMaxSize(),
-                    )
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        CameraPermissionRationale(
+                            onRequest = { permissionLauncher.launch(Manifest.permission.CAMERA) },
+                            modifier = Modifier.weight(1f),
+                        )
+                        // 未授予相机权限时仍可用导入图片识别
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                            horizontalArrangement = Arrangement.Center,
+                        ) {
+                            OutlinedButton(
+                                onClick = launchImport,
+                                enabled = state.modelState is ModelState.Ready && !state.capturing,
+                            ) {
+                                Text("导入图片识别")
+                            }
+                        }
+                    }
                 }
             }
 
