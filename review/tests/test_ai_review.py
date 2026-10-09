@@ -153,7 +153,12 @@ def test_pilot_report_uses_hidden_human_reference_and_keeps_all_statuses(app, mo
     assert 'test-private-key' not in result.output
     with connect(app) as db:
         assert db.execute('SELECT status,revision FROM samples').fetchone()[:] == ('rejected', 2)
-    assert '误放行 1 张' in owner.get('/').text
+    assert '与人工拒绝冲突 1 张' in owner.get('/').text
+    pending = app.test_cli_runner().invoke(args=['ai-review', '--mode', 'pending'])
+    assert pending.exit_code == 0
+    with connect(app) as db:
+        assert ai_review.latest_report(db)['mode'] == 'pending'
+    assert '与人工拒绝冲突 1 张' in owner.get('/').text
 
 
 def test_http_errors_never_echo_credentials_or_provider_body(monkeypatch):
@@ -174,6 +179,23 @@ def test_http_errors_never_echo_credentials_or_provider_body(monkeypatch):
 
 def test_redirects_do_not_forward_api_key():
     assert ai_review.NoRedirect().redirect_request(None, None, None, None, None, 'https://untrusted.invalid') is None
+
+
+def test_truncated_completion_preserves_observed_usage_and_leaves_photo_for_human(app, monkeypatch):
+    owner = admin(app); row = public_sample(app, owner)
+    response = {'model': ai_review.MODEL, 'usage': {'prompt_tokens': 900, 'completion_tokens': 500},
+                'choices': [{'finish_reason': 'length', 'message': {'content': answer()}}]}
+    class Transport:
+        def open(self, request, timeout):
+            return io.BytesIO(json.dumps(response).encode())
+    monkeypatch.setattr(ai_review.urllib.request, 'build_opener', lambda *args: Transport())
+    with connect(app) as db:
+        db.isolation_level = None
+        assert ai_review.analyze(db, Path(app.config['DATA_DIR']), row, categories(), {},
+                                 'test-private-key-1234', ai_review.call_api) == ('error', None)
+        record = db.execute('SELECT error_code,prompt_tokens,completion_tokens,charged_nano FROM ai_reviews').fetchone()
+        assert record[:] == ('invalid_suggestion', 900, 500, 900 * ai_review.INPUT_RATE + 500 * ai_review.OUTPUT_RATE)
+        assert db.execute('SELECT status,revision FROM samples').fetchone()[:] == ('pending', 1)
 
 
 def test_unsolicited_localization_box_cannot_change_training_crop():

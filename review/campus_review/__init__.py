@@ -338,6 +338,7 @@ def create_app(config=None):
         return render_template('index.html', samples=samples, stats=stats, filters=filters, **filters,
                                ai_suggestions={row['id']: ai_review.suggestion(db(), row, cat) for row in samples},
                                ai_summary=ai_review.latest_report(db()),
+                               ai_pilot=ai_review.latest_report(db(), 'pilot'),
                                assignments=work.assignments(), review_now=time.time(),
                                reviewers=db().execute('SELECT id,username FROM users WHERE active=1 ORDER BY username').fetchall(),
                                page=page, count=count, egress_bytes=db().execute('SELECT bytes FROM egress WHERE id=1').fetchone()[0],

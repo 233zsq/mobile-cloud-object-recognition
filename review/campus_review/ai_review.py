@@ -117,13 +117,16 @@ def call_api(key, text, photo):
         if len(raw) > 256 * 1024:
             raise ReviewError('response_too_large')
         result = json.loads(raw)
-        if result.get('model') != MODEL or result['choices'][0]['finish_reason'] != 'stop':
-            raise ReviewError('model_mismatch_or_truncated')
+        if result.get('model') != MODEL:
+            raise ReviewError('model_mismatch')
         usage = result['usage']
         counts = [usage['prompt_tokens'], usage['completion_tokens']]
         if any(type(n) is not int or n < 0 for n in counts) or counts[0] > 32000 or counts[1] > 500:
             raise ReviewError('unexpected_token_usage')
-        return result['choices'][0]['message']['content'], counts, len(body)
+        # An incomplete JSON is a per-photo failure. Preserve the known token
+        # usage and let semantic validation reject it without stopping the batch.
+        content = result['choices'][0]['message']['content'] if result['choices'][0]['finish_reason'] == 'stop' else ''
+        return content, counts, len(body)
     except urllib.error.HTTPError as error:
         # Do not expose provider error bodies: they can echo credentials or request data.
         raise ReviewError('http_' + str(error.code)) from None
@@ -330,6 +333,10 @@ def register(app, get_db, data, categories):
             raise click.ClickException('AI run incomplete; inspect safe error_code in ai_reviews')
 
 
-def latest_report(connection):
-    row = connection.execute('SELECT report FROM ai_runs ORDER BY created_at DESC,id DESC LIMIT 1').fetchone()
+def latest_report(connection, mode=None):
+    clause, arguments = '', []
+    if mode:
+        clause = ' WHERE json_extract(report,"$.mode")=? AND json_extract(report,"$.prompt_version")=? AND json_extract(report,"$.model")=?'
+        arguments = [mode, PROMPT_VERSION, MODEL]
+    row = connection.execute('SELECT report FROM ai_runs' + clause + ' ORDER BY created_at DESC,rowid DESC LIMIT 1', arguments).fetchone()
     return json.loads(row[0]) if row else None
