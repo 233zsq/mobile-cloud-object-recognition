@@ -21,7 +21,8 @@ from .assets import PUBLIC_SOURCES, crop_box
 
 MODEL_RATES = {'qwen3-vl-flash-2026-01-22': (150, 1500),
                'qwen3-vl-plus-2025-12-19': (1000, 10000),
-               'qwen3.8-flash': (800, 2700)}
+               'qwen3.8-flash': (800, 2700),
+               'qwen3.8-max-0902': (12000, 36000)}
 # Official docs currently expose only an alias for 3.8. This is our cache
 # generation, not a claim that the provider weights are immutable.
 ALIAS_GENERATIONS = {'qwen3.8-flash': 'review-evaluation-20261009-r1'}

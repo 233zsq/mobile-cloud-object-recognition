@@ -377,3 +377,22 @@ def test_explicit_transport_requires_matching_model_and_alias_cache_generation(m
     identity = ai_review.cache_key(row, categories(), profile)
     monkeypatch.setitem(ai_review.ALIAS_GENERATIONS, 'qwen3.8-flash', 'new-provider-review-cycle')
     assert identity != ai_review.cache_key(row, categories(), profile)
+
+
+def test_max_snapshot_has_separate_cache_prices_and_persistent_reservation(app):
+    owner = admin(app); row = public_sample(app, owner)
+    profile = ai_review.Profile('qwen3.8-max-0902', 'campus-ai-review-v5')
+    assert ai_review.cache_key(row, categories(), profile) != ai_review.cache_key(row, categories())
+    reserve = 32000 * 12000 + 500 * 36000
+    with connect(app) as db:
+        db.isolation_level = None
+        with pytest.raises(ai_review.ReviewError, match='persistent_budget_exhausted'):
+            ai_review.analyze(db, Path(app.config['DATA_DIR']), row, categories(),
+                              {'REVIEW_AI_BUDGET_NANO': reserve - 1}, 'test-private-key-1234',
+                              fake_api, profile=profile)
+        assert ai_review.analyze(db, Path(app.config['DATA_DIR']), row, categories(),
+                                 {'REVIEW_AI_BUDGET_NANO': reserve}, 'test-private-key-1234',
+                                 fake_api, profile=profile)[0] == 'done'
+        assert db.execute('SELECT model,charged_nano FROM ai_reviews').fetchone()[:] == (
+            profile.model, 300 * 12000 + 80 * 36000)
+        assert db.execute('SELECT status,revision FROM samples').fetchone()[:] == ('pending', 1)
