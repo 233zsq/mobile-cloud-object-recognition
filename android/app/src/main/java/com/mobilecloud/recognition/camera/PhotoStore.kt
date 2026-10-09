@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import androidx.exifinterface.media.ExifInterface
 import com.mobilecloud.recognition.util.GrayCompositeMath
+import com.mobilecloud.recognition.util.ImageMetadataStripper
 import com.mobilecloud.recognition.util.PreprocessMath
 import java.io.File
 import java.util.UUID
@@ -57,8 +58,12 @@ class PhotoStore(private val context: Context) {
     fun decodeUpright(file: File, maxDimension: Int? = null): Bitmap? {
         if (!file.exists()) return null
 
+        // 解码前剥离颜色管理元数据，使结果与参考实现（PIL）逐像素一致（契约 rgb-letterbox-v1）
+        val bytes = runCatching { ImageMetadataStripper.stripColorManagement(file.readBytes()) }
+            .getOrNull() ?: return null
+
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        BitmapFactory.decodeFile(file.absolutePath, bounds)
+        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
         if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
 
         var sample = 1
@@ -71,7 +76,7 @@ class PhotoStore(private val context: Context) {
             inSampleSize = sample
             inPreferredConfig = Bitmap.Config.ARGB_8888
         }
-        val decoded = BitmapFactory.decodeFile(file.absolutePath, options) ?: return null
+        val decoded = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options) ?: return null
         val orientation = readExifOrientation(file)
         val upright = applyExifOrientation(decoded, orientation)
         return compositeTransparencyOnGray(upright)
@@ -86,14 +91,13 @@ class PhotoStore(private val context: Context) {
 /** 从 assets 解码图片并按契约应用 EXIF 方向与灰底合成（端云一致性自检使用） */
 internal fun decodeAssetUpright(context: Context, assetPath: String): Bitmap? {
     val assets = context.assets
+    val bytes = assets.open(assetPath).use { it.readBytes() }
+    val stripped = ImageMetadataStripper.stripColorManagement(bytes)
     val options = BitmapFactory.Options().apply { inPreferredConfig = Bitmap.Config.ARGB_8888 }
-    val decoded = assets.open(assetPath).use { input ->
-        BitmapFactory.decodeStream(input, null, options)
-    } ?: return null
+    val decoded = BitmapFactory.decodeByteArray(stripped, 0, stripped.size, options) ?: return null
     val orientation = try {
-        assets.open(assetPath).use { input ->
-            ExifInterface(input).getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
-        }
+        ExifInterface(java.io.ByteArrayInputStream(bytes))
+            .getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
     } catch (_: Exception) {
         ExifInterface.ORIENTATION_NORMAL
     }
