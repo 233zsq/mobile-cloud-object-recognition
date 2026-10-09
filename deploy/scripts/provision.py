@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 import secrets
 import subprocess
+import time
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -103,6 +104,9 @@ def application():
     command(['sudo', '-n', 'systemctl', 'daemon-reload'])
     command(['sudo', '-n', 'systemctl', 'enable', '--now', 'mysql', 'mobile-cloud-backend'], show=True)
     command(['sudo', '-n', 'systemctl', 'restart', 'mobile-cloud-backend'])
+    enabled = subprocess.run(['systemctl', 'is-enabled', '--quiet', 'mobile-cloud-inference.service'])
+    if enabled.returncode == 0:
+        command(['sudo', '-n', 'systemctl', 'restart', 'mobile-cloud-inference'])
     print(json.dumps({'phase': 'application', 'release': str(ROOT), 'config': str(CONFIG)}))
 
 
@@ -151,9 +155,49 @@ def backup():
     command(['sudo', '-n', 'python3', '-B', '/usr/local/lib/mobile-cloud-backend/backup_database.py'], show=True)
 
 
+def inference():
+    data = settings()
+    package = BASE / 'models/campus-gpu-v1-backend'
+    cpu_python = package / '.venv/bin/python'
+    if not cpu_python.is_file():
+        raise RuntimeError('Install and verify the independent CPU package first; see deploy/INFERENCE.md.')
+    integrity = json.loads(command([str(cpu_python), '-B', str(package / 'verify_package.py')]))
+    metadata = json.loads((package / 'release/metadata.json').read_text())
+    expected_sha256 = 'a58ca2be234d0d7e7db6bdec3853b3e077df6a88321da4f6bd7a8a5d5be51d13'
+    if integrity['model_version'] != 'campus-gpu-v1' or integrity['model_sha256'] != expected_sha256:
+        raise RuntimeError('Unexpected model package identity.')
+    python = ROOT / 'backend/.venv/bin/python'
+    command([str(python), '-m', 'flask', '--app', 'app:create_app', 'register-model',
+             '--metadata', str(package / 'release/metadata.json')], show=True)
+    data.update(INFERENCE_SOCKET='/run/mobile-cloud-inference/model.sock',
+                INFERENCE_MODEL_VERSION=metadata['model_version'], INFERENCE_MODEL_SHA256=expected_sha256,
+                INFERENCE_TIMEOUT_SECONDS='15', INFERENCE_MAX_IMAGE_BYTES='8388608')
+    temporary = CONFIG.with_name('backend.env.inference-' + secrets.token_hex(4))
+    descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(descriptor, 'w', encoding='utf-8') as stream:
+        stream.write(''.join(f'{key}={value}\n' for key,value in data.items()))
+    temporary.replace(CONFIG)
+    install(ROOT / 'deploy/systemd/mobile-cloud-inference.service', '/etc/systemd/system/mobile-cloud-inference.service')
+    command(['sudo', '-n', 'systemd-analyze', 'verify', '/etc/systemd/system/mobile-cloud-inference.service'], show=True)
+    command(['sudo', '-n', 'systemctl', 'daemon-reload'])
+    command(['sudo', '-n', 'systemctl', 'enable', '--now', 'mobile-cloud-inference'], show=True)
+    command(['sudo', '-n', 'systemctl', 'restart', 'mobile-cloud-inference'])
+    probe = "from app import create_app; a=create_app(); print(a.extensions['inference_client'].health()['model_version'])"
+    for _ in range(30):
+        result = subprocess.run([str(python), '-B', '-c', probe], capture_output=True, text=True)
+        if result.returncode == 0 and result.stdout.strip() == 'campus-gpu-v1':
+            break
+        time.sleep(0.5)
+    else:
+        raise RuntimeError('CPU worker did not become ready; record APIs remain independent.')
+    command(['sudo', '-n', 'systemctl', 'restart', 'mobile-cloud-backend'])
+    print(json.dumps({'phase':'inference','model_version':metadata['model_version'],'model_sha256':expected_sha256,
+                      'socket':data['INFERENCE_SOCKET'],'cpu_package':str(package)}))
+
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('phase', choices=['mysql-config', 'application', 'nginx', 'backup'])
+    parser.add_argument('phase', choices=['mysql-config', 'application', 'nginx', 'backup', 'inference'])
     args = parser.parse_args()
     if ROOT.parent != BASE / 'releases':
         raise RuntimeError('Run this script only from the managed releases directory.')

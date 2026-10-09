@@ -25,11 +25,13 @@ def create_app(
     from .api import api
     from .extensions import init_database
     from .cli import register_commands
+    from .inference.client import init_inference
 
     configure_logging(app)
     register_request_logging(app)
     register_error_handlers(app)
     init_database(app)
     register_commands(app)
+    init_inference(app)
     app.register_blueprint(api)
     return app

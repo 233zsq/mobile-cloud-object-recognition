@@ -1,9 +1,9 @@
 case_id,scenario,expected,status,actual,device,model_sha256,evidence
-M01,model/label hashes,match metadata,pending,,,,
-M02,20 golden tensors,same top1 and score error <=0.001,pending,,,,
-M03,EXIF/letterbox/RGB,reference input matches,pending,,,,
-M04,normalization,"0..255 input, normalization inside model",pending,,,,
-M05,Android timing,warm20 measure100 P95<=1000ms preprocessing+inference,pending,,,,
-M06,cloud CPU,same model/labels and golden predictions,pending,,,,
-M07,independent field test,accuracy>=0.85 macroF1>=0.80,pending,,,,
-M08,low confidence,prompt confirmation; retain original prediction,pending,,,,
+M01,model/label hashes,match metadata,passed,8,939,040 字节；SHA-256 与 metadata 逐位一致；APK 内资产二次复核一致,小米13 Pro,a58ca2be234d0d7e7db6bdec3853b3e077df6a88321da4f6bd7a8a5d5be51d13,scripts/verify-official-model.py；android/app/src/main/assets/models/
+M02,20 golden tensors,same top1 and score error <=0.001,passed,20/20 Top-1 一致；最大分数差 2.30e-06（阈值 0.001）；实际喂入张量 SHA-256 逐一相符,小米13 Pro,a58ca2be234d0d7e7db6bdec3853b3e077df6a88321da4f6bd7a8a5d5be51d13,experiments/reports/consistency/campus-gpu-v1/android-2210132C-20261009-151317-reference_tensor.json
+M03,EXIF/letterbox/RGB,reference input matches,passed,20/20 输入像素最大差 3.05e-05（阈值 0.001）；产物 602112 字节 little-endian float32,小米13 Pro,a58ca2be234d0d7e7db6bdec3853b3e077df6a88321da4f6bd7a8a5d5be51d13,experiments/reports/consistency/campus-gpu-v1/android-2210132C-20261009-151317-image_chain.json
+M04,normalization,"0..255 input, normalization inside model",passed,设备输入范围恰为 [0,255]；metadata 为 inside model 且端侧恒等；剥离色彩管理元数据后与参考一致,小米13 Pro,a58ca2be234d0d7e7db6bdec3853b3e077df6a88321da4f6bd7a8a5d5be51d13,同上（image_chain 记录）
+M05,Android timing,warm20 measure100 P95<=1000ms preprocessing+inference,pending,,,,待预热20次+100次专项测量
+M06,cloud CPU,same model/labels and golden predictions,pending,,,,云端模型尚未加载（backend/deploy 侧）
+M07,independent field test,accuracy>=0.85 macroF1>=0.80,pending,,,,独立实拍测试由组长组织
+M08,low confidence,prompt confirmation; retain original prediction,pending,,,,占位模型轮次验证过低置信提示与纠错保留；正式模型下待复测

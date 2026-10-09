@@ -106,3 +106,13 @@ backups/
 *.mov
 *.avi
 *.mkv
+
+# Android model package payloads stay local (README + placement rules only)
+/android/app/src/main/assets/models/*
+!/android/app/src/main/assets/models/README.md
+
+# Android debug-only consistency check examples (delivery artifacts; copy from ml release locally)
+/android/app/src/debug/assets/models/examples/**
+
+# Device consistency-check inputs stay local (regenerable by re-running the in-app self-check)
+/experiments/reports/consistency/**/*_inputs/
