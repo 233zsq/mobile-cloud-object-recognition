@@ -60,7 +60,12 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
             value = baseUrl,
             onValueChange = { baseUrl = it; viewModel.onBaseUrlChange(it) },
             label = { Text("服务器地址") },
-            supportingText = { Text("如 http://192.168.1.10:8080，联调时填写腾讯云或内网地址") },
+            supportingText = {
+                Text(
+                    "组内已部署：https://49.232.195.47（自签证书已内置信任，需填令牌）；" +
+                        "局域网联调如 http://192.168.1.10:8080",
+                )
+            },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
         )

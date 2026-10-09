@@ -6,8 +6,8 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mobilecloud.recognition.AppGraph
-import com.mobilecloud.recognition.data.remote.BaseUrl
-import com.mobilecloud.recognition.data.settings.SettingsStore
+import com.mobilecloud.recognition.data.settings.ServerConfig
+import com.mobilecloud.recognition.data.settings.SettingsPolicy
 import com.mobilecloud.recognition.inference.ModelRepository
 import kotlinx.coroutines.launch
 
@@ -39,11 +39,10 @@ class SettingsViewModel : ViewModel() {
 
     init {
         viewModelScope.launch {
-            val baseUrl = AppGraph.settings.currentBaseUrl()
-            val token = AppGraph.settings.currentToken()
+            val config = AppGraph.settings.currentConfig()
             val clientId = AppGraph.settings.ensureClientId()
-            update { it.copy(baseUrl = baseUrl, token = token, clientId = clientId) }
-            AppGraph.apiClient.updateConfig(baseUrl, token)
+            update { it.copy(baseUrl = config.baseUrl, token = config.token, clientId = clientId) }
+            AppGraph.apiClient.updateConfig(config)
             update { it.copy(examplesAvailable = AppGraph.consistencyCheck.hasExamples()) }
             loadModelInfo()
         }
@@ -54,21 +53,15 @@ class SettingsViewModel : ViewModel() {
 
     /** 保存：先校验地址格式，无效则完全不改动持久化配置（避免把不可用地址写坏） */
     fun save() {
-        val url = _state.value.baseUrl.trim()
-        val token = _state.value.token.trim()
-        if (url != SettingsStore.DEFAULT_BASE_URL && !BaseUrl.isValid(url)) {
-            update {
-                it.copy(
-                    savedMessage = "地址格式无效（需 http(s)://主机[:端口]），未保存；此前配置保持不变",
-                )
-            }
+        val config = ServerConfig(_state.value.baseUrl.trim(), _state.value.token.trim())
+        SettingsPolicy.validateForSave(config)?.let { reason ->
+            update { it.copy(savedMessage = reason) }
             return
         }
         viewModelScope.launch {
             update { it.copy(saving = true) }
-            AppGraph.settings.setBaseUrl(url)
-            AppGraph.settings.setToken(token)
-            val ok = AppGraph.apiClient.updateConfig(url, token)
+            AppGraph.settings.setConfig(config) // 单次事务：地址与令牌一起写入
+            val ok = AppGraph.apiClient.updateConfig(config) // 单次原子替换请求层快照
             update {
                 it.copy(
                     saving = false,

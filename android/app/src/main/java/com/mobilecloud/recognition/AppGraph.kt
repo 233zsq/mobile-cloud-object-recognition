@@ -56,7 +56,7 @@ object AppGraph {
             appContext = context.applicationContext
             settings = SettingsStore(appContext)
             database = AppDatabase.build(appContext)
-            apiClient = ApiClient(settings)
+            apiClient = ApiClient()
             modelRepository = ModelRepository(appContext)
             photoStore = PhotoStore(appContext)
             categoryCatalog = CategoryCatalog.fromText(loadCategoryAsset())
@@ -75,13 +75,12 @@ object AppGraph {
         }
     }
 
-    /** 把持久化设置同步进网络层；设置页保存后也调用 */
+    /** 把持久化设置同步进网络层；设置页保存后也调用。整份 [ServerConfig] 快照原子替换 */
     fun syncSettingsConfig() {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         scope.launch {
-            val baseUrl = settings.currentBaseUrl()
-            val token = settings.currentToken()
-            apiClient.updateConfig(baseUrl, token)
+            val config = settings.currentConfig()
+            apiClient.updateConfig(config)
         }
     }
 
