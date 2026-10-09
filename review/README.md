@@ -127,6 +127,8 @@ REVIEW_AI_MODEL=qwen3-vl-plus-2025-12-19 REVIEW_AI_PROMPT_VERSION=campus-ai-revi
 
 ### Qwen3.8与严格分流
 
+同一策略、照片修订和模型/提示输入已分流的人工待审项，下批自动跳过，保持人工队列不变；策略或缓存代次变化后可重新检查。预演不写入此进度，预算/供应商中断的当前样本也不会记为已完成。
+
 新增 `qwen3.8-flash`：支持图片和JSON输出，北京输入/输出每百万Token标价0.8/2.7元，非思考模式。[官方说明](https://help.aliyun.com/zh/model-studio/qwen3-8-flash)。当前官方只公布别名，本项目记录内部缓存代次 `review-evaluation-20261009-r1`，不能据此声称供应商权重已固定；供应商升级后应重新抽样评测并更换代次。模型与提示词通过不可变 `Profile` 独立传递，不改变其他任务的全局模型或价格。
 
 同图实测、适用范围与局限见 [Qwen3.8对照和分流记录](experiments/2026-10-09-qwen38-triage.md)。当前云端已切换3.8/v4作为辅助建议与第一步分流；历史Plus结果保留。报告的 `run_usage` 为所选输入缓存键在执行前后的账本增量，`ledger_window_usage` 单独记录全库窗口增量；有并行任务时二者可能不同，同一输入键的并发开销也不能当作独占归属。

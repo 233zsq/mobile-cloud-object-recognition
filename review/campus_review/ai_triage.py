@@ -37,6 +37,9 @@ CREATE TABLE IF NOT EXISTS ai_auto_decisions(
  policy TEXT NOT NULL,applied_revision INTEGER NOT NULL,after_status TEXT NOT NULL,before_values TEXT NOT NULL,
  evidence TEXT NOT NULL,audit_required INTEGER NOT NULL DEFAULT 1,reverted_at TEXT,created_at TEXT NOT NULL);
 CREATE INDEX IF NOT EXISTS ai_auto_sample ON ai_auto_decisions(sample_id);
+CREATE TABLE IF NOT EXISTS ai_triage_seen(
+ identity TEXT PRIMARY KEY,sample_id TEXT NOT NULL REFERENCES samples(id),policy TEXT NOT NULL,
+ job_id TEXT NOT NULL REFERENCES ai_triage_jobs(id),created_at TEXT NOT NULL);
 '''
 
 
@@ -94,6 +97,10 @@ def candidate(result, category):
 def decide(results, category):
     choices = [candidate(result, category) for result in results]
     return choices[0] if len(choices) == 3 and choices[0] and len(set(choices)) == 1 else None
+
+
+def selection_identity(row, categories, selected):
+    return ai.digest(json.dumps([POLICY, row['revision'], [ai.cache_key(row, categories, p) for p in selected]]).encode())
 
 
 def untouched(db, row):
@@ -279,7 +286,9 @@ def run_job(db, data, categories, config, identity, analyze=ai.analyze):
         administrator(db, job['actor'])
         key = ai.read_key(config)
         chosen_profiles = [ai.Profile(**p) for p in json.loads(job['profiles'])]
-        rows = [dict(r) for r in db.execute('SELECT * FROM samples ORDER BY id').fetchall() if untouched(db, r)]
+        seen = {r[0] for r in db.execute('SELECT identity FROM ai_triage_seen')}
+        rows = [dict(r) for r in db.execute('SELECT * FROM samples ORDER BY id').fetchall()
+                if untouched(db, r) and selection_identity(r, categories, chosen_profiles) not in seen]
         random.Random(42).shuffle(rows)
         groups = {}
         for row in rows:
@@ -317,8 +326,16 @@ def run_job(db, data, categories, config, identity, analyze=ai.analyze):
                            'would_' + decide(suggestions, row['category']))
             report['samples'].append({'sample_id': row['id'], 'category_id': row['category'], 'outcome': outcome, 'checks': checks})
             report['counts'][outcome] = report['counts'].get(outcome, 0) + 1
-            db.execute('UPDATE ai_triage_jobs SET processed=?,report=?,updated_at=? WHERE id=?',
-                       (len(report['samples']), json.dumps(report, ensure_ascii=False), ai.stamp(), identity))
+            db.execute('BEGIN IMMEDIATE')
+            try:
+                db.execute('UPDATE ai_triage_jobs SET processed=?,report=?,updated_at=? WHERE id=?',
+                           (len(report['samples']), json.dumps(report, ensure_ascii=False), ai.stamp(), identity))
+                if job['apply_changes'] and state != 'stopped' and outcome in ('approved', 'rejected', 'manual'):
+                    db.execute('INSERT OR IGNORE INTO ai_triage_seen VALUES(?,?,?,?,?)',
+                               (selection_identity(row, categories, chosen_profiles), row['id'], POLICY, identity, ai.stamp()))
+                db.commit()
+            except Exception:
+                db.rollback(); raise
             if state == 'stopped':
                 break
     except ai.ReviewError as error:

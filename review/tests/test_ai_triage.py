@@ -170,6 +170,24 @@ def test_parallel_pilot_cost_is_not_charged_to_triage_run_report(app, monkeypatc
     assert report['usage']['attempts']==4
 
 
+def test_successive_batches_skip_manual_middle_and_policy_change_invalidates_seen(app, monkeypatch):
+    owner=admin(app);row,uid=prepare(app,owner)
+    for color in ('blue','green'):
+        public_sample(app,owner,color=color)
+    monkeypatch.setenv('DASHSCOPE_API_KEY','test-private-key-1234')
+    uncertain=answer(decision='uncertain',category_id=None,subject='用途无法确定的物品')
+    reports=[execute(app,uid,result=uncertain,limit=1) for _ in range(3)]
+    assert len({r['samples'][0]['sample_id'] for r in reports})==3
+    assert all(r['counts']=={'manual':1} for r in reports)
+    assert execute(app,uid,result=uncertain,limit=1)['counts']=={}
+    with connect(app) as db:
+        assert ai.usage_totals(db)[4]==3
+        assert db.execute('SELECT COUNT(*) FROM samples WHERE status="pending" AND revision=1').fetchone()[0]==3
+    monkeypatch.setattr(triage,'POLICY','new-calibration-policy')
+    repeated=execute(app,uid,result=uncertain,limit=1)
+    assert repeated['counts']=={'manual':1} and repeated['run_usage']['attempts']==0
+
+
 def test_provider_error_and_exhausted_budget_leave_photos_pending(app, monkeypatch):
     owner = admin(app); row, uid = prepare(app, owner)
     monkeypatch.setenv('DASHSCOPE_API_KEY', 'test-private-key-1234')
