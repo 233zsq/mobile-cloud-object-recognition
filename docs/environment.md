@@ -21,9 +21,9 @@ python -c "import tensorflow as tf; print(tf.__version__); print(tf.config.list_
 
 | 模块 | 需要登记的信息 | 实际版本/设备 | 验证结果与日期 |
 | --- | --- | --- | --- |
-| Android | Android Studio、Kotlin及相关编译插件、JDK、Gradle、AGP、compile/min/target SDK | 开发命令行 JDK 24.0.1；Gradle 9.4.1；AGP 9.2.1；Kotlin 2.2.10；KSP 2.3.12；compileSdk 37 / minSdk 26 / targetSdk 36（构建通过 2026-10-07） | 构建+单测通过，待真机安装验证 |
+| Android | Android Studio、Kotlin及相关编译插件、JDK、Gradle、AGP、compile/min/target SDK | 开发命令行 JDK 24.0.1；Gradle 9.4.1；AGP 9.2.1；Kotlin 2.2.10；KSP 2.3.12；compileSdk 37 / minSdk 26 / targetSdk 36（构建通过 2026-10-07） | 构建+单测通过；2026-10-09 正式模型真机识别通过 |
 | Android 依赖 | CameraX、Room、tflite/LiteRT 与网络库 | CameraX 1.6.2；Room 2.8.5（KSP 2.3.12）；LiteRT 1.4.1（`org.tensorflow.lite` API）；Retrofit 3.0.0 + OkHttp 5.5.0；WorkManager 2.12.0；DataStore 1.2.1；kotlinx-serialization 1.11.0；Compose BOM 2026.09.00（见 android/gradle/libs.versions.toml） | 版本锁定待真机回归后冻结 |
-| 真机 | 型号、Android 版本、处理器、内存 | 待填写（Android 8.0+ 均在兼容范围，minSdk 26） | 待验证 |
+| 真机 | 型号、Android 版本、处理器、内存 | 小米 13 Pro（Android 版本、处理器与内存待补） | 2026-10-09：正式模型 campus-gpu-v1 加载并识别键盘/鼠标/水杯，置信度 99.0–99.8%，单次耗时预处理 40–183ms、推理 10–29ms（非 P50/P95）；证据见 tests/evidence/2026-10-09-*.jpg |
 | 后端 | Python、Flask、SQLAlchemy、PyMySQL、依赖与配置加载方式 | Windows Python 3.11.4、Linux Python 3.14.4；Flask 3.1.3；Flask-SQLAlchemy 3.1.1；SQLAlchemy 2.0.54；PyMySQL 1.2.3；python-dotenv 1.2.4；Werkzeug 3.1.9；pytest 9.1.1；独立.venv | 2026-10-08：两种环境各75项通过、3项SQLite参数下的MySQL专用用例跳过；真实MySQL、并发、HTTP入库/重试/冲突及服务重启持久性通过 |
 | 云端推理 | LiteRT Python运行时、模型与标签哈希、CPU线程与推理并发 | 待填写 | 待验证 |
 | 数据库 | MySQL 版本、字符集、时区与备份方式 | 本机隔离MySQL 8.0.25；云端MySQL 8.4.11；InnoDB、utf8mb4_bin、UTC会话、DATETIME(3)；每日备份保留七天 | 2026-10-08：四表SQL、种子、约束及受限运行账号已验证；备份和隔离恢复通过 |
