@@ -23,4 +23,24 @@ object RecordDeletionText {
     } else {
         "已删除未同步的本地记录"
     }
+
+    /** 清空全部：确认框文案（总数、未同步数、云端保留说明） */
+    fun clearConfirm(total: Int, pending: Int): String = buildString {
+        append("将删除本机全部 $total 条识别记录及照片文件，无法恢复。")
+        if (pending > 0) {
+            append("其中 $pending 条尚未同步到云端，删除后不会再上传。")
+        }
+        val uploaded = total - pending
+        if (uploaded > 0) {
+            append("已同步到云端的 $uploaded 条记录在服务端仍然保留。")
+        }
+    }
+
+    /** 清空全部：结果提示 */
+    fun clearResult(total: Int, pending: Int): String = buildString {
+        append("已清空 $total 条本地记录")
+        if (pending > 0) {
+            append("（其中 $pending 条未同步，已放弃上传）")
+        }
+    }
 }

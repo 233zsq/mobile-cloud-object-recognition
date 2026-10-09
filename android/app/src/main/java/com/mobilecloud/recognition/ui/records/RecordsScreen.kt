@@ -69,6 +69,8 @@ fun RecordsScreen(viewModel: RecordsViewModel = viewModel()) {
 
     // 待删除记录：非空时显示确认框（删除为破坏性操作，需二次确认）
     var pendingDelete by remember { mutableStateOf<RecordEntity?>(null) }
+    // 清空全部：批量破坏性操作，单独确认
+    var showClearAll by remember { mutableStateOf(false) }
 
     Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
@@ -87,6 +89,12 @@ fun RecordsScreen(viewModel: RecordsViewModel = viewModel()) {
                     CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                 } else {
                     TextButton(onClick = viewModel::syncNow) { Text("立即同步") }
+                }
+                TextButton(
+                    onClick = { showClearAll = true },
+                    enabled = state.records.isNotEmpty(),
+                ) {
+                    Text("清空全部", color = MaterialTheme.colorScheme.error)
                 }
             }
 
@@ -126,6 +134,32 @@ fun RecordsScreen(viewModel: RecordsViewModel = viewModel()) {
             },
             dismissButton = {
                 TextButton(onClick = { pendingDelete = null }) { Text("取消") }
+            },
+        )
+    }
+
+    if (showClearAll) {
+        AlertDialog(
+            onDismissRequest = { showClearAll = false },
+            title = { Text("清空全部本地记录？") },
+            text = {
+                Text(
+                    RecordDeletionText.clearConfirm(
+                        total = state.total,
+                        pending = state.pendingCount,
+                    ),
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.clearAllRecords()
+                        showClearAll = false
+                    },
+                ) { Text("清空") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearAll = false }) { Text("取消") }
             },
         )
     }

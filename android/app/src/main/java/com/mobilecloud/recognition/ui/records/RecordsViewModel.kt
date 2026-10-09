@@ -73,6 +73,23 @@ class RecordsViewModel : ViewModel() {
         }
     }
 
+    /**
+     * 清空全部本地记录：先统计（用于提示文案）与取照片路径，再删行、删文件。
+     * 同样只作用于本机，云端已入库数据保留。
+     */
+    fun clearAllRecords() {
+        viewModelScope.launch {
+            val total = AppGraph.recordDao.count()
+            val pending = AppGraph.recordDao.pendingCount()
+            val photoPaths = AppGraph.recordDao.allPhotoPaths()
+            AppGraph.recordDao.deleteAll()
+            withContext(Dispatchers.IO) {
+                photoPaths.forEach { path -> runCatching { File(path).delete() } }
+            }
+            message.value = RecordDeletionText.clearResult(total, pending)
+        }
+    }
+
     fun consumeMessage() {
         message.value = null
     }

@@ -59,4 +59,18 @@ interface RecordDao {
     /** 本地删除单条记录（仅本机；云端无删除接口，已入库记录在服务端保留） */
     @Query("DELETE FROM records WHERE recordId = :recordId")
     suspend fun delete(recordId: String)
+
+    /** 清空前的照片路径快照：先取路径再删行，随后逐个删除文件 */
+    @Query("SELECT photoPath FROM records WHERE photoPath IS NOT NULL")
+    suspend fun allPhotoPaths(): List<String>
+
+    @Query("SELECT COUNT(*) FROM records")
+    suspend fun count(): Int
+
+    @Query("SELECT COUNT(*) FROM records WHERE uploaded = 0 OR correctionPending = 1")
+    suspend fun pendingCount(): Int
+
+    /** 清空全部本地记录（仅本机；云端已入库数据保留） */
+    @Query("DELETE FROM records")
+    suspend fun deleteAll()
 }
