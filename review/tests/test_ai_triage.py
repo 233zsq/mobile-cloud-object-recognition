@@ -39,6 +39,7 @@ def execute(app, uid, result=None, apply=True, limit=50, analyze=None):
     {'bbox': [0, 0, 9000, 9000]}, {'flags': ['multiple_subjects']}, {'category_id': 1},
     {'subject': '会议室里的鼠标'}, {'reason': '可能是杯子'}, {'reason': '一个主要主体之一'},
     {'reason': '虽有部分人体遮挡但背包可辨认'}, {'subject': '由人背负使用的背包'},
+    {'subject': '大量钥匙密集挂在墙上'}, {'reason': '用于手机或其他电子设备的适配器'},
     {'decision': 'crop'}, {'decision': 'uncertain'},
     {'decision': 'reject', 'category_id': None, 'flags': ['occluded']},
     {'decision': 'reject', 'category_id': None, 'flags': ['too_small', 'out_of_scope']},
@@ -65,7 +66,7 @@ def test_automatic_write_is_auditable_and_blocks_freeze_until_manual_audit(app, 
         assert [p['profile']['model'] for p in checks] == ['qwen3.8-flash', 'qwen3-vl-plus-2025-12-19', 'qwen3-vl-plus-2025-12-19']
         assert ai.usage_totals(db)[4] == 3
         assert db.execute('SELECT COUNT(*) FROM events WHERE action="ai_auto_approved"').fetchone()[0] == 1
-    page = owner.get('/?status=all&triage=audit')
+    page = owner.get('/?triage=audit')
     assert row['id'] in page.text and 'AI自动通过' in page.text
     assert owner.post('/batches', data={'csrf': csrf(owner, '/'), 'version': 'blocked'}).status_code == 409
     path = owner.get('/review/next?status=all&triage=audit').headers['Location']
@@ -76,6 +77,23 @@ def test_automatic_write_is_auditable_and_blocks_freeze_until_manual_audit(app, 
     assert response.status_code == 302
     assert row['id'] not in owner.get('/?status=all&triage=audit').text
     assert owner.post('/batches', data={'csrf': csrf(owner, '/'), 'version': 'checked'}).status_code == 302
+
+
+def test_web_job_launch_is_admin_csrf_bound_bounded_and_pause_blocks_new_job(app, monkeypatch):
+    owner = admin(app); row, uid = prepare(app, owner)
+    reviewer = member(app, owner, 'reviewer')
+    calls=[]
+    monkeypatch.setattr(triage,'launch',lambda app,identity: calls.append(identity) or 12345)
+    assert owner.post('/ai-triage/jobs',data={'limit':'20'}).status_code == 400
+    assert reviewer.post('/ai-triage/jobs',data={'csrf':csrf(reviewer,'/'),'limit':'20'}).status_code == 403
+    assert not calls
+    assert owner.post('/ai-triage/jobs',data={'csrf':csrf(owner,'/'),'limit':'20'}).status_code == 302
+    assert len(calls)==1
+    assert owner.post('/ai-triage/jobs',data={'csrf':csrf(owner,'/'),'limit':'20'}).status_code == 409
+    assert owner.post('/ai-triage/policy',data={'csrf':csrf(owner,'/'),'enabled':'false'}).status_code == 302
+    with connect(app) as db:
+        db.execute('UPDATE ai_triage_jobs SET state="stopped"')
+    assert owner.post('/ai-triage/jobs',data={'csrf':csrf(owner,'/'),'limit':'20'}).status_code == 409
 
 
 def test_undo_checks_role_revision_and_lease_and_never_reautoprocesses(app, monkeypatch):
@@ -131,6 +149,25 @@ def test_human_claim_during_calls_wins_over_auto_write(app, monkeypatch):
     assert execute(app, uid, analyze=analyze)['counts'] == {'changed_or_claimed': 1}
     with connect(app) as db:
         assert db.execute('SELECT status,revision FROM samples').fetchone()[:] == ('pending', 1)
+
+
+def test_parallel_pilot_cost_is_not_charged_to_triage_run_report(app, monkeypatch):
+    owner = admin(app); row, uid = prepare(app, owner)
+    other=public_sample(app,owner,color='blue')
+    with connect(app) as db:
+        db.execute('UPDATE samples SET status="approved" WHERE id=?',(other['id'],))
+    monkeypatch.setenv('DASHSCOPE_API_KEY', 'test-private-key-1234')
+    extra=[]
+    def analyze(*args, **kwargs):
+        if not extra:
+            ai.analyze(args[0],args[1],other,args[3],args[4],args[5],api=transport(),
+                       profile=ai.Profile('qwen3.8-flash','campus-ai-review-v5'))
+            extra.append(True)
+        return ai.analyze(*args,api=transport(),**kwargs)
+    report=execute(app,uid,analyze=analyze)
+    assert report['run_usage']['attempts']==3
+    assert report['ledger_window_usage']['attempts']==4
+    assert report['usage']['attempts']==4
 
 
 def test_provider_error_and_exhausted_budget_leave_photos_pending(app, monkeypatch):
@@ -226,3 +263,17 @@ def test_audit_sampling_preserves_provenance_and_freeze_is_immutable(app, monkey
         assert all(v['policy']==triage.POLICY and len(v['evidence_sha256'])==64 for v in receipt['ai_review_provenance'].values())
     sid=next(iter(auto_ids))
     assert owner.post('/samples/'+sid+'/ai-undo',data={'csrf':csrf(owner,'/'),'revision':'3'}).status_code == 409
+
+
+@pytest.mark.parametrize('category',[7,8])
+def test_classes_without_pilot_references_require_every_approval_audited(app, monkeypatch,category):
+    owner=admin(app);row,uid=prepare(app,owner)
+    for color in ('blue','green','red'):
+        public_sample(app,owner,color=color)
+    with connect(app) as db:
+        db.execute('UPDATE samples SET category=?',(category,))
+    monkeypatch.setenv('DASHSCOPE_API_KEY','test-private-key-1234')
+    assert execute(app,uid,result=answer(category_id=category,subject='清楚完整的物品'))['counts']=={'approved':4}
+    with connect(app) as db:
+        assert triage.pending_approval_audits(db)==4
+        assert triage.summary(db)['audit_count']==4

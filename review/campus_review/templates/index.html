@@ -7,6 +7,7 @@
   <p>未冻结的自动通过 {{triage_summary.counts.get('approved',0)}} 张 · 自动拒绝 {{triage_summary.counts.get('rejected',0)}} 张 · 待抽检 {{triage_summary.audit_count}} 张</p>
   <div class="actions"><a class="button primary" href="{{url_for('next_review',status='all',scope=scope,source='all',category=category,triage='audit')}}">开始抽检 →</a><a class="button" href="{{url_for('index',status='all',scope=scope,triage='auto')}}">查看自动决定</a><a class="button" href="{{url_for('index',status='pending',scope=scope)}}">人工待审</a></div>
   <p class="muted">每批每种结果至少抽检10%、至少1张；保存人工复核后完成抽检。自动通过的抽检未完成时不能冻结。模型之间也可能犯相同错误，自动结果不代表标准答案。</p>
+  <p class="note">充电器和钥匙尚缺对照样本：这两类自动通过全部需要人工复核后才能冻结。密集大量物品、用途泛称电子设备的照片保留人工判断。</p>
   {% if g.user.role=='admin' %}
   <p>累计估算 {{'%.4f'|format(ai_usage.charged_or_reserved_yuan)}} / {{'%.0f'|format(ai_budget)}} 元 · {{ai_usage.attempts}} / {{ai_max_calls}} 次调用（保留历史用量）。</p>
   <div class="actions"><form method="post" action="{{url_for('triage_policy')}}"><input type="hidden" name="csrf" value="{{csrf}}"><input type="hidden" name="enabled" value="{{'false' if triage_summary.enabled else 'true'}}"><button class="button">{{'暂停分流' if triage_summary.enabled else '开启分流'}}</button></form>

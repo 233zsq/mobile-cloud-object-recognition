@@ -18,7 +18,10 @@ from werkzeug.exceptions import BadRequest, Conflict, Forbidden
 from . import ai_review as ai
 from .assets import PUBLIC_SOURCES
 
-POLICY = 'strict-crosscheck-v1'
+POLICY = 'strict-crosscheck-v2'
+# No pilot references yet for chargers/keys. Do not freeze their automatic
+# approvals without reviewing every one, even when all models agree.
+FULL_APPROVAL_AUDIT_CATEGORIES = (7, 8)
 ACTIVE = 'd.sample_id=s.id AND d.applied_revision=s.revision AND d.after_status=s.status AND d.reverted_at IS NULL'
 SCHEMA = '''
 CREATE TABLE IF NOT EXISTS ai_triage_settings(id INTEGER PRIMARY KEY CHECK(id=1),enabled INTEGER NOT NULL DEFAULT 0);
@@ -79,7 +82,7 @@ def candidate(result, category):
     if re.search(r'疑似|可能|用途不明|不确定|无法确认|无法确定|主要主体之一', words):
         return None
     if decision == 'pass' and type(actual) is int and actual == category and flags == []:
-        if re.search(r'人物|人群|人身|人体|由人|人背|人像|人脸|会议|街景|书架|整机|局部|扫描|包装|场景|截断|出画|切掉|未完整|主要物品之一|主体之一', words):
+        if re.search(r'人物|人群|人身|人体|由人|人背|人像|人脸|会议|街景|书架|整机|局部|扫描|包装|场景|截断|出画|切掉|未完整|大量|密集|数量多|成排|多种|电子设备|主要物品之一|主体之一', words):
             return None
         return 'approved'
     if (decision == 'reject' and actual is None and isinstance(flags, list) and flags and
@@ -253,10 +256,12 @@ def audit_sample(db, job_id):
     # All automatic decisions require audit until the job finishes. Interrupted
     # jobs keep that stricter default. Choose >=10%, at least one per outcome.
     for status in ('approved', 'rejected'):
-        rows = db.execute('SELECT id FROM ai_auto_decisions WHERE job_id=? AND after_status=? ORDER BY id', (job_id, status)).fetchall()
+        rows = db.execute('SELECT d.id,s.category FROM ai_auto_decisions d JOIN samples s ON s.id=d.sample_id WHERE d.job_id=? AND d.after_status=? ORDER BY d.id', (job_id, status)).fetchall()
         if not rows:
             continue
         chosen = {row[0] for row in sorted(rows, key=lambda r: ai.digest((job_id + r[0]).encode()))[:max(1, math.ceil(len(rows) * .1))]}
+        if status == 'approved':
+            chosen.update(row['id'] for row in rows if row['category'] in FULL_APPROVAL_AUDIT_CATEGORIES)
         db.executemany('UPDATE ai_auto_decisions SET audit_required=? WHERE id=?', [(int(row[0] in chosen), row[0]) for row in rows])
 
 
@@ -268,6 +273,7 @@ def run_job(db, data, categories, config, identity, analyze=ai.analyze):
     db.execute('UPDATE ai_triage_jobs SET state="running",pid=?,updated_at=? WHERE id=?', (os.getpid(), ai.stamp(), identity)); db.commit()
     report = {'job_id': identity, 'policy': POLICY, 'apply_changes': bool(job['apply_changes']), 'samples': [], 'counts': {}, 'errors': {}}
     before_usage = ai.usage_totals(db)
+    identities, selected_usage_before = [], (0, 0, 0, 0, 0)
     state, error_code = 'done', ''
     try:
         administrator(db, job['actor'])
@@ -283,6 +289,8 @@ def run_job(db, data, categories, config, identity, analyze=ai.analyze):
             for category in sorted(groups):
                 if groups[category] and len(rows) < job['limit_count']:
                     rows.append(groups[category].pop())
+        identities = [ai.cache_key(row, categories, profile) for row in rows for profile in chosen_profiles]
+        selected_usage_before = ai.usage_totals(db, identities)
         for row in rows:
             if job['apply_changes'] and not enabled(db):
                 state, error_code = 'stopped', 'paused'; break
@@ -322,7 +330,9 @@ def run_job(db, data, categories, config, identity, analyze=ai.analyze):
     finally:
         usage = ai.usage_totals(db)
         report.update(state=state, error_code=error_code, usage=ai.usage_report(usage),
-                      run_usage=ai.usage_report(tuple(a - b for a, b in zip(usage, before_usage))),
+                      run_usage=ai.usage_report(tuple(a - b for a, b in zip(ai.usage_totals(db, identities), selected_usage_before))),
+                      run_usage_basis='selected_inputs_ledger_delta',
+                      ledger_window_usage=ai.usage_report(tuple(a - b for a, b in zip(usage, before_usage))),
                       automatic_decisions_are_not_ground_truth=True)
         db.execute('BEGIN IMMEDIATE')
         try:

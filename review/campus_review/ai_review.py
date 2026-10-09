@@ -421,6 +421,8 @@ def register(app, get_db, data, categories):
         except ReviewError as error:
             raise click.ClickException(str(error)) from None
         usage_before = usage_totals(connection)
+        identities = [cache_key(row, categories) for row in rows]
+        selected_usage_before = usage_totals(connection, identities)
         for i, row in enumerate(rows):
             error_code = ''
             try:
@@ -469,8 +471,10 @@ def register(app, get_db, data, categories):
                   'false_passes': pass_disagreements,
                   'auto_approval_enabled': False, 'auto_approval_note': '此入口只保存建议，不修改照片状态；严格分流由独立策略入口控制。',
                   'cumulative_usage': usage_report(usage),
-                  'run_usage': usage_report(tuple(a - b for a, b in zip(usage, usage_before))),
-                  'cohort_usage': usage_report(usage_totals(connection, [cache_key(row, categories) for row in rows])),
+                  'run_usage': usage_report(tuple(a - b for a, b in zip(usage_totals(connection, identities), selected_usage_before))),
+                  'run_usage_basis': 'selected_inputs_ledger_delta',
+                  'ledger_window_usage': usage_report(tuple(a - b for a, b in zip(usage, usage_before))),
+                  'cohort_usage': usage_report(usage_totals(connection, identities)),
                   'samples': results}
         payload = json.dumps(output, ensure_ascii=False, indent=2)
         connection.execute('INSERT INTO ai_runs VALUES(?,?,?)', (run_id, payload, stamp()))

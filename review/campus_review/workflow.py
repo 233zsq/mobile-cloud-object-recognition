@@ -47,6 +47,10 @@ class Workflow:
                 value['category'] not in ('', *map(str, range(10))) or
                 value['scope'] not in ('mine', 'all', 'unassigned') or value['triage'] not in ('all', 'auto', 'audit')):
             raise BadRequest('未知筛选条件')
+        # Automatic decisions are approved/rejected; a pending-only audit
+        # filter would otherwise silently hide the entire audit queue.
+        if value['triage'] != 'all' and value['status'] == 'pending':
+            value['status'] = 'all'
         return value
 
     def selection(self, filters, ignore_status=False):
