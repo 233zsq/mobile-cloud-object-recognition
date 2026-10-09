@@ -160,6 +160,7 @@ def create_app(config=None):
     connection = sqlite3.connect(data / 'review.sqlite3')
     connection.execute('PRAGMA journal_mode=WAL')
     connection.executescript(SCHEMA + WORKFLOW_SCHEMA + ai_review.SCHEMA + ai_triage.SCHEMA)
+    ai_triage.migrate(connection)
     connection.executemany('INSERT OR IGNORE INTO category_assignments(category) VALUES(?)', [(i,) for i in range(10)])
     columns = {r[1] for r in connection.execute('PRAGMA table_info(samples)')}
     for name, definition in (('source', "TEXT NOT NULL DEFAULT 'field'"),
@@ -341,7 +342,7 @@ def create_app(config=None):
                                ai_suggestions={row['id']: ai_review.suggestion(db(), row, cat) for row in samples},
                                ai_summary=ai_review.latest_report(db()),
                                ai_pilot=ai_review.latest_report(db(), 'pilot'),
-                               triage_summary=ai_triage.summary(db()), ai_usage=ai_review.usage_report(ai_review.usage_totals(db())),
+                               triage_summary=ai_triage.summary(db(), app.config['REVIEW_TRIAGE_PRIMARY_MODEL']), ai_usage=ai_review.usage_report(ai_review.usage_totals(db())),
                                ai_budget=app.config['REVIEW_AI_BUDGET_NANO']/1e9, ai_max_calls=app.config['REVIEW_AI_MAX_CALLS'],
                                automatic_decisions={r['id']: ai_triage.current_decision(db(), r) for r in samples},
                                assignments=work.assignments(), review_now=time.time(),
@@ -381,7 +382,8 @@ def create_app(config=None):
         value = request.form.get('enabled')
         if value not in ('true', 'false'):
             abort(400, '请选择开启或暂停')
-        ai_triage.set_enabled(db(), g.user['id'], value == 'true')
+        ai_triage.set_enabled(db(), g.user['id'], value == 'true',
+                              ai_triage.policy_for(ai_triage.profiles(app.config['REVIEW_TRIAGE_PRIMARY_MODEL'])))
         flash('严格分流已开启。' if value == 'true' else '严格分流已暂停；进行中的调用结束后停止写入。')
         return redirect(url_for('index') + '#ai-triage')
 

@@ -1,4 +1,4 @@
-"""Conservative, reversible decisions on untouched public photos only."""
+"""Versioned, reversible AI decisions on untouched public photos only."""
 import json
 import math
 import os
@@ -19,6 +19,8 @@ from . import ai_review as ai
 from .assets import PUBLIC_SOURCES
 
 POLICY = 'strict-crosscheck-v2'
+MAX_POLICY = 'max-direct-v1'
+MAX_MODEL = 'qwen3.8-max-0902'
 # No pilot references yet for chargers/keys. Do not freeze their automatic
 # approvals without reviewing every one, even when all models agree.
 FULL_APPROVAL_AUDIT_CATEGORIES = (7, 8)
@@ -29,6 +31,7 @@ INSERT OR IGNORE INTO ai_triage_settings VALUES(1,0);
 CREATE TABLE IF NOT EXISTS ai_triage_jobs(
  id TEXT PRIMARY KEY,actor INTEGER NOT NULL REFERENCES users(id),state TEXT NOT NULL,
  apply_changes INTEGER NOT NULL,limit_count INTEGER NOT NULL,profiles TEXT NOT NULL,
+ policy TEXT NOT NULL DEFAULT 'strict-crosscheck-v2',
  processed INTEGER NOT NULL DEFAULT 0,pid INTEGER,report TEXT NOT NULL DEFAULT '{}',
  error_code TEXT NOT NULL DEFAULT '',created_at TEXT NOT NULL,updated_at TEXT NOT NULL);
 CREATE UNIQUE INDEX IF NOT EXISTS ai_triage_single_worker ON ai_triage_jobs((1)) WHERE state IN ('queued','running');
@@ -41,6 +44,15 @@ CREATE TABLE IF NOT EXISTS ai_triage_seen(
  identity TEXT PRIMARY KEY,sample_id TEXT NOT NULL REFERENCES samples(id),policy TEXT NOT NULL,
  job_id TEXT NOT NULL REFERENCES ai_triage_jobs(id),created_at TEXT NOT NULL);
 '''
+
+
+def migrate(db):
+    if 'policy' not in {row[1] for row in db.execute('PRAGMA table_info(ai_triage_jobs)')}:
+        # Historical jobs retain their historical rules after a model switch.
+        db.execute("ALTER TABLE ai_triage_jobs ADD COLUMN policy TEXT NOT NULL DEFAULT 'strict-crosscheck-v2'")
+        if 'report' in {row[1] for row in db.execute('PRAGMA table_info(ai_triage_jobs)')}:
+            db.execute("UPDATE ai_triage_jobs SET policy=json_extract(report,'$.policy') "
+                       "WHERE json_valid(report) AND json_type(report,'$.policy')='text'")
 
 
 def enabled(db):
@@ -57,18 +69,20 @@ def log(db, actor, action, subject, details):
                (actor, action, subject, json.dumps(details, ensure_ascii=False), ai.stamp()))
 
 
-def set_enabled(db, actor, value):
+def set_enabled(db, actor, value, policy=None):
     db.execute('BEGIN IMMEDIATE')
     try:
         administrator(db, actor)
         db.execute('UPDATE ai_triage_settings SET enabled=? WHERE id=1', (int(value),))
-        log(db, actor, 'ai_triage_enabled' if value else 'ai_triage_paused', POLICY, {'enabled': bool(value)})
+        log(db, actor, 'ai_triage_enabled' if value else 'ai_triage_paused', policy or POLICY, {'enabled': bool(value)})
         db.commit()
     except Exception:
         db.rollback(); raise
 
 
 def profiles(primary):
+    if primary == MAX_MODEL:
+        return [ai.Profile(MAX_MODEL, 'campus-ai-review-v6')]
     if primary not in ('qwen3.8-flash', 'qwen3-vl-plus-2025-12-19'):
         raise BadRequest('先选择已校验的视觉分流模型')
     return [ai.Profile(primary, 'campus-ai-review-v4'),
@@ -76,11 +90,24 @@ def profiles(primary):
             ai.Profile('qwen3-vl-plus-2025-12-19', 'campus-ai-review-v5')]
 
 
-def candidate(result, category):
-    """No self-reported confidence. Crop/quality/boundary cases always stay human."""
+def policy_for(selected):
+    return MAX_POLICY if selected == [ai.Profile(MAX_MODEL, 'campus-ai-review-v6')] else POLICY
+
+
+def candidate(result, category, policy=None):
+    """No self-reported confidence; crops and uncertain labels stay human."""
     if not result or result.get('bbox') is not None:
         return None
     decision, actual, flags = result.get('decision'), result.get('category_id'), result.get('flags')
+    if policy == MAX_POLICY:
+        # Trust the validated primary decision, not consensus or keyword votes.
+        # Valid in-scope photos carrying a different label still need relabelling.
+        if decision == 'pass' and type(actual) is int and actual == category and flags == []:
+            return 'approved'
+        if (decision == 'reject' and (actual is None or type(actual) is int and actual == category) and
+                isinstance(flags, list) and flags and set(flags) <= ai.FLAGS):
+            return 'rejected'
+        return None
     words = str(result.get('subject', '')) + ' ' + str(result.get('reason', ''))
     if re.search(r'疑似|可能|用途不明|不确定|无法确认|无法确定|主要主体之一', words):
         return None
@@ -94,13 +121,14 @@ def candidate(result, category):
     return None
 
 
-def decide(results, category):
-    choices = [candidate(result, category) for result in results]
-    return choices[0] if len(choices) == 3 and choices[0] and len(set(choices)) == 1 else None
+def decide(results, category, policy=None):
+    choices = [candidate(result, category, policy) for result in results]
+    required = 1 if policy == MAX_POLICY else 3
+    return choices[0] if len(choices) == required and choices[0] and len(set(choices)) == 1 else None
 
 
 def selection_identity(row, categories, selected):
-    return ai.digest(json.dumps([POLICY, row['revision'], [ai.cache_key(row, categories, p) for p in selected]]).encode())
+    return ai.digest(json.dumps([policy_for(selected), row['revision'], [ai.cache_key(row, categories, p) for p in selected]]).encode())
 
 
 def untouched(db, row):
@@ -120,9 +148,11 @@ def apply_decision(db, data, snapshot, categories, job, checks):
     db.execute('BEGIN IMMEDIATE')
     try:
         administrator(db, job['actor'])
-        running = db.execute('SELECT state,apply_changes FROM ai_triage_jobs WHERE id=?', (job['id'],)).fetchone()
+        running = db.execute('SELECT * FROM ai_triage_jobs WHERE id=?', (job['id'],)).fetchone()
         if not running or running['state'] != 'running' or not running['apply_changes']:
             db.rollback(); return 'inactive_job'
+        if any(running[name] != job[name] for name in ('policy', 'profiles', 'actor')):
+            db.rollback(); return 'evidence_changed'
         if not enabled(db):
             db.rollback(); return 'paused'
         row = db.execute('SELECT * FROM samples WHERE id=?', (snapshot['id'],)).fetchone()
@@ -146,23 +176,25 @@ def apply_decision(db, data, snapshot, categories, job, checks):
         expected_profiles = json.loads(job['profiles'])
         if [check['profile'] for check in checks] != expected_profiles:
             db.rollback(); return 'evidence_changed'
-        status = decide(results, row['category'])
+        policy = job['policy']
+        status = decide(results, row['category'], policy)
         if status is None:
             db.rollback(); return 'manual'
-        evidence = {'policy': POLICY, 'category_version': categories['category_version'],
+        evidence = {'policy': policy, 'category_version': categories['category_version'],
                     'photo_sha256': row['sha256'], 'category_id': row['category'], 'crop': None, 'checks': actual_checks,
                     'same_provider_errors_may_be_correlated': True}
         identity = uuid.uuid4().hex
         before = {'status': row['status'], 'reason': row['reason']}
-        reason = ('AI严格分流通过：三项交叉核验一致。' if status == 'approved' else
+        reason = ('AI Max自动审核：' + results[-1]['reason'][:130] if policy == MAX_POLICY else
+                  'AI严格分流通过：三项交叉核验一致。' if status == 'approved' else
                   'AI严格分流拒绝：' + results[-1]['reason'][:130])
         db.execute('UPDATE samples SET status=?,reason=?,revision=revision+1 WHERE id=? AND revision=?',
                    (status, reason, row['id'], row['revision']))
         db.execute('DELETE FROM review_leases WHERE sample_id=?', (row['id'],))
         db.execute('INSERT INTO ai_auto_decisions(id,sample_id,job_id,policy,applied_revision,after_status,before_values,evidence,created_at) VALUES(?,?,?,?,?,?,?,?,?)',
-                   (identity, row['id'], job['id'], POLICY, row['revision'] + 1, status, json.dumps(before), json.dumps(evidence, ensure_ascii=False), ai.stamp()))
+                   (identity, row['id'], job['id'], policy, row['revision'] + 1, status, json.dumps(before), json.dumps(evidence, ensure_ascii=False), ai.stamp()))
         log(db, job['actor'], 'ai_auto_' + status, row['id'], {'automated': True, 'decision_id': identity,
-            'policy': POLICY, 'job_id': job['id'], 'photo_sha256': row['sha256'], 'category': row['category'],
+            'policy': policy, 'job_id': job['id'], 'photo_sha256': row['sha256'], 'category': row['category'],
             'evidence_sha256': ai.digest(json.dumps(evidence, sort_keys=True, ensure_ascii=False).encode())})
         db.commit()
         return status
@@ -193,10 +225,12 @@ def undo(db, actor, sid, revision):
         db.rollback(); raise
 
 
-def summary(db):
+def summary(db, primary='qwen3.8-flash'):
     counts = dict(db.execute('SELECT d.after_status,COUNT(*) FROM ai_auto_decisions d JOIN samples s ON s.id=d.sample_id WHERE ' + ACTIVE + ' AND s.batch IS NULL GROUP BY d.after_status'))
     audits = db.execute('SELECT COUNT(*) FROM ai_auto_decisions d JOIN samples s ON s.id=d.sample_id WHERE ' + ACTIVE + ' AND d.audit_required=1 AND s.batch IS NULL').fetchone()[0]
     return {'enabled': enabled(db), 'counts': counts, 'audit_count': audits,
+            'primary_model': primary, 'max_direct': primary == MAX_MODEL,
+            'policy': policy_for(profiles(primary)),
             'jobs': db.execute('SELECT * FROM ai_triage_jobs ORDER BY created_at DESC,rowid DESC LIMIT 5').fetchall()}
 
 
@@ -228,19 +262,20 @@ def new_job(db, actor, limit, config, apply_changes=True):
         raise BadRequest('每批只能处理1到50张照片')
     administrator(db, actor)
     selected = profiles(config.get('REVIEW_TRIAGE_PRIMARY_MODEL', ai.MODEL))
+    policy = policy_for(selected)
     db.execute('BEGIN IMMEDIATE')
     try:
         recover_interrupted(db)
         if apply_changes and not enabled(db):
-            raise Conflict('严格分流已暂停，请先开启')
+            raise Conflict('自动审核已暂停，请先开启')
         spent = ai.usage_totals(db)
-        reservation = max(32000 * ai.MODEL_RATES[p.model][0] + 500 * ai.MODEL_RATES[p.model][1] for p in selected)
+        reservation = max(ai.reservation_for(p) for p in selected)
         if spent[2] + reservation > config['REVIEW_AI_BUDGET_NANO'] or spent[4] >= config['REVIEW_AI_MAX_CALLS']:
             raise Conflict('累计预算或调用次数已到上限，历史用量不会重置')
         identity, now = uuid.uuid4().hex, ai.stamp()
-        db.execute('INSERT INTO ai_triage_jobs(id,actor,state,apply_changes,limit_count,profiles,created_at,updated_at) VALUES(?,?,"queued",?,?,?,?,?)',
-                   (identity, actor, int(apply_changes), limit, json.dumps([p.__dict__ for p in selected]), now, now))
-        log(db, actor, 'ai_triage_started', identity, {'limit': limit, 'apply_changes': bool(apply_changes), 'policy': POLICY})
+        db.execute('INSERT INTO ai_triage_jobs(id,actor,state,apply_changes,limit_count,profiles,policy,created_at,updated_at) VALUES(?,?,"queued",?,?,?,?,?,?)',
+                   (identity, actor, int(apply_changes), limit, json.dumps([p.__dict__ for p in selected]), policy, now, now))
+        log(db, actor, 'ai_triage_started', identity, {'limit': limit, 'apply_changes': bool(apply_changes), 'policy': policy})
         db.commit()
         return identity
     except sqlite3.IntegrityError:
@@ -262,12 +297,13 @@ def launch(app, identity):
 def audit_sample(db, job_id):
     # All automatic decisions require audit until the job finishes. Interrupted
     # jobs keep that stricter default. Choose >=10%, at least one per outcome.
+    policy = db.execute('SELECT policy FROM ai_triage_jobs WHERE id=?', (job_id,)).fetchone()[0]
     for status in ('approved', 'rejected'):
         rows = db.execute('SELECT d.id,s.category FROM ai_auto_decisions d JOIN samples s ON s.id=d.sample_id WHERE d.job_id=? AND d.after_status=? ORDER BY d.id', (job_id, status)).fetchall()
         if not rows:
             continue
         chosen = {row[0] for row in sorted(rows, key=lambda r: ai.digest((job_id + r[0]).encode()))[:max(1, math.ceil(len(rows) * .1))]}
-        if status == 'approved':
+        if status == 'approved' and policy != MAX_POLICY:
             chosen.update(row['id'] for row in rows if row['category'] in FULL_APPROVAL_AUDIT_CATEGORIES)
         db.executemany('UPDATE ai_auto_decisions SET audit_required=? WHERE id=?', [(int(row[0] in chosen), row[0]) for row in rows])
 
@@ -278,7 +314,8 @@ def run_job(db, data, categories, config, identity, analyze=ai.analyze):
     if not job or job['state'] != 'queued':
         db.rollback(); raise Conflict('任务不存在或已经运行')
     db.execute('UPDATE ai_triage_jobs SET state="running",pid=?,updated_at=? WHERE id=?', (os.getpid(), ai.stamp(), identity)); db.commit()
-    report = {'job_id': identity, 'policy': POLICY, 'apply_changes': bool(job['apply_changes']), 'samples': [], 'counts': {}, 'errors': {}}
+    policy = job['policy']
+    report = {'job_id': identity, 'policy': policy, 'apply_changes': bool(job['apply_changes']), 'samples': [], 'counts': {}, 'errors': {}}
     before_usage = ai.usage_totals(db)
     identities, selected_usage_before = [], (0, 0, 0, 0, 0)
     state, error_code = 'done', ''
@@ -286,6 +323,8 @@ def run_job(db, data, categories, config, identity, analyze=ai.analyze):
         administrator(db, job['actor'])
         key = ai.read_key(config)
         chosen_profiles = [ai.Profile(**p) for p in json.loads(job['profiles'])]
+        if policy_for(chosen_profiles) != policy or chosen_profiles != profiles(chosen_profiles[0].model):
+            raise ai.ReviewError('job_policy_profile_mismatch')
         seen = {r[0] for r in db.execute('SELECT identity FROM ai_triage_seen')}
         rows = [dict(r) for r in db.execute('SELECT * FROM samples ORDER BY id').fetchall()
                 if untouched(db, r) and selection_identity(r, categories, chosen_profiles) not in seen]
@@ -316,14 +355,15 @@ def run_job(db, data, categories, config, identity, analyze=ai.analyze):
                         state, error_code = 'stopped', fault
                     break
                 checks.append({'profile': profile.__dict__, 'cache_key': cache_identity, 'suggestion': result,
+                               'inference': ai.inference(profile),
                                'alias_cache_generation': ai.ALIAS_GENERATIONS.get(profile.model)})
                 suggestions.append(result)
-                choice = candidate(result, row['category'])
-                if choice is None or (len(suggestions) > 1 and choice != candidate(suggestions[0], row['category'])):
+                choice = candidate(result, row['category'], policy)
+                if choice is None or (len(suggestions) > 1 and choice != candidate(suggestions[0], row['category'], policy)):
                     break
-            if decide(suggestions, row['category']):
+            if decide(suggestions, row['category'], policy):
                 outcome = (apply_decision(db, data, row, categories, job, checks) if job['apply_changes'] else
-                           'would_' + decide(suggestions, row['category']))
+                           'would_' + decide(suggestions, row['category'], policy))
             report['samples'].append({'sample_id': row['id'], 'category_id': row['category'], 'outcome': outcome, 'checks': checks})
             report['counts'][outcome] = report['counts'].get(outcome, 0) + 1
             db.execute('BEGIN IMMEDIATE')
@@ -332,7 +372,7 @@ def run_job(db, data, categories, config, identity, analyze=ai.analyze):
                            (len(report['samples']), json.dumps(report, ensure_ascii=False), ai.stamp(), identity))
                 if job['apply_changes'] and state != 'stopped' and outcome in ('approved', 'rejected', 'manual'):
                     db.execute('INSERT OR IGNORE INTO ai_triage_seen VALUES(?,?,?,?,?)',
-                               (selection_identity(row, categories, chosen_profiles), row['id'], POLICY, identity, ai.stamp()))
+                               (selection_identity(row, categories, chosen_profiles), row['id'], policy, identity, ai.stamp()))
                 db.commit()
             except Exception:
                 db.rollback(); raise
@@ -353,7 +393,8 @@ def run_job(db, data, categories, config, identity, analyze=ai.analyze):
                       automatic_decisions_are_not_ground_truth=True)
         db.execute('BEGIN IMMEDIATE')
         try:
-            audit_sample(db, identity)
+            if state == 'done':
+                audit_sample(db, identity)
             db.execute('UPDATE ai_triage_jobs SET state=?,report=?,error_code=?,updated_at=? WHERE id=?',
                        (state, json.dumps(report, ensure_ascii=False), error_code, ai.stamp(), identity))
             log(db, job['actor'], 'ai_triage_finished', identity, {'state': state, 'counts': report['counts'], 'error_code': error_code})
@@ -389,5 +430,6 @@ def register(app, get_db, data, categories):
     @click.option('--actor', type=int, required=True)
     @click.option('--enabled', 'value', type=bool, required=True)
     def policy(actor, value):
-        set_enabled(get_db(), actor, value)
-        click.echo(json.dumps({'enabled': value, 'policy': POLICY}))
+        active = policy_for(profiles(app.config['REVIEW_TRIAGE_PRIMARY_MODEL']))
+        set_enabled(get_db(), actor, value, active)
+        click.echo(json.dumps({'enabled': value, 'policy': active}))

@@ -396,3 +396,29 @@ def test_max_snapshot_has_separate_cache_prices_and_persistent_reservation(app):
         assert db.execute('SELECT model,charged_nano FROM ai_reviews').fetchone()[:] == (
             profile.model, 300 * 12000 + 80 * 36000)
         assert db.execute('SELECT status,revision FROM samples').fetchone()[:] == ('pending', 1)
+
+
+def test_max_thinking_reserves_and_charges_reasoning_tokens_without_saving_reasoning(app, monkeypatch):
+    owner = admin(app); row = public_sample(app, owner)
+    profile = ai_review.Profile('qwen3.8-max-0902', 'campus-ai-review-v6')
+    class Transport:
+        def open(self, request, timeout):
+            body = json.loads(request.data)
+            assert body['enable_thinking'] and body['thinking_budget'] == 1024 and body['max_tokens'] == 1524
+            return io.BytesIO(json.dumps({'model': profile.model, 'usage': {'prompt_tokens': 300, 'completion_tokens': 1100},
+                'choices': [{'finish_reason': 'stop', 'message': {'content': answer(), 'reasoning_content': 'private-chain'}}]}).encode())
+    monkeypatch.setattr(ai_review.urllib.request, 'build_opener', lambda *args: Transport())
+    with connect(app) as db:
+        db.isolation_level = None
+        assert ai_review.reservation_for(profile) == 32000 * 12000 + 1524 * 36000
+        with pytest.raises(ai_review.ReviewError, match='persistent_budget_exhausted'):
+            ai_review.analyze(db, Path(app.config['DATA_DIR']), row, categories(),
+                              {'REVIEW_AI_BUDGET_NANO': 402_000_000}, 'private', profile=profile)
+        assert ai_review.analyze(db, Path(app.config['DATA_DIR']), row, categories(),
+                                 {'REVIEW_AI_BUDGET_NANO': 1_000_000_000}, 'private', profile=profile)[0] == 'done'
+        record = db.execute('SELECT result,charged_nano,completion_tokens FROM ai_reviews').fetchone()
+        assert record['charged_nano'] == 300 * 12000 + 1100 * 36000 and record['completion_tokens'] == 1100
+        assert 'private-chain' not in record['result']
+    identity = ai_review.cache_key(row, categories(), profile)
+    monkeypatch.setattr(ai_review, 'MAX_THINKING_BUDGET', 2048)
+    assert ai_review.cache_key(row, categories(), profile) != identity

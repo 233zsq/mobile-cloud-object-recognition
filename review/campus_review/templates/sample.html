@@ -14,7 +14,7 @@
 <section class="panel" aria-label="AI自动决定">
   <div class="section-heading"><h2>AI自动{{'通过' if sample.status=='approved' else '拒绝'}}</h2><span class="badge pending">{{'本张待抽检' if automatic.audit_required else '可人工复核'}}</span></div>
   <p>下方保存会记录你的人工复核，并替代自动决定。可以改为通过、拒绝或暂不判断；无需照搬AI结论。</p>
-  <details><summary>查看三项核验依据</summary>{% for check in auto_evidence.checks %}<p><strong>{{check.suggestion.subject}}</strong>：{{check.suggestion.reason}}<br><small>{{check.profile.model}} · {{check.profile.prompt_version}}</small></p>{% endfor %}<p class="muted">同一提供方的判断可能存在共同偏差。</p></details>
+  <details><summary>查看审核依据（{{auto_evidence.checks|length}}项）</summary>{% for check in auto_evidence.checks %}<p><strong>{{check.suggestion.subject}}</strong>：{{check.suggestion.reason}}<br><small>{{check.profile.model}} · {{check.profile.prompt_version}}</small></p>{% endfor %}<p class="muted">自动判断可能有误，可按照片实际内容复核。</p></details>
   {% if g.user.role=='admin' and not sample.batch %}<form method="post" action="{{url_for('undo_automatic',sid=sample.id)}}"><input type="hidden" name="csrf" value="{{csrf}}"><input type="hidden" name="revision" value="{{sample.revision}}"><button class="button">撤回AI决定，交给人工</button></form>{% endif %}
 </section>
 {% endif %}

@@ -1,5 +1,6 @@
 """Actual SQLite/HTTP triage writes, leases, budgets and manual overrides."""
 import json
+import sqlite3
 import time
 from pathlib import Path
 
@@ -295,3 +296,97 @@ def test_classes_without_pilot_references_require_every_approval_audited(app, mo
     with connect(app) as db:
         assert triage.pending_approval_audits(db)==4
         assert triage.summary(db)['audit_count']==4
+
+
+def test_max_direct_uses_one_call_and_random_audits_for_all_classes(app, monkeypatch):
+    owner = admin(app); row, uid = prepare(app, owner)
+    for color in ('blue', 'green', 'red'):
+        public_sample(app, owner, color=color)
+    app.config['REVIEW_TRIAGE_PRIMARY_MODEL'] = triage.MAX_MODEL
+    with connect(app) as db:
+        db.execute('UPDATE samples SET category=7')
+    monkeypatch.setenv('DASHSCOPE_API_KEY', 'test-private-key-1234')
+    report = execute(app, uid, result=answer(category_id=7, subject='手机电源适配器', reason='主体完整，没有人物遮挡'))
+    assert report['policy'] == triage.MAX_POLICY and report['counts'] == {'approved': 4}
+    assert report['run_usage']['attempts'] == 4
+    with connect(app) as db:
+        assert triage.pending_approval_audits(db) == 1
+        for row in db.execute('SELECT * FROM samples'):
+            record = triage.current_decision(db, row)
+            assert record['policy'] == triage.MAX_POLICY
+            evidence = json.loads(record['evidence'])
+            assert len(evidence['checks']) == 1 and evidence['checks'][0]['profile']['model'] == triage.MAX_MODEL
+    page = owner.get('/').text
+    assert 'Max 自动审核' in page and '约5%以内为目标' in page
+    assert '三项交叉核验一致才自动决定' not in page
+
+
+@pytest.mark.parametrize('changes,expected', [
+    ({'decision': 'reject', 'flags': ['occluded'], 'reason': '物品主体被严重遮挡'}, 'rejected'),
+    ({'decision': 'uncertain', 'category_id': None}, 'manual'),
+    ({'decision': 'crop', 'bbox': [0, 0, 1000, 1000]}, 'manual'),
+    ({'category_id': 1}, 'manual'),
+    ({'decision': 'reject', 'category_id': 1, 'flags': ['out_of_scope']}, 'manual'),
+])
+def test_max_handles_clear_quality_rejection_but_keeps_crops_and_relabelling_manual(app, monkeypatch, changes, expected):
+    owner = admin(app); row, uid = prepare(app, owner)
+    app.config['REVIEW_TRIAGE_PRIMARY_MODEL'] = triage.MAX_MODEL
+    monkeypatch.setenv('DASHSCOPE_API_KEY', 'test-private-key-1234')
+    assert execute(app, uid, result=answer(**changes))['counts'] == {expected: 1}
+    with connect(app) as db:
+        assert ai.usage_totals(db)[4] == 1
+        assert db.execute('SELECT status FROM samples').fetchone()[0] == (expected if expected != 'manual' else 'pending')
+
+
+def test_queued_legacy_job_keeps_its_policy_after_switching_config_to_max(app, monkeypatch):
+    owner = admin(app); row, uid = prepare(app, owner)
+    monkeypatch.setenv('DASHSCOPE_API_KEY', 'test-private-key-1234')
+    with connect(app) as db:
+        db.isolation_level = None
+        identity = triage.new_job(db, uid, 1, app.config)
+        app.config['REVIEW_TRIAGE_PRIMARY_MODEL'] = triage.MAX_MODEL
+        report = triage.run_job(db, Path(app.config['DATA_DIR']), categories(), app.config, identity,
+                               lambda *a, **k: ai.analyze(*a, api=transport(), **k))
+        assert report['policy'] == triage.POLICY and report['run_usage']['attempts'] == 3
+        record = triage.current_decision(db, db.execute('SELECT * FROM samples').fetchone())
+        assert record['policy'] == triage.POLICY
+        assert all(check['profile']['model'] != triage.MAX_MODEL for check in json.loads(record['evidence'])['checks'])
+
+
+def test_legacy_job_migration_is_idempotent_and_preserves_existing_rows():
+    with sqlite3.connect(':memory:') as db:
+        db.execute('CREATE TABLE ai_triage_jobs(id TEXT PRIMARY KEY,profiles TEXT,report TEXT)')
+        db.execute('INSERT INTO ai_triage_jobs VALUES(?,?,?)', ('old-job', 'old-profiles', '{"policy":"strict-crosscheck-v1"}'))
+        triage.migrate(db); triage.migrate(db)
+        assert db.execute('SELECT id,profiles,policy FROM ai_triage_jobs').fetchone() == ('old-job', 'old-profiles', 'strict-crosscheck-v1')
+
+
+def test_max_job_preserves_human_claim_during_single_call(app, monkeypatch):
+    owner = admin(app); row, uid = prepare(app, owner)
+    app.config['REVIEW_TRIAGE_PRIMARY_MODEL'] = triage.MAX_MODEL
+    monkeypatch.setenv('DASHSCOPE_API_KEY', 'test-private-key-1234')
+    def analyze(*args, **kwargs):
+        result = ai.analyze(*args, api=transport(), **kwargs)
+        assert owner.get('/samples/' + row['id']).status_code == 200
+        return result
+    assert execute(app, uid, analyze=analyze)['counts'] == {'changed_or_claimed': 1}
+    with connect(app) as db:
+        assert db.execute('SELECT status,revision FROM samples').fetchone()[:] == ('pending', 1)
+
+
+def test_failed_max_batch_keeps_all_partial_decisions_for_audit(app, monkeypatch):
+    owner = admin(app); row, uid = prepare(app, owner)
+    for color in ('blue', 'green'):
+        public_sample(app, owner, color=color)
+    app.config['REVIEW_TRIAGE_PRIMARY_MODEL'] = triage.MAX_MODEL
+    monkeypatch.setenv('DASHSCOPE_API_KEY', 'test-private-key-1234')
+    calls = []
+    def analyze(*args, **kwargs):
+        calls.append(1)
+        if len(calls) == 3:
+            raise ai.ReviewError('http_503')
+        return ai.analyze(*args, api=transport(), **kwargs)
+    report = execute(app, uid, analyze=analyze)
+    assert report['state'] == 'stopped' and report['counts'] == {'approved': 2}
+    with connect(app) as db:
+        assert triage.pending_approval_audits(db) == 2

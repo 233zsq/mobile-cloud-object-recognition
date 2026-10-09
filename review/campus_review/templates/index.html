@@ -2,12 +2,15 @@
 <div class="heading"><div><p class="eyebrow">DATA WORKSPACE</p><h1>让每一张照片，都值得学习</h1><p class="muted">按品类分工，逐张确认标签和主体；当前统计跟随筛选。</p></div><div class="actions"><a class="button primary" href="{{url_for('next_review',**filters)}}">开始连续审核 →</a><a class="button" href="{{url_for('upload')}}">＋ 上传照片</a></div></div>
 <section class="stats"><article><span>待审核</span><strong>{{stats.get('pending',0)}}</strong><small>当前筛选内等待确认</small></article><article><span>已通过</span><strong>{{stats.get('approved',0)}}</strong><small>可纳入训练批次</small></article><article><span>已拒绝</span><strong>{{stats.get('rejected',0)}}</strong><small>保留审核记录</small></article><article class="baseline"><span>固定基准 · campus-gpu-v1</span><strong>90.37<em>%</em></strong><small>218张公开验证图准确率，实拍验收待完成</small></article></section>
 <section class="panel" id="ai-triage">
-  <div class="section-heading"><h2>AI严格分流</h2><span class="badge {{'approved' if triage_summary.enabled else 'pending'}}">{{'已开启' if triage_summary.enabled else '已暂停'}}</span></div>
-  <p>三项交叉核验一致才自动决定；需要裁剪、主体不清或判断有分歧的照片留给人工。只处理未经人工修改、未被领取的待审网图。</p>
+  <div class="section-heading"><h2>{{'Max 自动审核' if triage_summary.max_direct else 'AI严格分流'}}</h2><span class="badge {{'approved' if triage_summary.enabled else 'pending'}}">{{'已开启' if triage_summary.enabled else '已暂停'}}</span></div>
+  {% if triage_summary.max_direct %}<p>Max 直接审核：明确可用自动通过，明确不可用自动拒绝；需要裁剪、改标签或无法确定的照片交人工。</p>
+  <p class="muted">试运行以明显误判约5%以内为目标，并非准确率保证。发现集中错误可暂停并撤回。当前模型 {{triage_summary.primary_model}}。</p>
+  {% else %}<p>三项交叉核验一致才自动决定；需要裁剪、主体不清或判断有分歧的照片留给人工。</p>{% endif %}
+  <p class="muted">只处理未经人工修改、未被领取的待审网图；已人工审核和已冻结照片保留原结果。</p>
   <p>未冻结的自动通过 {{triage_summary.counts.get('approved',0)}} 张 · 自动拒绝 {{triage_summary.counts.get('rejected',0)}} 张 · 待抽检 {{triage_summary.audit_count}} 张</p>
   <div class="actions"><a class="button primary" href="{{url_for('next_review',status='all',scope=scope,source='all',category=category,triage='audit')}}">开始抽检 →</a><a class="button" href="{{url_for('index',status='all',scope=scope,triage='auto')}}">查看自动决定</a><a class="button" href="{{url_for('index',status='pending',scope=scope)}}">人工待审</a></div>
-  <p class="muted">每批每种结果至少抽检10%、至少1张；保存人工复核后完成抽检。自动通过的抽检未完成时不能冻结。模型之间也可能犯相同错误，自动结果不代表标准答案。</p>
-  <p class="note">充电器和钥匙尚缺对照样本：这两类自动通过全部需要人工复核后才能冻结。密集大量物品、用途泛称电子设备的照片保留人工判断。</p>
+  <p class="muted">每批每种结果至少抽检10%、至少1张；保存人工复核后完成抽检。自动通过的抽检未完成时不能冻结。自动结果不代表标准答案。</p>
+  {% if not triage_summary.max_direct %}<p class="note">严格策略下，充电器和钥匙自动通过全部需要人工复核后才能冻结。</p>{% endif %}
   {% if g.user.role=='admin' %}
   <p>累计估算 {{'%.4f'|format(ai_usage.charged_or_reserved_yuan)}} / {{'%.0f'|format(ai_budget)}} 元 · {{ai_usage.attempts}} / {{ai_max_calls}} 次调用（保留历史用量）。</p>
   <div class="actions"><form method="post" action="{{url_for('triage_policy')}}"><input type="hidden" name="csrf" value="{{csrf}}"><input type="hidden" name="enabled" value="{{'false' if triage_summary.enabled else 'true'}}"><button class="button">{{'暂停分流' if triage_summary.enabled else '开启分流'}}</button></form>
@@ -17,7 +20,7 @@
 </section>
 {% if ai_summary %}
 <section class="panel ai-summary">
-  <div class="section-heading"><h2>AI初审 · {{'人工对照试运行' if ai_summary.mode=='pilot' else '待审网图建议'}}</h2><span class="badge pending">{{'严格分流已开启' if triage_summary.enabled else '自动通过尚未开启'}}</span></div>
+  <div class="section-heading"><h2>AI初审 · {{'人工对照试运行' if ai_summary.mode=='pilot' else '待审网图建议'}}</h2><span class="badge pending">{{'自动审核已开启' if triage_summary.enabled else '自动审核已暂停'}}</span></div>
   <p>最近处理 {{ai_summary.count}} 张公开照片。{% for decision,count in ai_summary.decision_counts.items() %}{{{'pass':'建议通过','reject':'建议拒绝','crop':'建议裁剪','uncertain':'不确定'}[decision]}} {{count}} 张{% if not loop.last %} · {% endif %}{% endfor %}</p>
   {% if ai_summary.errors %}<p>未生成有效建议 {{ai_summary.errors.values()|sum}} 张，仍交人工审核。</p>{% endif %}
   {% if ai_pilot and ai_pilot.pass_precision is not none %}<p>本提示版本最近人工对照：建议通过的 {{ai_pilot.pass_reference_count}} 张中，与人工通过一致 {{'%.1f'|format((ai_pilot.pass_reference_agreement if ai_pilot.pass_reference_agreement is defined else ai_pilot.pass_precision)*100)}}%；与人工拒绝冲突 {{ai_pilot.false_passes|length}} 张。仅代表本次抽样，分歧需复核。</p>{% endif %}
