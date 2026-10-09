@@ -2,7 +2,9 @@ package com.mobilecloud.recognition.sync
 
 import com.mobilecloud.recognition.data.local.RecordDao
 import com.mobilecloud.recognition.data.remote.ApiService
+import com.mobilecloud.recognition.data.remote.ServerErrorParser
 import java.io.IOException
+import retrofit2.Response
 
 /**
  * 同步执行器：上传待传记录 + 同步纠错修订。
@@ -37,7 +39,8 @@ class RecordUploader(
                     dao.markUploaded(record.recordId, clock())
                     uploaded++
                 } else {
-                    val message = RecordMapper.uploadErrorMessage(response.code())
+                    // 以服务端错误码为准展示原因（只按状态码会把「模型未登记」误报成字段问题）
+                    val message = describe(response) { RecordMapper.uploadErrorMessage(it) }
                     dao.markError(record.recordId, message, clock())
                     failed++
                     lastError = message
@@ -64,7 +67,7 @@ class RecordUploader(
                     dao.markCorrectionSynced(record.recordId, record.revision, clock())
                     corrections++
                 } else {
-                    val message = correctionErrorMessage(response.code())
+                    val message = describe(response) { correctionErrorMessage(it) }
                     dao.markError(record.recordId, message, clock())
                     failed++
                     lastError = message
@@ -92,6 +95,12 @@ class RecordUploader(
             404 -> "纠错失败：记录在服务端不存在（HTTP 404）"
             in 500..599 -> "服务端错误（HTTP $httpCode），稍后自动重试"
             else -> "纠错同步失败（HTTP $httpCode）"
+        }
+
+        /** 优先展示服务端返回的错误码与原因，回退到状态码说明 */
+        private fun describe(response: Response<*>, fallback: (Int) -> String): String {
+            val body = runCatching { response.errorBody()?.string() }.getOrNull()
+            return ServerErrorParser.describe(response.code(), body, fallback(response.code()))
         }
     }
 }
