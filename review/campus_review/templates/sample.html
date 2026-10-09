@@ -51,6 +51,7 @@
     </section>
     <div class="review-workspace">
       <section class="panel image-panel review-photo">
+        {% if ai %}<div class="ai-suggestion" role="note"><div class="section-heading"><strong>AI初审 · {{ai.label}}</strong>{% if ai.bbox %}<button id="ai-crop" class="button" type="button" data-crop="{{ai.bbox_json}}">采用建议选框</button>{% endif %}</div><p>{{ai.subject}}：{{ai.reason}}</p>{% if ai.category_id is not none and ai.category_id!=sample.category %}<p>识别类别：{{categories[ai.category_id].display_name}}，请在顶部确认真实类别。</p>{% endif %}<small>初审校验阶段，AI建议不改动人工审核结果；采用选框后仍需保存。</small></div>{% endif %}
         <div class="photo-tools"><label class="check"><input id="crop-enabled" type="checkbox" name="draw_crop" checked>允许框选（按住照片拖动）</label><button id="crop-clear" class="button" type="button" {{'disabled' if not sample.crop}}>清除选框</button></div>
         <div class="crop-stage" data-editable="{{'true' if lease else 'false'}}" data-width="{{sample.width}}" data-height="{{sample.height}}">
           <img draggable="false" decoding="async" src="{{url_for('image',sid=sample.id,size='detail')}}" alt="待审核{{categories[sample.category].display_name}}照片">

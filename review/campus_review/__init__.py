@@ -25,6 +25,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from .assets import PUBLIC_SOURCES, SOURCE_FIELDS, crop_box, renditions, source_metadata
 from .decisions import CHOICES, initial_choice, resolve_choice
 from .workflow import SCHEMA as WORKFLOW_SCHEMA, Workflow
+from . import ai_review
 
 ROOT = Path(__file__).resolve().parents[1]
 Image.MAX_IMAGE_PIXELS = 16_000_000
@@ -127,6 +128,8 @@ def create_app(config=None):
                       SESSION_COOKIE_SECURE=True, SESSION_COOKIE_HTTPONLY=True,
                       SESSION_COOKIE_SAMESITE='Lax', PERMANENT_SESSION_LIFETIME=28800,
                       REVIEW_LEASE_SECONDS=900,
+                      REVIEW_AI_KEY_FILE=os.environ.get('REVIEW_AI_KEY_FILE', ''),
+                      REVIEW_AI_BUDGET_NANO=1_000_000_000, REVIEW_AI_MAX_CALLS=500,
                       EGRESS_LIMIT_BYTES=int(float(os.environ.get('REVIEW_EGRESS_LIMIT_GIB', '20')) * 1024**3),
                       TRUSTED_HOSTS=['49.232.195.47', '127.0.0.1', 'localhost'])
     if config:
@@ -154,7 +157,7 @@ def create_app(config=None):
     base_metrics = json.loads((ROOT.parent / 'models/releases/campus-gpu-v1/evaluation-validation.json').read_text(encoding='utf-8'))['metrics']
     connection = sqlite3.connect(data / 'review.sqlite3')
     connection.execute('PRAGMA journal_mode=WAL')
-    connection.executescript(SCHEMA + WORKFLOW_SCHEMA)
+    connection.executescript(SCHEMA + WORKFLOW_SCHEMA + ai_review.SCHEMA)
     connection.executemany('INSERT OR IGNORE INTO category_assignments(category) VALUES(?)', [(i,) for i in range(10)])
     columns = {r[1] for r in connection.execute('PRAGMA table_info(samples)')}
     for name, definition in (('source', "TEXT NOT NULL DEFAULT 'field'"),
@@ -164,6 +167,7 @@ def create_app(config=None):
             connection.execute(f'ALTER TABLE samples ADD COLUMN {name} {definition}')
     connection.commit()
     connection.close()
+    app.config['REVIEW_AI_CATEGORY_SHA256'] = sha(category_bytes)
 
     @app.before_request
     def context():
@@ -332,6 +336,8 @@ def create_app(config=None):
             abort(400)
         samples, count, stats = work.listing(filters, page)
         return render_template('index.html', samples=samples, stats=stats, filters=filters, **filters,
+                               ai_suggestions={row['id']: ai_review.suggestion(db(), row, cat) for row in samples},
+                               ai_summary=ai_review.latest_report(db()),
                                assignments=work.assignments(), review_now=time.time(),
                                reviewers=db().execute('SELECT id,username FROM users WHERE active=1 ORDER BY username').fetchall(),
                                page=page, count=count, egress_bytes=db().execute('SELECT bytes FROM egress WHERE id=1').fetchone()[0],
@@ -449,6 +455,7 @@ def create_app(config=None):
         history = db().execute('SELECT e.*,u.username FROM events e JOIN users u ON e.actor=u.id WHERE subject=? ORDER BY e.id DESC', (sid,)).fetchall()
         decision, review_note = initial_choice(row)
         return render_template('sample.html', sample=row, lease=lease, notice=notice, filters=filters,
+                               ai=ai_review.suggestion(db(), row, cat),
                                decision=decision, decision_choices=CHOICES, review_note=review_note,
                                source_meta=json.loads(row['source_meta']), related=related[:20], history=history)
 
@@ -672,4 +679,5 @@ def create_app(config=None):
             g.db.rollback()
 
     app.extensions['review_data'] = data
+    ai_review.register(app, db, data, cat)
     return app

@@ -89,6 +89,16 @@ if (stage) {
     input.value = '';
     show(null);
   });
+  document.querySelector('#ai-crop')?.addEventListener('click', event => {
+    if (stage.dataset.editable !== 'true' || enabled.matches(':disabled')) return;
+    cancel();
+    const box = JSON.parse(event.currentTarget.dataset.crop);
+    if (!size(box).every(length => length >= 128)) return;
+    enabled.checked = true;
+    stage.classList.add('selecting');
+    input.value = JSON.stringify(box);
+    show(box);
+  });
   stage.classList.toggle('selecting', canDraw());
   show(savedBox());
 }

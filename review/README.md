@@ -32,6 +32,25 @@
 
 ## 开发与验证
 
+### 百炼视觉初审
+
+初审固定使用 `qwen3-vl-flash-2026-01-22`、非思考模式及JSON输出。仅处理Commons/Open Images网图，成员实拍不外发。向百炼发送最长边512像素的JPEG预览，移除EXIF；已有人工裁剪时只审该区域，建议框再换算回原图。请求只包含图像、类别口径和建议类别，不包含人工通过/拒绝答案、账号、实物ID或分组信息。API密钥保存在Git外的0600文件，以 `REVIEW_AI_KEY_FILE` 指向；也支持 `DASHSCOPE_API_KEY`。请求仅发送至百炼北京官方HTTPS端点，不跟随重定向，不输出密钥或供应商错误正文。[官方调用说明](https://help.aliyun.com/zh/model-studio/vision)、[JSON输出说明](https://help.aliyun.com/zh/model-studio/qwen-structured-output)。
+
+```bash
+# 在服务器的current/review目录执行，先加载已有服务环境；不要打印环境内容
+set -a
+. /home/ubuntu/.config/campus-review/review.env
+set +a
+/home/ubuntu/apps/campus-review/venv/bin/flask --app wsgi ai-review --mode pilot --limit 100 \
+  --report /home/ubuntu/apps/campus-review/shared/ai-pilot.json
+# 试运行后可为尚未审核的网图生成建议；单次最多100张
+/home/ubuntu/apps/campus-review/venv/bin/flask --app wsgi ai-review --mode pending --limit 100
+```
+
+`pilot`按类别及人工通过/拒绝分层抽取（种子42），报告建议通过样本的精确率、误放行ID、覆盖数量和真实Token用量；它衡量的是初审效果，不是识别模型独立测试成绩。首页展示最近任务，详情展示建议及原因，可由人工点击“采用建议选框”并保存；AI不会更改照片状态、类别、修订或冻结批次。自动通过当前关闭，须在有足够代表性的人工基准上校验后再实施；模型自报置信度不作为自动批准依据。
+
+缓存绑定原图SHA-256、现有选框、类别版本、完整提示词及固定模型版本。待审模式自动跳过当前输入已有建议的照片，可分批继续；重复调用不重复收费；改标签、选框或类别口径后旧建议失效。累计预算持久化在同一个SQLite数据库，按2026-10-09北京≤32K档标价估算，累计最多1元、500次请求，单次运行最多100张；免费额度和活动优惠未计入。调用前原子预留32K输入及500输出Token的费用；网络错误、进程中断等未知用量保留预留，不自动重试或重置。供应商、鉴权或预算错误停止任务；单图格式错误保留安全错误代码并继续，图片仍交人工审核。修复错误后可显式加 `--retry-errors` 重试已失败记录，历次已知用量和未知预留仍累计保留；正在处理或中断后停留在reserved的记录不会被自动接管。该预算仅约束这份服务密钥在此程序中的调用，账户实际费用以百炼账单为准。[官方价格](https://help.aliyun.com/zh/model-studio/model-pricing)。
+
 Python≥3.12，已在Windows3.13及Ubuntu3.14验证；本模块不安装TensorFlow、NumPy或LiteRT。
 
 ```powershell
