@@ -1,0 +1,2 @@
+# Isolated server-only tooling; never install into the review web environment.
+certbot==5.8.0

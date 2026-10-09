@@ -2,7 +2,7 @@
 
 云端入口：<https://49.232.195.47:8443>。独立使用 `ubuntu`、`campus-review.service` 和回环8081，不改变现有443后端。组员通过一次性邀请建立个人账号；管理员冻结批次、下载训练包并审批候选模型。训练在本机GPU执行，Android后续接入。
 
-当前证书沿用已部署的自签名IP证书；公开证书在 `deploy/certs/server.crt`。浏览器首次使用需由用户核对并安装证书信任，不能关闭客户端证书校验。SHA-256指纹为 `73:7D:DB:0A:98:47:3E:94:E2:08:B1:D6:C7:5B:A6:5A:6A:9D:D7:0F:CF:6E:B5:42:AD:63:E2:33:B7:68:02:D6`，到期北京时间2027-01-06 19:58:23。公网只新增TCP8443入站。
+8443使用浏览器信任的Let’s Encrypt IP证书，无需安装自签名证书。IP证书约6天有效，独立的 `campus-review-acme.timer` 每6小时检查续期；HTTP-01仅在签发期间临时使用80端口验证路径，结束后逐字节恢复原跳转配置。443的证书与配置保持原样，`deploy/certs/server.crt` 仍属于443后端。[官方IP证书与Certbot说明](https://letsencrypt.org/2026/03/11/shorter-certs-certbot)。
 
 ## 使用
 
@@ -38,6 +38,30 @@ review/.venv/Scripts/python.exe -m pytest -q review/tests --basetemp=tmp/review-
 源码：`/home/ubuntu/apps/campus-review/releases/<归档摘要>/`；`current`原子指向当前版本。数据：`/home/ubuntu/apps/campus-review/shared/`（0700）；配置：`/home/ubuntu/.config/campus-review/review.env`（0600）。SQLite WAL适合当前小组规模。照片、数据库、邀请及配置都不进入Git。
 
 本地 `python review/deploy/package.py` 只打包审核源代码、测试、类别和基准公开元数据，保存逐文件源码哈希及Git提交/工作区状态。上传归档并校验哈希后解压到新目录，在服务器执行 `python3 <发布目录>/review/deploy/install.py`。安装会运行网页测试、校验Nginx、仅重启自己的服务，并检查原后端配置哈希及健康；更新失败可恢复上一版本指针。安装需要 `ubuntu` 免密sudo；脚本不配置云防火墙。
+
+证书工具独立安装在 `/opt/campus-review-acme`（Certbot5.8.0），不进入网页依赖环境。生产证书及私钥仅存服务器 `/etc/letsencrypt-campus-review/`；测试签发使用独立的同名 `-staging` 目录。`/etc/campus-review/tls.json` 是root管理的证书路径配置，后续网页部署会保留该选择。ACME账号、私钥、验证日志及配置备份均不进入Git。已由服务器所有者同意2026-07-06版Let’s Encrypt订户协议。
+
+初次安装需由服务器所有者接受当期订户协议后执行；已有站点不要重复申请证书。以下在本仓库源码根目录执行，80端口须保持公网可达：
+
+```bash
+sudo python3 -m venv /opt/campus-review-acme
+sudo /opt/campus-review-acme/bin/pip install -r review/deploy/requirements-acme.txt
+sudo install -D -o root -g root -m 0755 review/deploy/acme.py /usr/local/libexec/campus-review-acme.py
+sudo python3 /usr/local/libexec/campus-review-acme.py issue-staging
+sudo python3 /usr/local/libexec/campus-review-acme.py issue
+sudo python3 /usr/local/libexec/campus-review-acme.py dry-run
+sudo install -m 0644 review/deploy/campus-review-acme.service review/deploy/campus-review-acme.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now campus-review-acme.timer
+```
+
+日常检查 `systemctl list-timers campus-review-acme.timer` 和 `journalctl -u campus-review-acme`；续期失败需在到期前修复。手动续期必须使用上述脚本的 `renew` 操作，以便建立及恢复HTTP验证路径。脚本遇到其他人并发修改共享Nginx配置时拒绝覆盖，原始备份保存在root可读的 `/var/lib/campus-review-acme/`；此时由运维核对变更后修复。服务被中断时 `ExecStopPost` 尝试恢复80配置，重启后下次操作也会先恢复。验证公网可信证书可在本地执行：
+
+```powershell
+review/.venv/Scripts/python.exe review/deploy/check.py --output tmp/review-https-check.json
+```
+
+默认使用系统信任库；`--ca` 只供明确需要私有CA的独立环境，禁止关闭TLS校验。
 
 ```bash
 sudo systemctl status campus-review

@@ -9,10 +9,10 @@ from pathlib import Path
 
 parser=argparse.ArgumentParser()
 parser.add_argument('--url',default='https://49.232.195.47:8443')
-parser.add_argument('--ca',type=Path,default=Path('deploy/certs/server.crt'))
+parser.add_argument('--ca',type=Path,help='Optional private CA; defaults to system trust store')
 parser.add_argument('--output',type=Path,required=True)
 args=parser.parse_args()
-context=ssl.create_default_context(cafile=str(args.ca))
+context=ssl.create_default_context(cafile=str(args.ca) if args.ca else None)
 opener=urllib.request.build_opener(urllib.request.ProxyHandler({}),urllib.request.HTTPSHandler(context=context))
 checks={}
 with opener.open(args.url+'/health',timeout=10) as response:

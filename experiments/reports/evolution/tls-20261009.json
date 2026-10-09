@@ -1,0 +1,136 @@
+{
+  "at": "2026-10-09T09:21:46.424879+00:00",
+  "url": "https://49.232.195.47:8443",
+  "system_trust_verified": true,
+  "port_8443": {
+    "sha256_der": "a5bcd4ac535cf745d5c15951525c2849b132276896dfc30b71ee278125ec74b1",
+    "certificate": {
+      "subject": [],
+      "issuer": [
+        [
+          [
+            "countryName",
+            "US"
+          ]
+        ],
+        [
+          [
+            "organizationName",
+            "Let's Encrypt"
+          ]
+        ],
+        [
+          [
+            "commonName",
+            "YE2"
+          ]
+        ]
+      ],
+      "version": 3,
+      "serialNumber": "0532003EDD1D5898491FECE5986B71079E22",
+      "notBefore": "Oct  9 08:19:55 2026 GMT",
+      "notAfter": "Oct 16 00:19:54 2026 GMT",
+      "subjectAltName": [
+        [
+          "IP Address",
+          "49.232.195.47"
+        ]
+      ],
+      "caIssuers": [
+        "http://ye2.i.lencr.org/"
+      ],
+      "crlDistributionPoints": [
+        "http://ye2.c.lencr.org/35.crl"
+      ]
+    },
+    "tls_version": "TLSv1.3"
+  },
+  "port_443": {
+    "sha256_der": "737ddb0a98473e94e208b1d6c75ba65a6a9dd70fcf6eb542ad63e233b76802d6",
+    "certificate": {
+      "subject": [
+        [
+          [
+            "commonName",
+            "49.232.195.47"
+          ]
+        ]
+      ],
+      "issuer": [
+        [
+          [
+            "commonName",
+            "49.232.195.47"
+          ]
+        ]
+      ],
+      "version": 3,
+      "serialNumber": "25E0A4787FB6591097D921A0E6CAA220586214B8",
+      "notBefore": "Oct  8 11:58:23 2026 GMT",
+      "notAfter": "Jan  6 11:58:23 2027 GMT",
+      "subjectAltName": [
+        [
+          "IP Address",
+          "49.232.195.47"
+        ],
+        [
+          "IP Address",
+          "127.0.0.1"
+        ]
+      ]
+    },
+    "tls_version": "TLSv1.3"
+  },
+  "backend_nginx_sha256": "bb970fbfc3253a82dd8154fcf169b4eaa5e050e813adca954c2db9e0258dffad",
+  "backend_config_unchanged": true,
+  "port_80_configuration_restored": true,
+  "staging_issuance_passed": true,
+  "production_issuance_passed": true,
+  "renewal_dry_run_passed": true,
+  "timer_active": true,
+  "timer_enabled": true,
+  "timer_schedule": "NEXT                        LEFT LAST                              PASSED UNIT                     ACTIVATES\nFri 2026-10-09 23:24:56 CST   6h Fri 2026-10-09 17:20:31 CST 1min 15s ago campus-review-acme.timer campus-review-acme.service\n\n1 timers listed.\nPass --all to see loaded but inactive timers, too.",
+  "renewal_service": "Result=success\nExecMainStartTimestamp=Fri 2026-10-09 17:20:31 CST\nExecMainExitTimestamp=Fri 2026-10-09 17:20:33 CST\nExecMainStatus=0",
+  "helper_sha256": "689b3476d4801bb0a3e7e6307c61407764febd849920c7a575be1af777b95454",
+  "certbot": "certbot 5.8.0",
+  "acme_dependencies": [
+    "acme==5.8.0",
+    "certbot==5.8.0",
+    "certifi==2026.7.22",
+    "cffi==2.1.1",
+    "charset-normalizer==3.5.2",
+    "ConfigArgParse==1.8.0",
+    "configobj==5.0.9",
+    "cryptography==50.0.2",
+    "distro==1.9.0",
+    "idna==3.20",
+    "josepy==2.2.0",
+    "parsedatetime==2.6",
+    "pycparser==3.1",
+    "pyOpenSSL==26.4.0",
+    "pyRFC3339==2.1.0",
+    "requests==2.34.2",
+    "urllib3==2.8.0"
+  ],
+  "tls_path_config": {
+    "certificate": "/etc/letsencrypt-campus-review/live/campus-review-ip/fullchain.pem",
+    "key": "/etc/letsencrypt-campus-review/live/campus-review-ip/privkey.pem"
+  },
+  "backend_health": {
+    "model_loaded": true,
+    "model_status": "ready",
+    "model_version": "campus-gpu-v1",
+    "status": "ok",
+    "version": "0.1.0+5a0ca2e"
+  },
+  "review_health": {
+    "baseline": "campus-gpu-v1",
+    "service": "campus-review",
+    "status": "ok"
+  },
+  "services": {
+    "nginx": "active",
+    "campus-review": "active",
+    "mobile-cloud-backend": "active"
+  }
+}

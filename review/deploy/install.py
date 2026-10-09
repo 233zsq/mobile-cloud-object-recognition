@@ -2,6 +2,7 @@
 import hashlib
 import json
 import os
+import re
 import secrets
 import socket
 import subprocess
@@ -21,6 +22,14 @@ site = Path('/etc/nginx/sites-available/campus-review')
 old_site = Path('/etc/nginx/sites-enabled/mobile-cloud-backend')
 old_digest = hashlib.sha256(old_site.read_bytes()).hexdigest()
 source = json.loads((root / 'SOURCE.json').read_text())
+tls_file = Path('/etc/campus-review/tls.json')
+tls = json.loads(tls_file.read_text()) if tls_file.exists() else {
+    'certificate': '/etc/mobile-cloud-backend/tls/server.crt',
+    'key': '/etc/mobile-cloud-backend/tls/server.key',
+}
+for path in (tls['certificate'], tls['key']):
+    if not re.fullmatch(r'/etc/[a-zA-Z0-9_./-]+', path) or '..' in Path(path).parts:
+        raise ValueError('Invalid review TLS path')
 for filename, expected in source['files'].items():
     path = (root / filename).resolve()
     if not path.is_relative_to(root) or hashlib.sha256(path.read_bytes()).hexdigest()!=expected:
@@ -62,8 +71,8 @@ server {{
     listen 8443 ssl;
     listen [::]:8443 ssl;
     server_name 49.232.195.47;
-    ssl_certificate /etc/mobile-cloud-backend/tls/server.crt;
-    ssl_certificate_key /etc/mobile-cloud-backend/tls/server.key;
+    ssl_certificate {tls['certificate']};
+    ssl_certificate_key {tls['key']};
     client_max_body_size 9m;
     access_log off;
     location / {{
