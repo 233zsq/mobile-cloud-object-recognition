@@ -1,10 +1,10 @@
 # 云端 API 草案
 
-状态：已实现健康检查与记录上传/UUID去重，其余业务接口仍是待冻结草案。当前记录字段沿用Android功能分支已有提案，真实客户端联调尚待完成。数据与云端负责人维护，Android开发负责人和组长共同确认联调口径。
+状态：已实现健康检查、记录上传/UUID去重和单图片CPU推理，其余业务接口仍是待冻结草案。数据与云端负责人维护，Android开发负责人和组长共同确认联调口径。
 
 ## 已实现：GET /api/health
 
-返回200及JSON：`status: "ok"`、`version: "0.1.0"`、`model_loaded: false`、`model_version: null`、`model_status: "not_initialized"`。version为服务版本，可通过APP_VERSION配置。此接口仅验证服务存活，尚未检查数据库或加载模型；允许传入 `?client=android`，当前忽略该查询参数。
+返回200及JSON：`status: "ok"`、`version: "0.1.0"`，以及实际模型状态。未配置CPU进程时为 `model_loaded:false`、`model_version:null`、`model_status:"not_initialized"`；已校验的模型进程可用时为 true、实际模型版本和 `ready`；进程故障或身份不符时为 false、null 和 `unavailable`。version为服务版本，可通过APP_VERSION配置。此接口验证服务存活，不检查数据库；模型故障不改变200状态。允许传入 `?client=android`，当前忽略该查询参数。
 
 所有响应包含服务端生成的 `X-Request-ID`。错误响应为 `{"error":{"code":"NOT_FOUND","message":"..."},"request_id":"UUID"}`；保留实际HTTP状态码。未知路径为404、错误方法为405、读取超限请求体为413、未预期异常为500。启动和配置说明见 [backend/README.md](../../backend/README.md)。
 
@@ -52,7 +52,7 @@ Content-Type为 `application/json`，请求体必须包含且只包含以下8个
 
 调用前按 [数据库初始化说明](../../database/README.md) 建表、导入类别并登记模型。Flask自身尚未实现Bearer认证，本地直接调用Gunicorn时API_TOKEN不限制访问。当前公网部署由Nginx检查 `Authorization: Bearer <API_TOKEN>`，缺失或错误返回401；令牌位置、IP地址和自签名证书信任方式见 [部署说明](../../deploy/README.md)。
 
-## 接口总览（除health及POST records外仍待实现）
+## 接口总览（health、POST records和infer已实现）
 
 | 方法与路径 | 输入或查询 | 预期行为 |
 | --- | --- | --- |
@@ -64,13 +64,29 @@ Content-Type为 `application/json`，请求体必须包含且只包含以下8个
 | `GET /api/health` | 无 | 返回服务和模型加载状态、版本；模型异常不阻断记录接口 |
 | `POST /api/infer` | 单张照片、request_id、模型版本 | 用同版CPU模型返回预测、版本、哈希及阶段耗时；不自动入库 |
 
-## 云端单图片推理
+## 已实现：POST /api/infer
 
-计划由Flask提供`multipart/form-data`接口，字段为`image`、`request_id`和`model_version`。模型在启动时校验并加载，与手机使用同一份FP32 tflite、标签和预处理规则。
+Content-Type为 `multipart/form-data`，必须且只能包含一个文件字段 `image` 和各一个文本字段 `request_id`、`model_version`。request_id须为带连字符UUID；model_version须与当前加载版本 `campus-gpu-v1` 一致。沿用公网Nginx Bearer认证。
+模型在独立Python 3.12工作进程启动时校验并加载，与手机使用同一份FP32 tflite、标签和预处理规则；Flask原环境不导入LiteRT或TensorFlow。
 
-响应字段计划包含`request_id`、`model_version`、`model_sha256`、`predicted_id`、`confidence`、`preprocess_ms`、`inference_ms`及`server_ms`。`server_ms`表示处理程序内的总处理时间；手机另测请求发起至收到完整响应的总等待时间，覆盖网络和外部排队，不能把两者混为一项。
+成功返回200，字段包含 `request_id`、`model_version`、`model_sha256`、`predicted_id`、`label_key`、`confidence`、`low_confidence`、10类 `scores`、`preprocess_ms`、`inference_ms`、`model_call_ms` 及 `server_ms`。成功响应request_id为客户端UUID（规范为小写）；X-Request-ID仍为服务端生成的追踪UUID，错误体沿用该服务端编号。
+preprocess_ms覆盖工作进程内读取、解码和预处理，inference_ms只覆盖Interpreter推理，model_call_ms另包含同实例锁等待；server_ms覆盖Flask路由开始到响应字典构造完成，包括图片校验、IPC和工作进程处理。手机另测含网络和外部排队的总等待时间。
 
-接口配置文件大小、解码检查、超时和受控并发；模型未就绪、格式错误、超限、服务忙碌时返回统一错误。确切限制与状态码在联调前冻结。
+文件限制8MiB，整个HTTP请求限制10MiB，解码像素限制12,600,000；仅接受单帧JPEG、PNG、WebP，不信任扩展名或上传MIME。图片处理后删除。工作进程一次仅接收一张图片，额外请求返回忙碌，不排队；IPC超时15秒，Nginx既有限流继续生效。
+
+| 场景 | 状态码 / 错误码 |
+| --- | --- |
+| 字段缺失、多余、重复或UUID错误 | 400 INVALID_INFER_REQUEST |
+| 空图片、无法解码或图片损坏 | 400 INVALID_IMAGE |
+| 请求模型版本不一致 | 409 MODEL_VERSION_MISMATCH |
+| 图片文件或像素超限 | 413 IMAGE_TOO_LARGE |
+| 总请求体超限 | 413 REQUEST_ENTITY_TOO_LARGE（Flask），超过Nginx限制时由代理直接拒绝 |
+| 请求Content-Type错误 | 415 UNSUPPORTED_MEDIA_TYPE |
+| 不支持的图片格式或动画 | 415 UNSUPPORTED_IMAGE |
+| 模型未配置、进程不可用或身份/响应校验失败 | 503 MODEL_UNAVAILABLE |
+| 已有图片正在处理 | 503 INFERENCE_BUSY |
+| IPC超时 | 503 INFERENCE_TIMEOUT |
+| 缺失或错误Bearer令牌、代理限流 | Nginx 401 / 429 |
 
 推理接口不自动创建采集记录。用户采用结果后通过`/api/records`保存原UUID一次，`inference_source`为`device`或`cloud`；同图对比结果进入实验清单，不覆盖既有原预测。照片默认处理后释放，不自动加入训练数据。
 
@@ -83,4 +99,4 @@ Content-Type为 `application/json`，请求体必须包含且只包含以下8个
 - 统计口径：原预测与人工修正分别展示，低置信阈值和模型版本的对应规则。
 - 云端照片字段、文件限制、推理忙碌与超时状态、模型哈希、阶段计时边界及`inference_source`规则。
 
-原预测首次入库后保持不变，重试使用同一UUID；不能把重复提交当成覆盖操作。修订号在手机本地保存并递增，后端纠错接口需原子地比较修订号后再更新。当前health及POST records可调用；GET records、PATCH label、stats、categories和infer尚未实现。
+原预测首次入库后保持不变，重试使用同一UUID；不能把重复提交当成覆盖操作。修订号在手机本地保存并递增，后端纠错接口需原子地比较修订号后再更新。当前health、POST records和infer可调用；GET records、PATCH label、stats和categories尚未实现。

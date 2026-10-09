@@ -165,12 +165,20 @@ def http(data):
 
 
 def main():
+    global OUTPUT
     parser = argparse.ArgumentParser()
     parser.add_argument('phase', choices=['tests', 'http'])
+    parser.add_argument('--output', type=Path, help='Separate evidence path for this release; preserves earlier runs.')
     args = parser.parse_args()
+    if args.output:
+        OUTPUT = args.output
+        OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     if ROOT.parent != BASE / 'releases':
         raise RuntimeError('Run only from the managed release using its virtual environment.')
     data = json.loads(OUTPUT.read_text()) if OUTPUT.exists() else {}
+    revision = (ROOT / 'SOURCE_REVISION').read_text().strip()
+    if data.get('source_commit') != revision:
+        data = {}
     data.update({'checked_at': datetime.now(ZoneInfo('Asia/Shanghai')).isoformat(timespec='seconds'),
                  'timezone': 'Asia/Shanghai', 'source_commit': (ROOT / 'SOURCE_REVISION').read_text().strip(),
                  'release': str(ROOT), 'python': sys.version.split()[0],
