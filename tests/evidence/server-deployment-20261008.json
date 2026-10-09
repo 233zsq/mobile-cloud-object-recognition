@@ -1,0 +1,154 @@
+{
+  "checked_at": "2026-10-08T19:59:50+08:00",
+  "timezone": "Asia/Shanghai",
+  "source_commit": "9eb92b9f385a25c0e4cbce6e737fed9bf8f085c2",
+  "release": "/home/gongyi/apps/mobile-cloud-backend/releases/9eb92b9-307c4ce6",
+  "python": "3.14.4",
+  "mysql": "8.4.11-0ubuntu0.26.04.1",
+  "dependencies": {
+    "Flask": "3.1.3",
+    "Flask-SQLAlchemy": "3.1.1",
+    "SQLAlchemy": "2.0.54",
+    "PyMySQL": "1.2.3",
+    "gunicorn": "25.3.0"
+  },
+  "tests": {
+    "tests": 78,
+    "passed": 75,
+    "skipped": 3,
+    "failures": 0,
+    "errors": 0,
+    "mysql_cases_executed": true
+  },
+  "sql_snapshot_executed": true,
+  "health": {
+    "model_loaded": false,
+    "model_status": "not_initialized",
+    "model_version": null,
+    "status": "ok",
+    "version": "0.1.0+9eb92b9"
+  },
+  "https": {
+    "certificate_validated": true,
+    "missing_token": 401,
+    "case_changed_token": 401,
+    "health": 200
+  },
+  "http": {
+    "first_upload": 201,
+    "same_content_retry": 200,
+    "different_content": 409,
+    "concurrent_first_uploads": [
+      200,
+      200,
+      200,
+      201
+    ],
+    "retry_after_service_restart": 200,
+    "persisted_rows_for_each_uuid": 1,
+    "service_pid_changed": true
+  },
+  "backup_restore": {
+    "verified": true,
+    "restored_test_records": 2,
+    "restored_categories": 10,
+    "backup_sha256": "5571f2f7aef41835fe5b06c82b1a8f4f5b424284cfe9661c32fd6dcb61e5b2dc",
+    "restored_to_isolated_database": true
+  },
+  "production_test_rows_removed": true,
+  "archive_sha256": "307c4ce6bcd50fb435f0e195a11224cb82c7e2034d839765b88fdec171339a5e",
+  "public_https": {
+    "certificate_sha256": "737ddb0a98473e94e208b1d6c75ba65a6a9dd70fcf6eb542ad63e233b76802d6",
+    "local_http_proxy_bypassed": true,
+    "checked_at": "2026-10-08T20:25:03+08:00",
+    "http_redirect": {
+      "status": 308,
+      "body": null,
+      "location": "https://49.232.195.47/api/health"
+    },
+    "https_health": {
+      "status": 200,
+      "body": {
+        "model_loaded": false,
+        "model_status": "not_initialized",
+        "model_version": null,
+        "status": "ok",
+        "version": "0.1.0+9eb92b9"
+      },
+      "location": null
+    },
+    "certificate_validated": true,
+    "unauthorized_upload": 401,
+    "authenticated_upload": {
+      "first": 201,
+      "retry": 200,
+      "conflict": 409
+    },
+    "production_test_row_removed": true,
+    "completed": true
+  },
+  "final_checked_at": "2026-10-08T20:25:03+08:00",
+  "cli_initialization_idempotent": true,
+  "release_version_environment_file": true,
+  "services": {
+    "mysql": {
+      "ActiveState": "active",
+      "SubState": "running",
+      "UnitFileState": "enabled",
+      "NRestarts": "0",
+      "MemoryCurrent": "197529600"
+    },
+    "nginx": {
+      "ActiveState": "active",
+      "SubState": "running",
+      "UnitFileState": "enabled",
+      "NRestarts": "0",
+      "MemoryCurrent": "4497408"
+    },
+    "mobile-cloud-backend": {
+      "ActiveState": "active",
+      "SubState": "running",
+      "UnitFileState": "enabled",
+      "NRestarts": "0",
+      "MemoryCurrent": "75501568"
+    },
+    "mobile-cloud-backend-backup.timer": {
+      "ActiveState": "active",
+      "SubState": "waiting",
+      "UnitFileState": "enabled"
+    }
+  },
+  "certificate_valid_until": "2027-01-06T19:58:23+08:00",
+  "secret_file_modes": {
+    "backend.env": "0600",
+    "nginx_auth_map": "0600",
+    "tls_private_key": "0600"
+  },
+  "database_runtime_privileges": [
+    "SELECT",
+    "INSERT",
+    "UPDATE"
+  ],
+  "private_listeners": [
+    "127.0.0.1:3306",
+    "127.0.0.1:33060",
+    "127.0.0.1:8080"
+  ],
+  "public_listeners": [
+    80,
+    443
+  ],
+  "final_database_counts": {
+    "category": 10,
+    "model_version": 1,
+    "inference_record": 0,
+    "sample": 0,
+    "temporary_databases": 0,
+    "temporary_users": 0
+  },
+  "resource_snapshot": {
+    "memory": "total        used        free      shared  buff/cache   available\nMem:            3718        3201         173           1         584         517\nSwap:           2047        1099         948",
+    "disk": "Filesystem      Size  Used Avail Use% Mounted on\n/dev/vda3        59G   15G   42G  27% /"
+  },
+  "backup_timer_enabled": true
+}

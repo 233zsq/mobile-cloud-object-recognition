@@ -1,0 +1,8 @@
+{
+  "primary": "expanded-cpu-20261007-fine_tune-2",
+  "repeat": "expanded-cpu-20261007-fine_tune-2-repeat43",
+  "seed": 43,
+  "macro_f1_difference": 0.015090700565854931,
+  "needs_seed44": false,
+  "test_data_used": false
+}

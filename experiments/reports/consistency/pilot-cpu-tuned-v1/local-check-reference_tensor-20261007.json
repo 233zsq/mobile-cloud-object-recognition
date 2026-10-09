@@ -1,0 +1,173 @@
+{
+  "at": "2026-10-07T19:33:56+08:00",
+  "run_id": "local-check-reference_tensor-20261007",
+  "mode": "reference_tensor",
+  "device": "Windows-11-10.0.26200-SP0 LOCAL CHECKER TEST ONLY",
+  "runtime": "ai-edge-litert 2.2.0 one thread",
+  "model_sha256": "489032d33f105927f864b906b3679f39af358aef93839b15f73a19c498774e07",
+  "labels_sha256": "19b5879f196651ffc2171d43f9c954c02893d1d2893cc4d19c70bc0b24479871",
+  "submitted_report_sha256": "392f719af4a4dab69db88fc4e9a7ed999a67504fd264b3eed7d01f791eec3657",
+  "passed": true,
+  "comparisons": [
+    {
+      "sample_id": "oi-30d38acdacfe06d0",
+      "input_passed": true,
+      "max_input_difference": null,
+      "top1_same": true,
+      "max_score_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-101801303",
+      "input_passed": true,
+      "max_input_difference": null,
+      "top1_same": true,
+      "max_score_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-67420116",
+      "input_passed": true,
+      "max_input_difference": null,
+      "top1_same": true,
+      "max_score_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "oi-968288c82e121f36",
+      "input_passed": true,
+      "max_input_difference": null,
+      "top1_same": true,
+      "max_score_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "oi-d68f85d27f38f4ae",
+      "input_passed": true,
+      "max_input_difference": null,
+      "top1_same": true,
+      "max_score_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "oi-48dfa3049039bdc3",
+      "input_passed": true,
+      "max_input_difference": null,
+      "top1_same": true,
+      "max_score_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "oi-34b0bbc8824f3225",
+      "input_passed": true,
+      "max_input_difference": null,
+      "top1_same": true,
+      "max_score_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-3926181",
+      "input_passed": true,
+      "max_input_difference": null,
+      "top1_same": true,
+      "max_score_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "oi-65312e4ca5a6f947",
+      "input_passed": true,
+      "max_input_difference": null,
+      "top1_same": true,
+      "max_score_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-14491855",
+      "input_passed": true,
+      "max_input_difference": null,
+      "top1_same": true,
+      "max_score_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-112602361",
+      "input_passed": true,
+      "max_input_difference": null,
+      "top1_same": true,
+      "max_score_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-112602362",
+      "input_passed": true,
+      "max_input_difference": null,
+      "top1_same": true,
+      "max_score_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "oi-04148d451d34d720",
+      "input_passed": true,
+      "max_input_difference": null,
+      "top1_same": true,
+      "max_score_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-73831530",
+      "input_passed": true,
+      "max_input_difference": null,
+      "top1_same": true,
+      "max_score_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-114076786",
+      "input_passed": true,
+      "max_input_difference": null,
+      "top1_same": true,
+      "max_score_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-97158659",
+      "input_passed": true,
+      "max_input_difference": null,
+      "top1_same": true,
+      "max_score_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-125037354",
+      "input_passed": true,
+      "max_input_difference": null,
+      "top1_same": true,
+      "max_score_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-59318655",
+      "input_passed": true,
+      "max_input_difference": null,
+      "top1_same": true,
+      "max_score_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "oi-c028944212bdc80c",
+      "input_passed": true,
+      "max_input_difference": null,
+      "top1_same": true,
+      "max_score_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "oi-dc747e1d542bf243",
+      "input_passed": true,
+      "max_input_difference": null,
+      "top1_same": true,
+      "max_score_difference": 0.0,
+      "passed": true
+    }
+  ]
+}

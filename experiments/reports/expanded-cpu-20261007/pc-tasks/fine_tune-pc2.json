@@ -1,0 +1,24 @@
+{
+  "pc_slot": 2,
+  "data_version": "campus-public-expanded-v1",
+  "category_version": "campus-10-v2",
+  "config_sha256": "54fc3340e95a06cd3fd5cc040e6f9228878de12ce5c3d5ce09eb8544a327dc8e",
+  "command": [
+    "python",
+    "-m",
+    "recognition",
+    "train",
+    "--config",
+    "ml/configs/generated/expanded-cpu-20261007/expanded-cpu-20261007-fine_tune-2.json",
+    "--experiment",
+    "expanded-cpu-20261007-fine_tune-2",
+    "--initial-checkpoint",
+    "experiments\\checkpoints\\expanded-cpu-20261007-dropout-3\\best.keras"
+  ],
+  "job": {
+    "experiment_id": "expanded-cpu-20261007-fine_tune-2",
+    "config": "ml/configs/generated/expanded-cpu-20261007/expanded-cpu-20261007-fine_tune-2.json",
+    "pc_slot": 2,
+    "initial_checkpoint": "experiments\\checkpoints\\expanded-cpu-20261007-dropout-3\\best.keras"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "sample_count": 20,
+  "max_score_difference": 2.682209014892578e-06,
+  "top1_mismatch_sample_ids": [],
+  "tolerance": 0.001,
+  "passed": true
+}

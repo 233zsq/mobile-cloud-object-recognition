@@ -1,0 +1,16 @@
+{
+  "at": "2026-10-08T22:26:36+08:00",
+  "integration_branch": "feat/ml-gpu-release",
+  "integration_commit": "71b5f410f7d708b9b35e98108e4b923157ac1021",
+  "integrated_main_commit": "89b5c23",
+  "training_commit": "222ff37e777ea4cc076f644c23fd09c4ec3ab113",
+  "recognition_module_bytes_unchanged": true,
+  "source_snapshot_sha256": "1d77a1f2b326f9c84623ad1ec0efe89ad9292e6e79a6405ff4a95829585c600f",
+  "data_script_tests": {
+    "command": "python -m pytest tests/test_data_scripts.py -q --tb=short",
+    "passed": 10,
+    "subtests_passed": 4,
+    "seconds": 0.42
+  },
+  "original_workspace_uncommitted_files_preserved": true
+}

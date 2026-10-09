@@ -9,3 +9,14 @@
 *.jpg binary
 *.jpeg binary
 *.tflite binary
+
+# Frozen ML identities hash exact bytes. Preserve native line endings on checkout.
+data/manifests/*.csv -text
+data/splits/** -text
+ml/configs/**/*.json -text
+ml/*.lock -text
+shared/categories.json -text
+shared/category-versions/*.json -text
+shared/device-results/*.json -text
+models/releases/** -text
+experiments/reports/** -text

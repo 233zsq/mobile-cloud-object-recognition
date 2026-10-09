@@ -1,0 +1,30 @@
+[
+  {
+    "command": [
+      "wsl.exe",
+      "--version"
+    ],
+    "exit_code": 0,
+    "stdout": "WSL 版本: 3.0.1.0\r\n内核版本: 6.18.40.1-1\r\nWSLg 版本: 1.0.79\r\nMSRDC 版本: 1.2.7214\r\nDirect3D 版本: 1.611.1-81528511\r\nDXCore 版本: 10.0.26100.1-240331-1435.ge-release\r\nWindows 版本: 10.0.26200.9550\r\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "wsl.exe",
+      "--status"
+    ],
+    "exit_code": 0,
+    "stdout": "默认版本: 2\r\n当前计算机配置不支持 WSL1。\r\n若要使用 WSL1，请启用“Windows Subsystem for Linux”可选组件。\r\nWSL2 无法启动，因为此计算机上未启用虚拟化。\r\n请确保计算机固件设置中“虚拟机平台”可选组件已启用，且虚拟化已开启。\r\n\r\n通过运行以下命令启用“虚拟机平台”: wsl.exe --install --no-distribution\r\n\r\n有关信息，请访问 https://aka.ms/enablevirtualization\r\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "wsl.exe",
+      "-l",
+      "-v"
+    ],
+    "exit_code": 4294967295,
+    "stdout": "适用于 Linux 的 Windows 子系统没有已安装的分发。\r\n可按照以下说明安装分发来解决此问题:\r\n\r\n使用 'wsl.exe --list --online' 列出可用的分发\r\n和 'wsl.exe --install <Distro>' 进行安装。\r\n",
+    "stderr": ""
+  }
+]

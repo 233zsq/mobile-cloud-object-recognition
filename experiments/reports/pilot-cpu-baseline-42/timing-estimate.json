@@ -1,0 +1,7 @@
+{
+  "first_epoch_seconds": 11.352820100000827,
+  "later_epoch_mean_seconds": 4.242914910527792,
+  "eight_additional_candidates_20_epoch_estimate_minutes": 12.26242712000385,
+  "limitation": "frozen backbone CPU estimate; fine tuning must be measured separately",
+  "code_snapshot_sha256": "38cce368f7892e9d88db8e1bb93b3270652cb3243bc0bd6626749a47c5f92b81"
+}

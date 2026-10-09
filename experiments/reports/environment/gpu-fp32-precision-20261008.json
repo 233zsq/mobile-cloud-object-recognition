@@ -1,0 +1,14 @@
+{
+  "at": "2026-10-08T21:31:12+08:00",
+  "input": "same synthetic preflight tensor",
+  "modes": {
+    "True": {
+      "max_score_difference": 0.000535033643245697,
+      "top1_same": true
+    },
+    "False": {
+      "max_score_difference": 1.1622905731201172e-06,
+      "top1_same": true
+    }
+  }
+}

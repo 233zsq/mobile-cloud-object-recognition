@@ -1,0 +1,9 @@
+{
+  "at": "2026-10-07T20:02:53+08:00",
+  "passed": 30,
+  "command": "python -m pytest ml/tests -q --basetemp experiments/checkpoints/pytest-native-20261007-release",
+  "seconds": 41.25,
+  "code_snapshot_sha256": "e82cc002ba469f1dd09df4cc1976542d9938ecf40581c823abf0f9d283f93e45",
+  "negative_formal_cpu_export": "refused before release creation",
+  "warnings": "Keras NumPy deprecation; zero-step fresh Adam slots warning; trained optimizer iterations restored and checked"
+}

@@ -1,0 +1,20 @@
+{
+  "status": "frozen",
+  "purpose": "smoke",
+  "data_version": "smoke-20261007-current-data",
+  "category_version": "campus-10-v1",
+  "categories_sha256": "88ba78e01d888ee61880c556f44dfd198b0335ca9727fb453ac4bd7fe1c2a988",
+  "created_at": "2026-10-07T17:55:08+08:00",
+  "seed": 42,
+  "files": {
+    "train": {
+      "sha256": "be26d4e5eaf7113aa33d7498b5262b82432c7937f95fc4115e1652e58131d9a7",
+      "count": 20
+    },
+    "validation": {
+      "sha256": "69ee701c81716caee649a085442cb3eafd721f7fe255fac27fc2ed70175a8717",
+      "count": 20
+    }
+  },
+  "final_test_status": "not_applicable"
+}

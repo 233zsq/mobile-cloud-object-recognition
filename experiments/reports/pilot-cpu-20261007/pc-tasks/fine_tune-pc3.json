@@ -1,0 +1,24 @@
+{
+  "pc_slot": 3,
+  "data_version": "campus-public-pilot-v1",
+  "category_version": "campus-10-v2",
+  "config_sha256": "08c565a10b59bee3d63d87aaad799dce47acaf5e19556434a8fce0fd6c212d33",
+  "command": [
+    "python",
+    "-m",
+    "recognition",
+    "train",
+    "--config",
+    "ml/configs/generated/pilot-cpu-20261007/pilot-cpu-20261007-fine_tune-3.json",
+    "--experiment",
+    "pilot-cpu-20261007-fine_tune-3",
+    "--initial-checkpoint",
+    "experiments\\checkpoints\\pilot-cpu-20261007-dropout-3\\best.keras"
+  ],
+  "job": {
+    "experiment_id": "pilot-cpu-20261007-fine_tune-3",
+    "config": "ml/configs/generated/pilot-cpu-20261007/pilot-cpu-20261007-fine_tune-3.json",
+    "pc_slot": 3,
+    "initial_checkpoint": "experiments\\checkpoints\\pilot-cpu-20261007-dropout-3\\best.keras"
+  }
+}
