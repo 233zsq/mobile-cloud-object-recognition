@@ -34,7 +34,7 @@
 
 ### 百炼视觉初审
 
-初审固定使用 `qwen3-vl-flash-2026-01-22`、非思考模式及JSON输出。仅处理Commons/Open Images网图，成员实拍不外发。向百炼发送最长边512像素的JPEG预览，移除EXIF；已有人工裁剪时只审该区域，建议框再换算回原图。v3提示先独立判断实际主要主体，只发送图像和完整类别口径，不向模型透露抓取类别或人工通过/拒绝答案，也不发送账号、实物ID或分组信息；返回类别不匹配当前标签时转为人工确认。API密钥保存在Git外的0600文件，以 `REVIEW_AI_KEY_FILE` 指向；也支持 `DASHSCOPE_API_KEY`。请求仅发送至百炼北京官方HTTPS端点，不跟随重定向，不输出密钥或供应商错误正文。[官方调用说明](https://help.aliyun.com/zh/model-studio/vision)、[JSON输出说明](https://help.aliyun.com/zh/model-studio/qwen-structured-output)。
+初审支持白名单固定快照 `qwen3-vl-flash-2026-01-22`（默认）及 `qwen3-vl-plus-2025-12-19`，使用非思考模式及JSON输出。以 `REVIEW_AI_MODEL` 选择模型，`REVIEW_AI_PROMPT_VERSION` 选择 `campus-ai-review-v3`（默认）或更严格的 `campus-ai-review-v4`；修改后重启服务生效。仅处理Commons/Open Images网图，成员实拍不外发。向百炼发送最长边512像素的JPEG预览，移除EXIF；已有人工裁剪时只审该区域，建议框再换算回原图。v3提示先独立判断实际主要主体，只发送图像和完整类别口径，不向模型透露抓取类别或人工通过/拒绝答案，也不发送账号、实物ID或分组信息；返回类别不匹配当前标签时转为人工确认。API密钥保存在Git外的0600文件，以 `REVIEW_AI_KEY_FILE` 指向；也支持 `DASHSCOPE_API_KEY`。请求仅发送至百炼北京官方HTTPS端点，不跟随重定向，不输出密钥或供应商错误正文。[官方调用说明](https://help.aliyun.com/zh/model-studio/vision)、[JSON输出说明](https://help.aliyun.com/zh/model-studio/qwen-structured-output)。
 
 ```bash
 # 在服务器的current/review目录执行，先加载已有服务环境；不要打印环境内容
@@ -49,7 +49,7 @@ set +a
 
 `pilot`按类别及人工通过/拒绝分层抽取（种子42），报告建议通过样本与人工结果的一致率、分歧ID、覆盖数量和真实Token用量；它衡量的是初审效果，不是识别模型独立测试成绩。首页展示最近任务及当前提示版本的最近人工对照，详情展示建议及原因，可由人工点击“采用建议选框”并保存；AI不会更改照片状态、类别、修订或冻结批次。自动通过当前关闭，须在有足够代表性的人工基准上校验后再实施；模型自报置信度不作为自动批准依据。
 
-缓存绑定原图SHA-256、现有选框、类别版本、完整提示词及固定模型版本。待审模式自动跳过当前输入已有建议的照片，可分批继续；重复调用不重复收费；改标签、选框或类别口径后旧建议失效。累计预算持久化在同一个SQLite数据库，按2026-10-09北京≤32K档标价估算，累计最多1元、500次请求，单次运行最多100张；免费额度和活动优惠未计入。调用前原子预留32K输入及500输出Token的费用；网络错误、进程中断等未知用量保留预留，不自动重试或重置。供应商、鉴权或预算错误停止任务；单图格式错误保留安全错误代码并继续，图片仍交人工审核。修复错误后可显式加 `--retry-errors` 重试已失败记录，历次已知用量和未知预留仍累计保留；正在处理或中断后停留在reserved的记录不会被自动接管。该预算仅约束这份服务密钥在此程序中的调用，账户实际费用以百炼账单为准。[官方价格](https://help.aliyun.com/zh/model-studio/model-pricing)。
+缓存绑定原图SHA-256、现有选框、类别版本、完整提示词及固定模型版本。待审模式自动跳过当前输入已有建议的照片，可分批继续；重复调用不重复收费；改标签、选框或类别口径后旧建议失效。累计预算持久化在同一个SQLite数据库，按2026-10-09北京≤32K档标价估算：Flash输入/输出每百万Token为0.15/1.5元，Plus为1/10元；预算预留及结算自动匹配模型，累计最多1元、500次请求，单次运行最多100张；免费额度和活动优惠未计入。调用前原子预留32K输入及500输出Token的费用；网络错误、进程中断等未知用量保留预留，不自动重试或重置。供应商、鉴权或预算错误停止任务；单图格式错误保留安全错误代码并继续，图片仍交人工审核。修复错误后可显式加 `--retry-errors` 重试已失败记录，历次已知用量和未知预留仍累计保留；正在处理或中断后停留在reserved的记录不会被自动接管。该预算仅约束这份服务密钥在此程序中的调用，账户实际费用以百炼账单为准。[官方价格](https://help.aliyun.com/zh/model-studio/model-pricing)。
 
 Python≥3.12，已在Windows3.13及Ubuntu3.14验证；本模块不安装TensorFlow、NumPy或LiteRT。
 
@@ -104,3 +104,17 @@ python3 /home/ubuntu/apps/campus-review/current/review/deploy/manage.py import-p
 公开候选在训练PC采集，继续遵守每类240张、照片合计3GiB及来源索引限额。先用 `python review/deploy/prepare_public.py --root <训练数据仓库> --output <候选ZIP>` 打包已有候选，自动排除已冻结训练/验证/测试清单中的样本ID和照片哈希；核验包哈希再经SSH上传。服务器导入命令不抓取任意URL，重复照片跳过，单张损坏记录原因，未审核照片不会进入训练包。照片和候选ZIP不进入Git。
 
 手工备份先停止 `campus-review` 写入，打包 `shared` 与配置，再启动；归档需保存到受控的组内备份位置。恢复先在独立目录验证数据库、照片和批次哈希，再切换服务目录。管理员邀请过期且尚无管理员时，可通过上述manage入口重新执行 `bootstrap`。现有管理员恢复由服务器负责人处理，不开放公网重置接口。
+
+### 固定样本比较Plus与提示词
+
+`--cohort`只用于pilot，读取既有试运行报告的照片ID、类别、人工状态和修订，保持相同顺序。参考发生变化时，在任何调用前停止；不向模型发送参考答案。报告补充照片哈希、选框、参考文件哈希、模型费率、当前样本累计用量及本轮增量用量。缓存包含模型和完整提示词，两种模型及两种提示不会相互覆盖，所有配置共享原有总预算。
+
+```bash
+REVIEW_AI_MODEL=qwen3-vl-plus-2025-12-19 REVIEW_AI_PROMPT_VERSION=campus-ai-review-v3 \
+  /home/ubuntu/apps/campus-review/venv/bin/flask --app wsgi ai-review --mode pilot --limit 20 \
+  --cohort /home/ubuntu/apps/campus-review/shared/ai-pilot-v2-20261009.json \
+  --report /home/ubuntu/apps/campus-review/shared/ai-plus-v3-first20.json
+# 保持相同cohort，改为campus-ai-review-v4比较更严格的主体规则。
+```
+
+未经代表性校验，不因换用Plus或单次小样本高一致率开启自动通过。

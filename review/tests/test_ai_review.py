@@ -227,3 +227,56 @@ def test_pending_batches_progress_without_recharging_cached_photos(app, monkeypa
         assert db.execute('SELECT SUM(attempts) FROM ai_reviews').fetchone()[0] == 2
         assert db.execute('SELECT COUNT(*) FROM samples WHERE status="pending" AND revision=1').fetchone()[0] == 2
     assert 'AI · 建议通过' in owner.get('/').text
+
+
+def test_plus_uses_its_own_prices_and_separate_cache(app, monkeypatch):
+    owner = admin(app); row = public_sample(app, owner)
+    flash_identity = ai_review.cache_key(row, categories())
+    monkeypatch.setattr(ai_review, 'MODEL', 'qwen3-vl-plus-2025-12-19')
+    rates = ai_review.MODEL_RATES[ai_review.MODEL]
+    monkeypatch.setattr(ai_review, 'INPUT_RATE', rates[0])
+    monkeypatch.setattr(ai_review, 'OUTPUT_RATE', rates[1])
+    reserve = 32000 * rates[0] + 500 * rates[1]
+    monkeypatch.setattr(ai_review, 'RESERVATION', reserve)
+    assert reserve == 37_000_000 and flash_identity != ai_review.cache_key(row, categories())
+    with connect(app) as db:
+        db.isolation_level = None
+        with pytest.raises(ai_review.ReviewError, match='persistent_budget_exhausted'):
+            ai_review.analyze(db, Path(app.config['DATA_DIR']), row, categories(), {'REVIEW_AI_BUDGET_NANO': reserve - 1},
+                             'test-private-key-1234', fake_api)
+        assert ai_review.analyze(db, Path(app.config['DATA_DIR']), row, categories(), {}, 'test-private-key-1234', fake_api)[0] == 'done'
+        assert db.execute('SELECT charged_nano FROM ai_reviews').fetchone()[0] == 300 * 1000 + 80 * 10000
+
+
+def test_stricter_prompt_remains_blind_and_invalidates_older_suggestions(app, monkeypatch):
+    owner = admin(app); row = public_sample(app, owner)
+    identity = ai_review.cache_key(row, categories())
+    monkeypatch.setattr(ai_review, 'PROMPT_VERSION', 'campus-ai-review-v4')
+    assert ai_review.prompt(categories(), 0) == ai_review.prompt(categories(), 9)
+    assert '主要主体之一' in ai_review.prompt(categories(), 0)
+    assert ai_review.cache_key(row, categories()) != identity
+
+
+def test_fixed_cohort_preserves_order_and_stops_changed_reference_before_api(app, monkeypatch, tmp_path):
+    owner = admin(app); public_sample(app, owner)
+    with connect(app) as db:
+        db.execute('UPDATE samples SET status="approved"')
+    monkeypatch.setenv('DASHSCOPE_API_KEY', 'test-private-key-1234')
+    original = ai_review.analyze
+    monkeypatch.setattr(ai_review, 'analyze', lambda *args: original(*args, api=fake_api))
+    report_path = tmp_path / 'cohort.json'
+    runner = app.test_cli_runner()
+    assert runner.invoke(args=['ai-review', '--report', str(report_path)]).exit_code == 0
+    baseline = json.loads(report_path.read_text(encoding='utf-8'))
+    second = tmp_path / 'second.json'
+    assert runner.invoke(args=['ai-review', '--cohort', str(report_path), '--report', str(second)]).exit_code == 0
+    comparison = json.loads(second.read_text(encoding='utf-8'))
+    assert comparison['cohort_source_sha256'] == ai_review.digest(report_path.read_bytes())
+    assert comparison['run_usage']['attempts'] == 0 and comparison['cohort_usage']['attempts'] == 1
+    assert comparison['samples'][0]['photo_sha256'] == baseline['samples'][0]['photo_sha256']
+    with connect(app) as db:
+        db.execute('UPDATE samples SET revision=revision+1')
+    rejected = runner.invoke(args=['ai-review', '--cohort', str(report_path)])
+    assert rejected.exit_code != 0 and 'cohort_reference_changed' in rejected.output
+    with connect(app) as db:
+        assert db.execute('SELECT SUM(attempts) FROM ai_reviews').fetchone()[0] == 1
