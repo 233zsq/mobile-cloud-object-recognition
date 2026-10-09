@@ -101,7 +101,8 @@ def main():
     metadata_path = os.path.join(OUT_DIR, "metadata.json")
     with open(model_path, "wb") as f:
         f.write(tflite_bytes)
-    with open(labels_path, "w", encoding="utf-8") as f:
+    # labels.txt 统一 LF 换行（与 campus-gpu-v1 正式包一致；Windows 文本模式会写成 CRLF 导致哈希不同）
+    with open(labels_path, "w", encoding="utf-8", newline="\n") as f:
         f.write("\n".join(label_keys) + "\n")
 
     # 字段与正式发布包 models/releases/campus-gpu-v1/metadata.json 对齐
