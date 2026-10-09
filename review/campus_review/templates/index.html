@@ -6,7 +6,9 @@
   <div class="section-heading"><h2>AI初审 · {{'人工对照试运行' if ai_summary.mode=='pilot' else '待审网图建议'}}</h2><span class="badge pending">自动通过尚未开启</span></div>
   <p>最近处理 {{ai_summary.count}} 张公开照片。{% for decision,count in ai_summary.decision_counts.items() %}{{{'pass':'建议通过','reject':'建议拒绝','crop':'建议裁剪','uncertain':'不确定'}[decision]}} {{count}} 张{% if not loop.last %} · {% endif %}{% endfor %}</p>
   {% if ai_summary.errors %}<p>未生成有效建议 {{ai_summary.errors.values()|sum}} 张，仍交人工审核。</p>{% endif %}
-  {% if ai_pilot and ai_pilot.pass_precision is not none %}<p>本提示版本最近人工对照：建议通过的 {{ai_pilot.pass_reference_count}} 张中，与人工通过一致 {{'%.1f'|format(ai_pilot.pass_precision*100)}}%；与人工拒绝冲突 {{ai_pilot.false_passes|length}} 张。仅代表本次抽样，分歧需复核。</p>{% endif %}
+  {% if ai_pilot and ai_pilot.pass_precision is not none %}<p>本提示版本最近人工对照：建议通过的 {{ai_pilot.pass_reference_count}} 张中，与人工通过一致 {{'%.1f'|format((ai_pilot.pass_reference_agreement if ai_pilot.pass_reference_agreement is defined else ai_pilot.pass_precision)*100)}}%；与人工拒绝冲突 {{ai_pilot.false_passes|length}} 张。仅代表本次抽样，分歧需复核。</p>{% endif %}
+  {% if ai_pilot and ai_pilot.reject_reference_disagreements is defined %}<p>人工已通过但AI建议拒绝 {{ai_pilot.reject_reference_disagreements|length}} 张、建议裁剪 {{ai_pilot.approved_needing_crop_recheck|length}} 张，需查看照片复核。</p>{% endif %}
+  <p class="muted">人工记录也可能有误，未经分歧复核不作为标准答案；这里的一致率不是审核准确率。AI与人工一致的照片仍需抽检。</p>
   <p class="muted">AI建议显示在照片详情中，不覆盖人工结果。累计调用按标价估算 {{'%.4f'|format(ai_summary.cumulative_usage.charged_or_reserved_yuan)}} 元；{{ai_summary.model}} · {{ai_summary.prompt_version}}。</p>
 </section>
 {% endif %}

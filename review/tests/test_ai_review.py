@@ -68,7 +68,7 @@ def test_ambiguous_pass_is_downgraded(changes):
 
 @pytest.mark.parametrize('changes', [
     {'decision': 'delete'}, {'category_id': True}, {'flags': ['unknown']},
-    {'decision': 'crop', 'bbox': [0, 0, 100, 100]},
+    {'decision': 'crop', 'bbox': [100, 0, 0, 100]},
     {'decision': 'crop', 'bbox': [0, 0, 20000, 10000]},
     {'reason': ''},
 ])
@@ -81,6 +81,13 @@ def test_suggested_crop_maps_existing_training_crop_to_original_pixels():
     result = ai_review.validate(answer(decision='crop', bbox=[0, 0, 1000, 1000]),
                                {'category': 0, 'width': 1000, 'height': 1000}, (100, 200, 800, 900))
     assert result['bbox'] == [1000, 2000, 8000, 9000]
+
+
+def test_small_valid_crop_becomes_uncertain_without_a_usable_crop():
+    result = ai_review.validate(answer(decision='crop', bbox=[0, 0, 100, 100]),
+                               {'category': 0, 'width': 200, 'height': 200}, (0, 0, 200, 200))
+    assert result['decision'] == 'uncertain' and result['bbox'] is None
+    assert 'too_small' in result['flags'] and '不足128像素' in result['reason']
 
 
 def test_unknown_usage_stays_reserved_and_auth_failure_is_not_retried(app):
@@ -177,6 +184,36 @@ def test_http_errors_never_echo_credentials_or_provider_body(monkeypatch):
     assert str(error.value) == 'http_401' and secret not in str(error.value)
 
 
+def test_human_reference_is_not_ground_truth_and_reports_both_directions(app, monkeypatch, tmp_path):
+    owner = admin(app)
+    rows = [public_sample(app, owner, color) for color in ('orange', 'blue', 'green')]
+    decisions = dict(zip((row['id'] for row in rows), ('pass', 'reject', 'crop')))
+    with connect(app) as db:
+        db.execute('UPDATE samples SET status="approved"')
+        db.execute('UPDATE samples SET status="rejected" WHERE id=?', (rows[0]['id'],))
+        before = [tuple(row) for row in db.execute('SELECT id,status,revision,crop FROM samples ORDER BY id')]
+    monkeypatch.setenv('DASHSCOPE_API_KEY', 'test-private-key-1234')
+    original = ai_review.analyze
+    def analyze(*args):
+        decision = decisions[args[2]['id']]
+        return original(*args, api=lambda *unused: (answer(decision=decision,
+                        bbox=[0, 0, 1000, 1000] if decision == 'crop' else None), [300, 80], 1000))
+    monkeypatch.setattr(ai_review, 'analyze', analyze)
+    report_path = tmp_path / 'reference.json'
+    result = app.test_cli_runner().invoke(args=['ai-review', '--report', str(report_path)])
+    assert result.exit_code == 0, result.output
+    report = json.loads(report_path.read_text(encoding='utf-8'))
+    assert report['reference_is_ground_truth'] is False
+    assert report['pass_reference_agreement'] == 0
+    assert report['pass_reference_disagreements'] == [rows[0]['id']]
+    assert report['reject_reference_disagreements'] == [rows[1]['id']]
+    assert report['approved_needing_crop_recheck'] == [rows[2]['id']]
+    assert '一致率不是审核准确率' in owner.get('/').text
+    assert '人工已通过但AI建议拒绝 1 张、建议裁剪 1 张' in owner.get('/').text
+    with connect(app) as db:
+        assert [tuple(row) for row in db.execute('SELECT id,status,revision,crop FROM samples ORDER BY id')] == before
+
+
 def test_redirects_do_not_forward_api_key():
     assert ai_review.NoRedirect().redirect_request(None, None, None, None, None, 'https://untrusted.invalid') is None
 
@@ -255,6 +292,14 @@ def test_stricter_prompt_remains_blind_and_invalidates_older_suggestions(app, mo
     assert ai_review.prompt(categories(), 0) == ai_review.prompt(categories(), 9)
     assert '主要主体之一' in ai_review.prompt(categories(), 0)
     assert ai_review.cache_key(row, categories()) != identity
+
+
+def test_v5_keeps_object_identity_and_does_not_treat_cropping_as_repair(monkeypatch):
+    monkeypatch.setattr(ai_review, 'PROMPT_VERSION', 'campus-ai-review-v5')
+    text = ai_review.prompt(categories(), 0)
+    assert text == ai_review.prompt(categories(), 9)
+    assert '马克杯即使插花或装笔仍是杯子' in text
+    assert '裁剪不能补回遮挡或出画部分' in text
 
 
 def test_fixed_cohort_preserves_order_and_stops_changed_reference_before_api(app, monkeypatch, tmp_path):

@@ -117,4 +117,8 @@ REVIEW_AI_MODEL=qwen3-vl-plus-2025-12-19 REVIEW_AI_PROMPT_VERSION=campus-ai-revi
 # 保持相同cohort，改为campus-ai-review-v4比较更严格的主体规则。
 ```
 
+`campus-ai-review-v5`按物品构造而非临时用途判断类别，明确裁剪不能恢复遮挡、改变类别或消除模糊；避免把“更严格”等同于排除正常背景。合法选框在原图不足128像素时，降为不确定且不提供可采用选框，仍需人工确认。
+
+人工记录不是标准答案。报告的 `pass_reference_agreement` 表示通过建议与现有人工记录的一致率，`pass_reference_disagreements`、`reject_reference_disagreements` 分别保留两个方向的分歧，`approved_needing_crop_recheck` 标出已通过但建议裁剪的照片。旧字段 `pass_precision`、`false_passes` 仅为兼容历史消费者的同义字段，不能当作准确率或已确认错误。复核时先按类别规则独立看图，再查看双方理由；分歧需第二位审核人或管理员裁决，一致项仍抽检。当前未增加独立双人盲审或自动裁决功能。
+
 未经代表性校验，不因换用Plus或单次小样本高一致率开启自动通过。
