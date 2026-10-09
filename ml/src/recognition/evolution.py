@@ -18,18 +18,31 @@ EVOLUTION_FIELDS = FIELDS + ['source_sample_id', 'crop_box', 'parent_image_sha25
 
 
 def category_transition(previous, target):
-    """Only the approved v2 -> v3 keyboard scope expansion may reuse old weights."""
+    """Explicit, forward-only keyboard/umbrella expansions may reuse old weights."""
     old, new = categories(previous), categories(target)
     if previous == target:
         return None
-    if (previous, target) != ('campus-10-v2', 'campus-10-v3'):
+    keyboard = {'keyboard': {'definition'}}
+    umbrella = {'umbrella': {'display_name', 'definition'}}
+    transitions = {
+        ('campus-10-v2', 'campus-10-v3'): (keyboard, ['keyboard_includes_laptop_built_in']),
+        ('campus-10-v3', 'campus-10-v4'): (umbrella, ['umbrella_includes_sunshades']),
+        ('campus-10-v2', 'campus-10-v4'): ({**keyboard, **umbrella},
+                                         ['keyboard_includes_laptop_built_in', 'umbrella_includes_sunshades']),
+    }
+    if (previous, target) not in transitions:
         raise ValueError('Unsupported category transition')
+    allowed, changes = transitions[previous, target]
     for before, after in zip(old['categories'], new['categories']):
-        ignored = {'definition'} if before['label_key'] == 'keyboard' else set()
+        ignored = allowed.get(before['label_key'], set())
         if {k: v for k, v in before.items() if k not in ignored} != {
                 k: v for k, v in after.items() if k not in ignored}:
             raise ValueError('Category transition changed labels or unrelated definitions')
-    return {'from': previous, 'to': target, 'change': 'keyboard_includes_laptop_built_in'}
+    result = {'from': previous, 'to': target,
+              'change': changes[0] if len(changes) == 1 else 'keyboard_and_umbrella_scope_expanded'}
+    if len(changes) > 1:
+        result['changes'] = changes
+    return result
 
 
 def resolve_parent(config, initial_checkpoint=None):

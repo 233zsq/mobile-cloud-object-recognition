@@ -137,16 +137,19 @@ def create_app(config=None):
     data.mkdir(parents=True, exist_ok=True)
     for name in ('images', 'previews', 'thumbs', 'details', 'batches'):
         (data / name).mkdir(exist_ok=True)
-    categories_file = Path(app.config.get('CATEGORIES_FILE', ROOT.parent / 'shared/category-versions/campus-10-v3.json'))
+    categories_file = Path(app.config.get('CATEGORIES_FILE', ROOT.parent / 'shared/category-versions/campus-10-v4.json'))
     category_bytes = categories_file.read_bytes()
     cat = json.loads(category_bytes)
     queue_category_hashes = {sha(category_bytes)}
-    legacy_bytes = (ROOT.parent / 'shared/categories.json').read_bytes()
-    legacy_cat = json.loads(legacy_bytes)
     mapping = lambda value: [(c['id'], c['label_key']) for c in value['categories']]
-    # Old public queues contain suggestions only; all images are re-reviewed under v3.
-    if (legacy_cat['category_version'], cat['category_version']) == ('campus-10-v2', 'campus-10-v3') and mapping(legacy_cat) == mapping(cat):
-        queue_category_hashes.add(sha(legacy_bytes))
+    # Old public queues contain suggestions only; all imported images need review.
+    compatible = {('campus-10-v2', 'campus-10-v3'), ('campus-10-v2', 'campus-10-v4'),
+                  ('campus-10-v3', 'campus-10-v4')}
+    for legacy_file in (ROOT.parent / 'shared/categories.json', ROOT.parent / 'shared/category-versions/campus-10-v3.json'):
+        legacy_bytes = legacy_file.read_bytes()
+        legacy_cat = json.loads(legacy_bytes)
+        if (legacy_cat['category_version'], cat['category_version']) in compatible and mapping(legacy_cat) == mapping(cat):
+            queue_category_hashes.add(sha(legacy_bytes))
     baseline = json.loads((ROOT.parent / 'models/releases/campus-gpu-v1/metadata.json').read_text(encoding='utf-8'))
     base_metrics = json.loads((ROOT.parent / 'models/releases/campus-gpu-v1/evaluation-validation.json').read_text(encoding='utf-8'))['metrics']
     connection = sqlite3.connect(data / 'review.sqlite3')

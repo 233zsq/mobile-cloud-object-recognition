@@ -99,8 +99,8 @@ def test_review_freeze_download_and_immutable_photos(app):
         receipt = json.loads(package.read('batch.json'))
         assert receipt['purpose'] == 'training_only' and receipt['count'] == 1
         from campus_review import ROOT
-        assert receipt['category_version'] == 'campus-10-v3'
-        assert receipt['categories_sha256'] == hashlib.sha256((ROOT.parent / 'shared/category-versions/campus-10-v3.json').read_bytes()).hexdigest()
+        assert receipt['category_version'] == 'campus-10-v4'
+        assert receipt['categories_sha256'] == hashlib.sha256((ROOT.parent / 'shared/category-versions/campus-10-v4.json').read_bytes()).hexdigest()
         assert set(package.namelist()) == {'batch.json', *receipt['files']}
         assert 'series-01' in package.read('samples.csv').decode()
     assert app.test_client().get('/images/' + path.split('/')[-1]).status_code == 302
@@ -181,7 +181,7 @@ def test_concurrent_reviewers_cannot_overwrite_each_other(app):
         assert sorted(job.result().status_code for job in jobs)==[302,409]
 
 
-def public_archive(app, path):
+def public_archive(app, path, category_version='campus-10-v2'):
     content = photo().getvalue()
     row = {'sample_id': 'commons-test', 'image_path': 'images/test.jpg',
            'image_sha256': hashlib.sha256(content).hexdigest(), 'category_id': '0', 'group_id': 'web-group',
@@ -191,7 +191,7 @@ def public_archive(app, path):
     writer.writeheader(); writer.writerow(row); payload = stream.getvalue().encode()
     from campus_review import ROOT
     receipt = {'purpose': 'public_review_queue', 'count': 1,
-               'categories_sha256': hashlib.sha256((ROOT.parent/'shared/categories.json').read_bytes()).hexdigest(),
+               'categories_sha256': hashlib.sha256((ROOT.parent / ('shared/categories.json' if category_version=='campus-10-v2' else 'shared/category-versions/'+category_version+'.json')).read_bytes()).hexdigest(),
                'files': {'samples.csv': hashlib.sha256(payload).hexdigest(), row['image_path']: row['image_sha256']}}
     with zipfile.ZipFile(path, 'w') as package:
         package.writestr('queue.json', json.dumps(receipt)); package.writestr('samples.csv', payload)

@@ -19,9 +19,10 @@ def workspace(tmp_path, monkeypatch):
         monkeypatch.setattr(module, 'ROOT', tmp_path)
     (tmp_path / 'shared').mkdir()
     (tmp_path / 'shared/categories.json').write_bytes((source / 'shared/categories.json').read_bytes())
-    policy = tmp_path / 'shared/category-versions/campus-10-v3.json'
-    policy.parent.mkdir()
-    policy.write_bytes((source / 'shared/category-versions/campus-10-v3.json').read_bytes())
+    (tmp_path / 'shared/category-versions').mkdir()
+    for version in ('campus-10-v3', 'campus-10-v4'):
+        policy = Path('shared/category-versions') / (version + '.json')
+        (tmp_path / policy).write_bytes((source / policy).read_bytes())
     common.write_json(tmp_path / 'ml/configs/baseline.json', common.read_json(source / 'ml/configs/baseline.json'))
     parent = tmp_path / 'experiments/checkpoints/parent/best.keras'
     parent.parent.mkdir(parents=True); parent.write_bytes(b'test-only-parent')
@@ -97,6 +98,52 @@ def test_keyboard_transition_does_not_permit_other_category_changes(workspace):
     with pytest.raises(ValueError, match='unrelated definitions'):
         evolution.import_batch(archive([row('unrelated')], category_version='campus-10-v3'), 'bad-policy', 'base')
     assert not (root / 'data/splits/bad-policy').exists()
+
+
+@pytest.mark.parametrize('via_v3', [False, True])
+def test_umbrella_scope_import_keeps_old_splits_hashes_and_records_parent_transition(workspace, via_v3):
+    root, row, archive = workspace
+    originals = [root / 'shared/categories.json', common.category_path('campus-10-v3'),
+                 root / 'models/releases/campus-gpu-v1/metadata.json']
+    before = {p: common.digest(p) for p in originals}
+    base = 'base'
+    if via_v3:
+        evolution.import_batch(archive([row('keyboard', 5)], 'v3.zip', 'campus-10-v3'), 'prior-v3', base)
+        base = 'prior-v3'
+    old_splits = {name: common.read_csv(root / 'data/splits' / base / (name + '.csv')) for name in ('train', 'validation')}
+    package = archive([row('sunshade', 1)], 'v4.zip', 'campus-10-v4')
+    result = evolution.import_batch(package, 'umbrella-v4', base)
+    config = common.read_json(root / 'ml/configs/generated/umbrella-v4.json')
+    assert result['category_version'] == config['category_version'] == 'campus-10-v4'
+    assert 'umbrella' in result['category_transition']['change']
+    _, parent_lineage = evolution.resolve_parent(config)
+    assert parent_lineage['category_transition']['changes'] == [
+        'keyboard_includes_laptop_built_in', 'umbrella_includes_sunshades']
+    for name, old in old_splits.items():
+        current, _ = data.load_split('umbrella-v4', name)
+        by_id = {r['sample_id']: r for r in current}
+        for original in old:
+            saved = by_id[original['sample_id']]
+            assert {k: v for k, v in original.items() if k != 'data_version'} == {
+                k: saved[k] for k in original if k != 'data_version'}
+    assert all(common.digest(p) == value for p, value in before.items())
+    with pytest.raises(ValueError, match='Unsupported category transition'):
+        evolution.import_batch(archive([row('narrowed')], 'back-v3.zip', 'campus-10-v3'), 'backwards', 'umbrella-v4')
+
+
+@pytest.mark.parametrize('previous', ['campus-10-v2', 'campus-10-v3'])
+def test_umbrella_transition_rejects_unrelated_scope_or_label_changes(workspace, previous):
+    policy = common.category_path('campus-10-v4')
+    value = common.read_json(policy)
+    value['categories'][2]['definition'] = 'unapproved book scope'
+    common.write_json(policy, value)
+    with pytest.raises(ValueError, match='unrelated definitions'):
+        evolution.category_transition(previous, 'campus-10-v4')
+    value['categories'][2]['definition'] = common.categories(previous)['categories'][2]['definition']
+    value['categories'][1]['label_key'] = 'parasol'
+    common.write_json(policy, value)
+    with pytest.raises(ValueError, match='label order differs'):
+        evolution.category_transition(previous, 'campus-10-v4')
 
 
 def test_import_preserves_every_old_assignment_and_parent(workspace):
@@ -269,7 +316,7 @@ def test_export_rejects_a_different_parent_even_if_config_matches(monkeypatch):
 
 
 @pytest.mark.integration
-@pytest.mark.parametrize('category_version', ['campus-10-v2', 'campus-10-v3'])
+@pytest.mark.parametrize('category_version', ['campus-10-v2', 'campus-10-v3', 'campus-10-v4'])
 def test_real_parent_gradient_and_repeat_use_fresh_optimizer_and_rng(workspace, monkeypatch, category_version):
     """A tiny synthetic network tests orchestration, never object accuracy."""
     import keras

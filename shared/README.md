@@ -1,6 +1,6 @@
 # 跨模块共享约定
 
-`categories.json` 保留固定基准 `campus-gpu-v1` 使用的 `campus-10-v2` 原始字节，其键盘口径为独立外接键盘。2026年10月9日用户将新系列的键盘范围扩大为包含笔记本内置键盘，新口径冻结在 `category-versions/campus-10-v3.json`，供审核台和后续 `campus-evolve-*` 批次使用。键盘须是清楚可辨的主体，或能裁出完整主体；仅作背景、严重遮挡的照片仍拒绝。十类ID、标签及顺序不变；v1/v2历史数据与成绩不改写。
+`categories.json` 保留固定基准 `campus-gpu-v1` 使用的 `campus-10-v2` 原始字节，其键盘口径为独立外接键盘。2026年10月9日确认新系列键盘包含笔记本内置键盘，记录为不可变的 `category-versions/campus-10-v3.json`；随后将“雨伞”扩大为“伞”，包含雨伞、手持遮阳伞及庭院或沙滩遮阳伞，冻结为 `category-versions/campus-10-v4.json`。审核台及后续 `campus-evolve-*` 新批次使用v4，排除帐篷、遮阳棚和降落伞。目标须清楚可辨且为主要主体，或能裁出完整主体；仅作背景、严重遮挡的照片仍拒绝。十类ID、标签键及顺序不变，伞仍为ID=1、`umbrella`；v1/v2/v3历史文件、数据与成绩不改写。
 `categories.example.json` 保留为初始化时的草案示例。正式训练、labels和交接使用冻结文件。
 
 开始数据标注和模型训练前，由组长、模型负责人、数据负责人共同确认类别，发布正式 `categories.json`，记录类别版本，并由该文件生成模型的 `labels.txt` 与数据库初始化数据。Android 和 Web 使用相同的 ID 与显示名称。
