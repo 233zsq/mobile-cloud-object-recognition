@@ -50,4 +50,31 @@ class BaseUrlTest {
         // 只取 scheme/host/port；路径不参与拼接（接口路径由 Retrofit 注解提供）
         assertTrue(BaseUrl.isValid("http://example.com/api"))
     }
+
+    @Test
+    fun `explicit port above 65535 is rejected`() {
+        // 修复前会被接受并持久化，覆盖有效配置后导致请求失败（PR 审查修复项）
+        assertNull(BaseUrl.parse("https://49.232.195.47:70000"))
+        assertNull(BaseUrl.parse("http://host:65536"))
+        assertFalse(BaseUrl.isValid("http://host:99999"))
+    }
+
+    @Test
+    fun `port zero is rejected`() {
+        assertNull(BaseUrl.parse("http://host:0"))
+    }
+
+    @Test
+    fun `boundary ports are accepted`() {
+        assertEquals(1, BaseUrl.parse("http://host:1")!!.port)
+        assertEquals(65535, BaseUrl.parse("http://host:65535")!!.port)
+    }
+
+    @Test
+    fun `team server url with default https port parses`() {
+        val parsed = BaseUrl.parse("https://49.232.195.47")!!
+        assertEquals("https", parsed.scheme)
+        assertEquals(49_232_195_47L, parsed.host.replace(".", "").toLong())
+        assertEquals(443, parsed.port)
+    }
 }
