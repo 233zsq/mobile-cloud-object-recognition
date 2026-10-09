@@ -302,6 +302,26 @@ def test_v5_keeps_object_identity_and_does_not_treat_cropping_as_repair(monkeypa
     assert '裁剪不能补回遮挡或出画部分' in text
 
 
+def test_home_summary_and_calibration_use_only_active_model_and_prompt(app, monkeypatch):
+    owner = admin(app); public_sample(app, owner)
+    monkeypatch.setenv('DASHSCOPE_API_KEY', 'test-private-key-1234')
+    original = ai_review.analyze
+    monkeypatch.setattr(ai_review, 'analyze', lambda *args: original(*args, api=fake_api))
+    runner = app.test_cli_runner()
+    assert runner.invoke(args=['ai-review']).exit_code == 0
+    with connect(app) as db:
+        active = ai_review.latest_report(db)
+        other = {**active, 'run_id': 'other-profile', 'model': 'qwen3-vl-plus-2025-12-19',
+                 'prompt_version': 'campus-ai-review-v5'}
+        db.execute('INSERT INTO ai_runs VALUES(?,?,?)', ('other-profile', json.dumps(other), active['at']))
+        assert ai_review.latest_report(db)['run_id'] == active['run_id']
+        assert ai_review.latest_report(db, 'pilot')['run_id'] == active['run_id']
+        monkeypatch.setattr(ai_review, 'MODEL', other['model'])
+        monkeypatch.setattr(ai_review, 'PROMPT_VERSION', other['prompt_version'])
+        assert ai_review.latest_report(db)['run_id'] == 'other-profile'
+        assert ai_review.latest_report(db, 'pilot')['run_id'] == 'other-profile'
+
+
 def test_fixed_cohort_preserves_order_and_stops_changed_reference_before_api(app, monkeypatch, tmp_path):
     owner = admin(app); public_sample(app, owner)
     with connect(app) as db:

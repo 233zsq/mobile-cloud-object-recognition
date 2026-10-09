@@ -122,3 +122,5 @@ REVIEW_AI_MODEL=qwen3-vl-plus-2025-12-19 REVIEW_AI_PROMPT_VERSION=campus-ai-revi
 人工记录不是标准答案。报告的 `pass_reference_agreement` 表示通过建议与现有人工记录的一致率，`pass_reference_disagreements`、`reject_reference_disagreements` 分别保留两个方向的分歧，`approved_needing_crop_recheck` 标出已通过但建议裁剪的照片。旧字段 `pass_precision`、`false_passes` 仅为兼容历史消费者的同义字段，不能当作准确率或已确认错误。复核时先按类别规则独立看图，再查看双方理由；分歧需第二位审核人或管理员裁决，一致项仍抽检。当前未增加独立双人盲审或自动裁决功能。
 
 未经代表性校验，不因换用Plus或单次小样本高一致率开启自动通过。
+
+2026-10-09云端已选择 `qwen3-vl-plus-2025-12-19` / `campus-ai-review-v3` 作为辅助建议配置；v4、v5试验与局限见 [Plus对照记录](experiments/2026-10-09-bailian-plus.md)。代码默认值仍为Flash，可通过服务环境变量选择固定模型/提示，历史缓存及累计用量保留。

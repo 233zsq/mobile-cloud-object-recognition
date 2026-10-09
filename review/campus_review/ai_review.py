@@ -452,9 +452,10 @@ def register(app, get_db, data, categories):
 
 
 def latest_report(connection, mode=None):
-    clause, arguments = '', []
+    clause = ' WHERE json_extract(report,"$.prompt_version")=? AND json_extract(report,"$.model")=?'
+    arguments = [PROMPT_VERSION, MODEL]
     if mode:
-        clause = ' WHERE json_extract(report,"$.mode")=? AND json_extract(report,"$.prompt_version")=? AND json_extract(report,"$.model")=?'
-        arguments = [mode, PROMPT_VERSION, MODEL]
+        clause += ' AND json_extract(report,"$.mode")=?'
+        arguments.append(mode)
     row = connection.execute('SELECT report FROM ai_runs' + clause + ' ORDER BY created_at DESC,rowid DESC LIMIT 1', arguments).fetchone()
     return json.loads(row[0]) if row else None
