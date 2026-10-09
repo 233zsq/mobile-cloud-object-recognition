@@ -13,10 +13,15 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -26,8 +31,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
@@ -60,6 +67,9 @@ fun RecordsScreen(viewModel: RecordsViewModel = viewModel()) {
         }
     }
 
+    // 待删除记录：非空时显示确认框（删除为破坏性操作，需二次确认）
+    var pendingDelete by remember { mutableStateOf<RecordEntity?>(null) }
+
     Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
             Row(
@@ -87,16 +97,42 @@ fun RecordsScreen(viewModel: RecordsViewModel = viewModel()) {
             } else {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     items(state.records, key = { it.recordId }) { record ->
-                        RecordCard(record)
+                        RecordCard(record, onDelete = { pendingDelete = record })
                     }
                 }
             }
         }
     }
+
+    pendingDelete?.let { record ->
+        AlertDialog(
+            onDismissRequest = { pendingDelete = null },
+            title = { Text("删除这条记录？") },
+            text = {
+                Text(
+                    RecordDeletionText.confirm(
+                        pendingSync = record.pendingSync,
+                        corrected = record.correctedLabel != null,
+                    ),
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteRecord(record)
+                        pendingDelete = null
+                    },
+                ) { Text("删除") }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDelete = null }) { Text("取消") }
+            },
+        )
+    }
 }
 
 @Composable
-private fun RecordCard(record: RecordEntity) {
+private fun RecordCard(record: RecordEntity, onDelete: () -> Unit) {
     val catalog = AppGraph.categoryCatalog
     val currentName = catalog.displayNameForLabel(record.displayLabel)
     val originalName = catalog.displayNameForLabel(record.predictedLabel)
@@ -134,17 +170,26 @@ private fun RecordCard(record: RecordEntity) {
                 }
             }
             Spacer(Modifier.width(6.dp))
-            AssistChip(
-                onClick = {},
-                label = {
-                    Text(
-                        when {
-                            record.pendingSync -> "待同步"
-                            else -> "已同步"
-                        }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                AssistChip(
+                    onClick = {},
+                    label = {
+                        Text(
+                            when {
+                                record.pendingSync -> "待同步"
+                                else -> "已同步"
+                            }
+                        )
+                    },
+                )
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        Icons.Filled.Delete,
+                        contentDescription = "删除记录",
+                        tint = MaterialTheme.colorScheme.error,
                     )
-                },
-            )
+                }
+            }
         }
     }
 }

@@ -55,4 +55,8 @@ interface RecordDao {
         correctedAt: Long,
         now: Long,
     )
+
+    /** 本地删除单条记录（仅本机；云端无删除接口，已入库记录在服务端保留） */
+    @Query("DELETE FROM records WHERE recordId = :recordId")
+    suspend fun delete(recordId: String)
 }

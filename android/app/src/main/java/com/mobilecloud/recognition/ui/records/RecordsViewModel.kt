@@ -4,12 +4,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mobilecloud.recognition.AppGraph
 import com.mobilecloud.recognition.data.local.RecordEntity
+import java.io.File
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 data class RecordsUiState(
     val records: List<RecordEntity> = emptyList(),
@@ -50,6 +53,23 @@ class RecordsViewModel : ViewModel() {
                 "同步未全部完成（${summary.failed} 条失败）：${summary.lastError ?: "网络不可用"}"
             }
             syncing.value = false
+        }
+    }
+
+    /**
+     * 删除单条记录（本地）：先删数据库行，再删除对应照片文件。
+     * 云端已入库的数据不受影响（后端无删除接口），确认框文案见 [RecordDeletionText]。
+     */
+    fun deleteRecord(record: RecordEntity) {
+        viewModelScope.launch {
+            AppGraph.recordDao.delete(record.recordId)
+            val photoPath = record.photoPath
+            if (!photoPath.isNullOrBlank()) {
+                withContext(Dispatchers.IO) {
+                    runCatching { File(photoPath).delete() }
+                }
+            }
+            message.value = RecordDeletionText.result(record.uploaded)
         }
     }
 
