@@ -11,6 +11,7 @@ output.parent.mkdir(exist_ok=True)
 files = [p for p in (root / 'review').rglob('*') if p.is_file() and not any(
     part in ('.venv', 'var', '__pycache__', '.pytest_cache') for part in p.relative_to(root).parts)]
 files += [root / 'shared/categories.json', root / 'models/releases/campus-gpu-v1/metadata.json',
+          root / 'shared/category-versions/campus-10-v3.json',
           root / 'models/releases/campus-gpu-v1/evaluation-validation.json']
 identity = {'git_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=root, text=True).strip(),
             'working_tree_dirty': bool(subprocess.check_output(['git', 'status', '--porcelain'], cwd=root, text=True)),

@@ -19,6 +19,9 @@ def workspace(tmp_path, monkeypatch):
         monkeypatch.setattr(module, 'ROOT', tmp_path)
     (tmp_path / 'shared').mkdir()
     (tmp_path / 'shared/categories.json').write_bytes((source / 'shared/categories.json').read_bytes())
+    policy = tmp_path / 'shared/category-versions/campus-10-v3.json'
+    policy.parent.mkdir()
+    policy.write_bytes((source / 'shared/category-versions/campus-10-v3.json').read_bytes())
     common.write_json(tmp_path / 'ml/configs/baseline.json', common.read_json(source / 'ml/configs/baseline.json'))
     parent = tmp_path / 'experiments/checkpoints/parent/best.keras'
     parent.parent.mkdir(parents=True); parent.write_bytes(b'test-only-parent')
@@ -46,13 +49,13 @@ def workspace(tmp_path, monkeypatch):
         common.write_csv(path, rows)
         metadata['files'][name] = {'sha256': common.digest(path), 'count': 10}
     common.write_json(tmp_path / 'data/splits/base/dataset.json', metadata)
-    def archive(rows, name='batch.zip'):
+    def archive(rows, name='batch.zip', category_version='campus-10-v2'):
         records = [{**r, 'image_path': 'images/' + Path(r['image_path']).name} for r in rows]
         stream = io.StringIO(newline='')
         writer = csv.DictWriter(stream, fieldnames=list(records[0])); writer.writeheader(); writer.writerows(records)
         payload = stream.getvalue().encode()
-        receipt = {'purpose': 'training_only', 'category_version': 'campus-10-v2',
-                   'categories_sha256': metadata['categories_sha256'], 'batch_id': 'test-batch',
+        receipt = {'purpose': 'training_only', 'category_version': category_version,
+                   'categories_sha256': common.digest(common.category_path(category_version)), 'batch_id': 'test-batch',
                    'count': len(rows), 'files': {'samples.csv': hashlib.sha256(payload).hexdigest(),
                     **{r['image_path']: r['image_sha256'] for r in records}}}
         path = tmp_path / name
@@ -62,6 +65,38 @@ def workspace(tmp_path, monkeypatch):
                 z.write(tmp_path / a['image_path'], b['image_path'])
         return path
     return tmp_path, row, archive
+
+
+def test_keyboard_scope_migration_keeps_baseline_and_records_new_categories(workspace):
+    root, row, archive = workspace
+    baseline = root / 'data/splits/base/dataset.json'
+    parent = root / 'models/releases/campus-gpu-v1/metadata.json'
+    before = {p: common.digest(p) for p in (baseline, parent, root / 'shared/categories.json')}
+    package = archive([row('laptop-keyboard', 5)], category_version='campus-10-v3')
+    result = evolution.import_batch(package, 'v3-first', 'base')
+    config = common.read_json(root / 'ml/configs/generated/v3-first.json')
+    assert result['category_version'] == config['category_version'] == 'campus-10-v3'
+    assert result['category_transition']['change'] == 'keyboard_includes_laptop_built_in'
+    _, lineage = evolution.resolve_parent(config)
+    assert lineage['category_transition'] == result['category_transition']
+    assert len(data.load_split('v3-first', 'train')[0]) == 11
+    assert all(common.digest(p) == expected for p, expected in before.items())
+    next_package = archive([row('another-keyboard', 5)], 'second-v3.zip', 'campus-10-v3')
+    assert evolution.import_batch(next_package, 'v3-second', 'v3-first')['category_version'] == 'campus-10-v3'
+    with pytest.raises(ValueError, match='Unsupported category transition'):
+        evolution.import_batch(archive([row('old-policy', 5)]), 'narrowed', 'v3-second')
+    assert not (root / 'data/splits/narrowed').exists()
+
+
+def test_keyboard_transition_does_not_permit_other_category_changes(workspace):
+    root, row, archive = workspace
+    policy = common.category_path('campus-10-v3')
+    changed = common.read_json(policy)
+    changed['categories'][2]['definition'] = 'changed book scope'
+    common.write_json(policy, changed)
+    with pytest.raises(ValueError, match='unrelated definitions'):
+        evolution.import_batch(archive([row('unrelated')], category_version='campus-10-v3'), 'bad-policy', 'base')
+    assert not (root / 'data/splits/bad-policy').exists()
 
 
 def test_import_preserves_every_old_assignment_and_parent(workspace):
@@ -234,7 +269,8 @@ def test_export_rejects_a_different_parent_even_if_config_matches(monkeypatch):
 
 
 @pytest.mark.integration
-def test_real_parent_gradient_and_repeat_use_fresh_optimizer_and_rng(workspace, monkeypatch):
+@pytest.mark.parametrize('category_version', ['campus-10-v2', 'campus-10-v3'])
+def test_real_parent_gradient_and_repeat_use_fresh_optimizer_and_rng(workspace, monkeypatch, category_version):
     """A tiny synthetic network tests orchestration, never object accuracy."""
     import keras
     import tensorflow as tf
@@ -258,7 +294,7 @@ def test_real_parent_gradient_and_repeat_use_fresh_optimizer_and_rng(workspace, 
     parent_path = root/'models/releases/campus-gpu-v1/metadata.json'
     metadata = common.read_json(parent_path); metadata['checkpoint_sha256']=common.digest(checkpoint)
     common.write_json(parent_path, metadata)
-    evolution.import_batch(archive([row('new-1'),row('new-2')]),'real-parent','base')
+    evolution.import_batch(archive([row('new-1'),row('new-2')], category_version=category_version),'real-parent','base')
     path=root/'ml/configs/generated/real-parent.json'
     config=common.read_json(path);config['max_epochs']=1;common.write_json(path,config)
     from datetime import datetime as real_datetime

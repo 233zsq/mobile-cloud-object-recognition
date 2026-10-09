@@ -17,6 +17,21 @@ from .data import check_isolation, connected_groups, load_split, phash, identity
 EVOLUTION_FIELDS = FIELDS + ['source_sample_id', 'crop_box', 'parent_image_sha256', 'parent_phash']
 
 
+def category_transition(previous, target):
+    """Only the approved v2 -> v3 keyboard scope expansion may reuse old weights."""
+    old, new = categories(previous), categories(target)
+    if previous == target:
+        return None
+    if (previous, target) != ('campus-10-v2', 'campus-10-v3'):
+        raise ValueError('Unsupported category transition')
+    for before, after in zip(old['categories'], new['categories']):
+        ignored = {'definition'} if before['label_key'] == 'keyboard' else set()
+        if {k: v for k, v in before.items() if k not in ignored} != {
+                k: v for k, v in after.items() if k not in ignored}:
+            raise ValueError('Category transition changed labels or unrelated definitions')
+    return {'from': previous, 'to': target, 'change': 'keyboard_includes_laptop_built_in'}
+
+
 def resolve_parent(config, initial_checkpoint=None):
     if config.get('training_mode') != 'parent_finetune':
         return initial_checkpoint, None
@@ -24,8 +39,9 @@ def resolve_parent(config, initial_checkpoint=None):
     metadata_path = ROOT / 'models/releases' / version / 'metadata.json'
     metadata = read_json(metadata_path)
     checkpoint = image_path(config['parent_checkpoint'])
-    if metadata['status'] != 'frozen' or metadata['category_version'] != config['category_version']:
-        raise ValueError('Parent release must be frozen with the same categories')
+    if metadata['status'] != 'frozen':
+        raise ValueError('Parent release must be frozen')
+    transition = category_transition(metadata['category_version'], config['category_version'])
     if metadata.get('deployment_approval') == 'pending_human_approval':
         approval = read_json(metadata_path.parent / 'approval.json')
         if approval.get('status')!='approved' or approval.get('model_sha256')!=metadata['sha256']:
@@ -37,6 +53,8 @@ def resolve_parent(config, initial_checkpoint=None):
     lineage = {'model_version': version, 'model_sha256': metadata['sha256'],
                'metadata_sha256': digest(metadata_path), 'checkpoint': checkpoint.relative_to(ROOT).as_posix(),
                'checkpoint_sha256': digest(checkpoint)}
+    if transition:
+        lineage['category_transition'] = transition
     return checkpoint, lineage
 
 
@@ -75,7 +93,6 @@ def import_batch(archive, version, base_version='campus-public-expanded-v1', par
                   parent_metadata_sha256=digest(ROOT / 'models/releases' / parent_release / 'metadata.json'),
                   parent_checkpoint=f"experiments/checkpoints/{parent['experiment_id']}/best.keras",
                   data_version=version, dropout=.4, learning_rate=.0001, fine_tune_scope='last_1')
-    resolve_parent(config)
     check_isolation(train, val)
     heldout = []
     # Read only frozen test manifest identities, never the test images.
@@ -97,8 +114,11 @@ def import_batch(archive, version, base_version='campus-public-expanded-v1', par
                 if path.is_absolute() or '..' in path.parts or '\\' in info.filename or info.file_size > 8 * 1024**2:
                     raise ValueError('Unsafe ZIP path or file size')
             receipt = json.loads(package.read('batch.json'))
-            if receipt.get('purpose') != 'training_only' or receipt['category_version'] != base['category_version'] or receipt['categories_sha256'] != digest(category_path(base['category_version'])):
+            if receipt.get('purpose') != 'training_only' or receipt['categories_sha256'] != digest(category_path(receipt['category_version'])):
                 raise ValueError('Batch purpose/category identity differs')
+            transition = category_transition(base['category_version'], receipt['category_version'])
+            config['category_version'] = receipt['category_version']
+            resolve_parent(config)
             if set(names) != {'batch.json', *receipt['files']}:
                 raise ValueError('Unlisted/missing ZIP files')
             for name, expected in receipt['files'].items():
@@ -201,12 +221,14 @@ def import_batch(archive, version, base_version='campus-public-expanded-v1', par
         # Validate everything before publishing either directory.
         shutil.copytree(staging, destination)
     metadata = {'status': 'frozen', 'purpose': 'evolution_development', 'data_version': version,
-                'category_version': base['category_version'], 'categories_sha256': base['categories_sha256'],
+                'category_version': receipt['category_version'], 'categories_sha256': receipt['categories_sha256'],
                 'created_at': now(), 'seed': 42, 'base_data_version': base_version,
                 'base_metadata_sha256': digest(ROOT / 'data/splits' / base_version / 'dataset.json'),
                 'source_archive_sha256': archive_identity, 'batch_id': receipt['batch_id'],
                 'new_train_count': len(new_train), 'new_validation_count': len(new_val),
                 'parent_release': parent_release, 'final_test_status': 'pending_fresh_field_photos', 'files': {}}
+    if transition:
+        metadata['category_transition'] = transition
     for name, selected in (('train', all_train), ('validation', all_val)):
         for row in selected:
             row.update(split_name=name, data_version=version)
@@ -254,6 +276,10 @@ def compare(release, baseline='campus-gpu-v1'):
     report = {'purpose': 'evolution_comparison', 'status': 'pending_human_approval', 'created_at': now(),
               'baseline': old.metadata, 'candidate': candidate.metadata, 'data_metadata_sha256': digest(ROOT / 'data/splits' / data['data_version'] / 'dataset.json'),
               'test_images_read': False, 'subsets': {}, 'warnings': []}
+    transition = category_transition(old.metadata['category_version'], candidate.metadata['category_version'])
+    if transition:
+        report['category_transition'] = transition
+        report['warnings'].append('Keyboard scope now includes laptop built-in keyboards; historical baseline scope and results remain v2.')
     for name, selected in subsets.items():
         if not selected:
             report['warnings'].append(name + ': no samples; field improvement has not been established')

@@ -77,6 +77,8 @@ def test_invitation_is_single_use_and_roles_are_enforced(app):
 def test_review_freeze_download_and_immutable_photos(app):
     client = admin(app)
     path = upload(client)
+    assert '笔记本内置键盘' in client.get(path).text
+    assert '笔记本内置键盘' in client.get('/upload').text
     assert review(client, path).status_code == 302
     assert review(client, path).status_code == 409  # stale member browser
     response = client.post('/batches', data={'csrf': csrf(client, '/'), 'version': 'field-001'})
@@ -87,6 +89,9 @@ def test_review_freeze_download_and_immutable_photos(app):
     with zipfile.ZipFile(io.BytesIO(response.data)) as package:
         receipt = json.loads(package.read('batch.json'))
         assert receipt['purpose'] == 'training_only' and receipt['count'] == 1
+        from campus_review import ROOT
+        assert receipt['category_version'] == 'campus-10-v3'
+        assert receipt['categories_sha256'] == hashlib.sha256((ROOT.parent / 'shared/category-versions/campus-10-v3.json').read_bytes()).hexdigest()
         assert set(package.namelist()) == {'batch.json', *receipt['files']}
         assert 'series-01' in package.read('samples.csv').decode()
     assert app.test_client().get('/images/' + path.split('/')[-1]).status_code == 302

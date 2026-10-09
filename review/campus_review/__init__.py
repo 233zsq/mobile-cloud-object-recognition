@@ -134,9 +134,16 @@ def create_app(config=None):
     data.mkdir(parents=True, exist_ok=True)
     for name in ('images', 'previews', 'thumbs', 'details', 'batches'):
         (data / name).mkdir(exist_ok=True)
-    categories_file = Path(app.config.get('CATEGORIES_FILE', ROOT.parent / 'shared/categories.json'))
+    categories_file = Path(app.config.get('CATEGORIES_FILE', ROOT.parent / 'shared/category-versions/campus-10-v3.json'))
     category_bytes = categories_file.read_bytes()
     cat = json.loads(category_bytes)
+    queue_category_hashes = {sha(category_bytes)}
+    legacy_bytes = (ROOT.parent / 'shared/categories.json').read_bytes()
+    legacy_cat = json.loads(legacy_bytes)
+    mapping = lambda value: [(c['id'], c['label_key']) for c in value['categories']]
+    # Old public queues contain suggestions only; all images are re-reviewed under v3.
+    if (legacy_cat['category_version'], cat['category_version']) == ('campus-10-v2', 'campus-10-v3') and mapping(legacy_cat) == mapping(cat):
+        queue_category_hashes.add(sha(legacy_bytes))
     baseline = json.loads((ROOT.parent / 'models/releases/campus-gpu-v1/metadata.json').read_text(encoding='utf-8'))
     base_metrics = json.loads((ROOT.parent / 'models/releases/campus-gpu-v1/evaluation-validation.json').read_text(encoding='utf-8'))['metrics']
     connection = sqlite3.connect(data / 'review.sqlite3')
@@ -400,7 +407,7 @@ def create_app(config=None):
                                    (status, int(category), reason, object_id, session_id, group_id, crop, sid, request.form.get('revision', ''))).rowcount
             if not changed:
                 abort(409, '其他成员已更新照片，刷新页面后再审核')
-            event('review', sid, {'status': status, 'category': category, 'reason': reason, 'object_id': object_id, 'session_id': session_id, 'group_id': group_id, 'crop': crop})
+            event('review', sid, {'status': status, 'category': category, 'category_version': cat['category_version'], 'reason': reason, 'object_id': object_id, 'session_id': session_id, 'group_id': group_id, 'crop': crop})
             db().commit()
             return redirect(url_for('sample', sid=sid))
         related = [r for r in db().execute('SELECT * FROM samples WHERE id<>?', (sid,)) if (row['object_id'] and r['object_id'] == row['object_id']) or r['group_id'] == row['group_id'] or (int(r['phash'], 16) ^ int(row['phash'], 16)).bit_count() <= 6]
@@ -543,7 +550,7 @@ def create_app(config=None):
             if any(i.file_size > 8 * 1024**2 or i.filename.startswith('/') or '\\' in i.filename or '..' in Path(i.filename).parts for i in infos):
                 raise click.ClickException('Unsafe public archive path or size')
             receipt = json.loads(package.read('queue.json'))
-            if receipt.get('purpose') != 'public_review_queue' or receipt.get('categories_sha256') != sha(category_bytes):
+            if receipt.get('purpose') != 'public_review_queue' or receipt.get('categories_sha256') not in queue_category_hashes:
                 raise click.ClickException('Public queue purpose/categories differ')
             if set(names) != {'queue.json', *receipt['files']} or sha(package.read('samples.csv')) != receipt['files']['samples.csv']:
                 raise click.ClickException('Public queue file identity differs')
