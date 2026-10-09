@@ -1,7 +1,6 @@
 package com.mobilecloud.recognition.data.remote
 
 import com.mobilecloud.recognition.data.settings.SettingsStore
-import java.net.URI
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 import kotlinx.serialization.json.Json
@@ -22,16 +21,11 @@ class ApiClient(settings: SettingsStore) {
     private val baseUrlRef = AtomicReference(SettingsStore.DEFAULT_BASE_URL)
     private val tokenRef = AtomicReference("")
 
-    /** 从设置的服务器地址解析出 scheme/host/port，非法则返回 null（保留默认地址快速报错） */
-    private fun parseBaseUrl(): Triple<String, String, Int>? {
+    /** 从设置的服务器地址解析出 scheme/host/port；非法或仍是默认占位地址时返回 null（保留原地址快速报错） */
+    private fun parseBaseUrl(): BaseUrl.Parsed? {
         val base = baseUrlRef.get()
         if (base == SettingsStore.DEFAULT_BASE_URL) return null
-        val uri = runCatching { URI(base.trim()) }.getOrNull() ?: return null
-        val scheme = uri.scheme?.lowercase() ?: return null
-        if (scheme != "http" && scheme != "https") return null
-        val host = uri.host ?: return null
-        val port = if (uri.port > 0) uri.port else if (scheme == "https") 443 else 80
-        return Triple(scheme, host, port)
+        return BaseUrl.parse(base)
     }
 
     private val dynamicConfigInterceptor = Interceptor { chain ->
@@ -39,9 +33,9 @@ class ApiClient(settings: SettingsStore) {
         val rewrittenUrl: HttpUrl = original.url.newBuilder().apply {
             val config = parseBaseUrl()
             if (config != null) {
-                scheme(config.first)
-                host(config.second)
-                port(config.third)
+                scheme(config.scheme)
+                host(config.host)
+                port(config.port)
             }
         }.build()
         val request = original.newBuilder().url(rewrittenUrl).let { builder ->

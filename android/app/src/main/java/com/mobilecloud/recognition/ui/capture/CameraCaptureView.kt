@@ -70,13 +70,21 @@ fun CameraCaptureView(
         val preview = Preview.Builder().build().also {
             it.surfaceProvider = previewView.surfaceProvider
         }
+        // Manifest 只要求 camera.any：无后置相机的设备回退前置，均无则给出明确提示而不是崩溃
+        val selector = when {
+            provider.hasCamera(CameraSelector.DEFAULT_BACK_CAMERA) -> CameraSelector.DEFAULT_BACK_CAMERA
+            provider.hasCamera(CameraSelector.DEFAULT_FRONT_CAMERA) -> CameraSelector.DEFAULT_FRONT_CAMERA
+            else -> {
+                onCaptureError("设备没有可用相机")
+                return@LaunchedEffect
+            }
+        }
         provider.unbindAll()
-        provider.bindToLifecycle(
-            lifecycleOwner,
-            CameraSelector.DEFAULT_BACK_CAMERA,
-            preview,
-            imageCapture,
-        )
+        runCatching {
+            provider.bindToLifecycle(lifecycleOwner, selector, preview, imageCapture)
+        }.onFailure {
+            onCaptureError("相机绑定失败：${it.message ?: it.javaClass.simpleName}")
+        }
     }
 
     Box(modifier = modifier.fillMaxSize()) {

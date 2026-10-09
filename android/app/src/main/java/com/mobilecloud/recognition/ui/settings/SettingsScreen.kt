@@ -107,6 +107,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
             Text("SHA-256 前8位：${info.sha256Short}", style = MaterialTheme.typography.bodySmall)
             Text("标签数：${info.labelsCount}", style = MaterialTheme.typography.bodySmall)
             Text("输入形状：${info.inputShape.joinToString("×")}", style = MaterialTheme.typography.bodySmall)
+            Text("归一化：${info.normalization}", style = MaterialTheme.typography.bodySmall)
             Text("低置信阈值：${info.lowConfidenceThreshold}", style = MaterialTheme.typography.bodySmall)
             info.categoryVersion?.let {
                 Text("类别版本：$it", style = MaterialTheme.typography.bodySmall)

@@ -25,13 +25,8 @@ class ModelRepository(private val context: Context) {
         val inputShape: IntArray,
         val lowConfidenceThreshold: Float,
         val categoryVersion: String?,
+        val normalization: String,
     )
-
-    suspend fun get(): ModelBundle = withContext(Dispatchers.Default) {
-        mutex.withLock {
-            bundle ?: ModelBundle.load(context.assets).also { bundle = it }
-        }
-    }
 
     suspend fun info(): ModelInfo = withContext(Dispatchers.Default) {
         mutex.withLock {
@@ -42,9 +37,15 @@ class ModelRepository(private val context: Context) {
 
     fun peek(): ModelInfo? = bundle?.toInfo()
 
+    /**
+     * 推理全程持有与 [reload] 相同的锁：重载必须等待在途推理结束，
+     * 避免 `bundle.close()` 释放在用的 Interpreter（原生资源访问崩溃）。
+     */
     suspend fun classify(bitmap: Bitmap): Prediction = withContext(Dispatchers.Default) {
-        val classifier = TfliteClassifier(get())
-        classifier.classify(bitmap)
+        mutex.withLock {
+            val target = bundle ?: ModelBundle.load(context.assets).also { bundle = it }
+            TfliteClassifier(target).classify(bitmap)
+        }
     }
 
     suspend fun reload(): ModelInfo = withContext(Dispatchers.Default) {
@@ -65,5 +66,6 @@ class ModelRepository(private val context: Context) {
         inputShape = inputShape,
         lowConfidenceThreshold = lowConfidenceThreshold,
         categoryVersion = metadata.categoryVersion,
+        normalization = metadata.input.normalization ?: "identity",
     )
 }

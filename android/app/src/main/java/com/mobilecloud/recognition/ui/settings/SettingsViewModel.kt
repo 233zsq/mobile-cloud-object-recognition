@@ -6,6 +6,8 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mobilecloud.recognition.AppGraph
+import com.mobilecloud.recognition.data.remote.BaseUrl
+import com.mobilecloud.recognition.data.settings.SettingsStore
 import com.mobilecloud.recognition.inference.ModelRepository
 import kotlinx.coroutines.launch
 
@@ -43,16 +45,27 @@ class SettingsViewModel : ViewModel() {
     fun onBaseUrlChange(value: String) = update { it.copy(baseUrl = value) }
     fun onTokenChange(value: String) = update { it.copy(token = value) }
 
+    /** 保存：先校验地址格式，无效则完全不改动持久化配置（避免把不可用地址写坏） */
     fun save() {
+        val url = _state.value.baseUrl.trim()
+        val token = _state.value.token.trim()
+        if (url != SettingsStore.DEFAULT_BASE_URL && !BaseUrl.isValid(url)) {
+            update {
+                it.copy(
+                    savedMessage = "地址格式无效（需 http(s)://主机[:端口]），未保存；此前配置保持不变",
+                )
+            }
+            return
+        }
         viewModelScope.launch {
             update { it.copy(saving = true) }
-            AppGraph.settings.setBaseUrl(_state.value.baseUrl)
-            AppGraph.settings.setToken(_state.value.token)
-            val ok = AppGraph.apiClient.updateConfig(_state.value.baseUrl, _state.value.token)
+            AppGraph.settings.setBaseUrl(url)
+            AppGraph.settings.setToken(token)
+            val ok = AppGraph.apiClient.updateConfig(url, token)
             update {
                 it.copy(
                     saving = false,
-                    savedMessage = if (ok) "已保存并生效" else "地址格式无效（需 http(s)://host[:port]），未生效",
+                    savedMessage = if (ok) "已保存并生效" else "地址无效，未生效（原配置保持不变）",
                 )
             }
         }
