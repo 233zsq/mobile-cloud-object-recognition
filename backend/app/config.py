@@ -2,6 +2,7 @@
 
 import os
 from pathlib import Path
+import re
 
 from dotenv import dotenv_values
 
@@ -39,6 +40,16 @@ def load_config(env_file: str | Path | None = None) -> dict:
             model_path if model_path.is_absolute() else PROJECT_ROOT / model_path
         )
 
+    inference_socket = values.get("INFERENCE_SOCKET", "")
+    if inference_socket and not Path(inference_socket).is_absolute():
+        raise ValueError("INFERENCE_SOCKET must be an absolute path")
+    inference_version = values.get("INFERENCE_MODEL_VERSION", "campus-gpu-v1")
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}", inference_version):
+        raise ValueError("INFERENCE_MODEL_VERSION is invalid")
+    inference_sha256 = values.get("INFERENCE_MODEL_SHA256", "a58ca2be234d0d7e7db6bdec3853b3e077df6a88321da4f6bd7a8a5d5be51d13")
+    if not re.fullmatch(r"[0-9a-f]{64}", inference_sha256):
+        raise ValueError("INFERENCE_MODEL_SHA256 must be a lowercase SHA-256")
+
     return {
         "DEBUG": debug in {"true", "1"},
         "APP_VERSION": values.get("APP_VERSION", "0.1.0"),
@@ -54,4 +65,9 @@ def load_config(env_file: str | Path | None = None) -> dict:
         "DB_PASSWORD": values.get("DB_PASSWORD", ""),
         "API_TOKEN": values.get("API_TOKEN", ""),
         "MODEL_DIR": model_dir,
+        "INFERENCE_SOCKET": inference_socket,
+        "INFERENCE_MODEL_VERSION": inference_version,
+        "INFERENCE_MODEL_SHA256": inference_sha256,
+        "INFERENCE_TIMEOUT_SECONDS": _integer(values, "INFERENCE_TIMEOUT_SECONDS", 15, 25),
+        "INFERENCE_MAX_IMAGE_BYTES": _integer(values, "INFERENCE_MAX_IMAGE_BYTES", 8 * 1024 * 1024, 8 * 1024 * 1024),
     }

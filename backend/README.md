@@ -2,7 +2,7 @@
 
 负责人：数据与云端负责人。采用Python Flask、SQLAlchemy、PyMySQL与MySQL，同一应用提供记录管理、统计和单图片推理。云端使用LiteRT Python运行时加载与Android相同的FP32 tflite模型；训练在本地PC完成。
 
-当前已建立Flask工程和MySQL四张核心表，实现 `POST /api/records` 入库、UUID去重、内容冲突保护及字段校验，另有类别/模型登记命令。服务启动和健康检查不依赖数据库或模型；上传接口需要先初始化MySQL。查询、统计、纠错、认证及云端推理仍待实现。
+当前已建立Flask工程和MySQL四张核心表，实现 `POST /api/records` 入库、UUID去重、内容冲突保护及字段校验，以及 `POST /api/infer` 单图片推理和类别/模型登记命令。记录接口独立于模型进程；上传记录需要先初始化MySQL。查询、统计、纠错及Flask自身认证仍待实现。云端CPU运行时使用独立Python 3.12进程，与现有Python 3.14后端通过私有Unix socket通信，部署见 [推理说明](../deploy/INFERENCE.md)。
 
 | 目录 | 用途 |
 | --- | --- |
@@ -10,12 +10,13 @@
 | `app/config.py` | 默认值、根目录.env及进程环境配置，启动时检查非法配置 |
 | `app/observability.py` | UTC控制台日志、服务端生成的请求编号及响应头 |
 | `app/errors.py` | HTTP错误、业务错误和未预期异常的JSON响应 |
-| `app/api/` | 已实现health和POST records，后续加入查询、纠错、stats、categories和infer |
+| `app/api/` | 已实现health、POST records和infer，后续加入查询、纠错、stats和categories |
 | `app/services/` | 已实现上传校验、规范化、事务入库和UUID冲突处理 |
 | `app/models/` | category、model_version、inference_record和sample实体 |
 | `app/extensions.py` | Flask-SQLAlchemy、MySQL连接池、UTC会话及连接超时 |
 | `app/cli.py` | 初始SQL导出、建表、冻结类别导入与模型元数据登记 |
-| `app/inference/` | 预留LiteRT模型加载、预处理、标签与版本校验 |
+| `app/inference/` | 独立CPU进程的Unix socket客户端、模型身份和响应校验 |
+| `inference_service/` | Python 3.12工作进程、包校验、图片检查和受控推理 |
 | `tests/` | 应用、配置、上传、数据库约束、冲突保护和MySQL并发验证 |
 | `scripts/verify_mysql.py` | 可选隔离MySQL及完整HTTP验证，不改动已有服务/数据库 |
 | `requirements.in`、`requirements.txt` | 运行依赖范围及固定版本清单 |
@@ -23,7 +24,7 @@
 | `app/__main__.py` | 本地开发启动入口 |
 | `wsgi.py` | Linux Gunicorn启动入口 |
 
-原 `src/main/java/` 等Java占位目录保留，Python程序不读取它们。数据库依赖已加入固定清单；推理运行时后续接入。
+原 `src/main/java/` 等Java占位目录保留，Python程序不读取它们。Flask依赖清单不包含训练或推理依赖；CPU进程按模型交付包的运行时锁安装。
 
 ## 本地启动（Windows PowerShell）
 
@@ -62,6 +63,10 @@ Invoke-RestMethod http://127.0.0.1:8080/api/health
 | `DB_HOST/PORT/NAME/USER/PASSWORD` | 见根目录.env.example | MySQL连接配置，首次数据库操作时建立连接 |
 | `API_TOKEN` | 空 | 已读取并预留，尚未实现认证 |
 | `MODEL_DIR` | 空 | 已读取并预留；相对路径以仓库根目录解析，尚未加载模型 |
+| `INFERENCE_SOCKET` | 空 | CPU进程socket的绝对路径，空时推理返回503 |
+| `INFERENCE_MODEL_VERSION/SHA256` | campus-gpu-v1/冻结模型哈希 | 校验请求和工作进程使用同版模型 |
+| `INFERENCE_TIMEOUT_SECONDS` | 15 | IPC超时秒数，最大25；超时返回503 |
+| `INFERENCE_MAX_IMAGE_BYTES` | 8388608 | 图片文件最大8MiB，请求体另外受10MiB限制 |
 
 `API_BASE_URL` 供客户端配置参考，后端不使用。根目录 `.env.example` 无真实凭据，真实.env受Git忽略。非法端口、debug、日志级别和请求大小在启动时报告错误。
 
@@ -79,7 +84,7 @@ Invoke-RestMethod http://127.0.0.1:8080/api/health
 }
 ```
 
-这是服务存活检查，不代表数据库或推理已就绪。当前模型状态始终未初始化，配置MODEL_DIR不会改变该状态。尚未实现的业务路径返回404，不返回伪成功。
+这是服务存活检查，不检查数据库。上例对应未配置推理进程；设置INFERENCE_SOCKET后动态检查模型：可用时model_loaded=true、model_status=ready并返回实际版本，故障时为false/unavailable且health仍为200。MODEL_DIR不直接加载模型。尚未实现的业务路径返回404。
 
 所有响应附带服务端生成的 `X-Request-ID`。统一错误示例：
 
