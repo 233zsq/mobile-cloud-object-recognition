@@ -7,6 +7,7 @@ import com.mobilecloud.recognition.data.local.AppDatabase
 import com.mobilecloud.recognition.data.local.RecordDao
 import com.mobilecloud.recognition.data.remote.ApiClient
 import com.mobilecloud.recognition.data.settings.SettingsStore
+import com.mobilecloud.recognition.inference.ConsistencyCheck
 import com.mobilecloud.recognition.inference.ModelRepository
 import com.mobilecloud.recognition.sync.RecordUploader
 import com.mobilecloud.recognition.sync.SyncScheduler
@@ -40,6 +41,8 @@ object AppGraph {
         private set
     lateinit var syncScheduler: SyncScheduler
         private set
+    lateinit var consistencyCheck: ConsistencyCheck
+        private set
 
     val recordDao: RecordDao get() = database.recordDao()
 
@@ -59,6 +62,7 @@ object AppGraph {
             categoryCatalog = CategoryCatalog.fromText(loadCategoryAsset())
             uploader = RecordUploader(recordDao, apiClient.api)
             syncScheduler = SyncScheduler(appContext)
+            consistencyCheck = ConsistencyCheck(appContext)
 
             syncScheduler.registerNetworkCallback()
 

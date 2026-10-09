@@ -25,6 +25,10 @@ class ModelBundle private constructor(
     val lowConfidenceThreshold: Float,
     /** 归一化约定：正式契约在模型内部，端侧为恒等（原始 0–255） */
     val normalization: PreprocessMath.NormalizationPreset,
+    /** metadata.json 中 input 段的原始 JSON，端云一致性报告须原样嵌入（校验器逐字段比对） */
+    val inputContract: kotlinx.serialization.json.JsonElement?,
+    /** 解释器实际线程数，报告 runtime 字段使用 */
+    val numThreads: Int,
 ) {
     /** 正方形输入边长（如 224），预处理直接使用 */
     val inputSize: Int = inputShape[1]
@@ -42,7 +46,13 @@ class ModelBundle private constructor(
         private const val MODEL_DIR = "models"
 
         fun load(assets: AssetManager): ModelBundle {
-            val metadata = readMetadata(assets)
+            val metadataText = readAssetText(assets, "$MODEL_DIR/metadata.json")
+            val metadata = ModelMetadata.parse(metadataText)
+            val inputContract = runCatching {
+                ModelMetadata.json.parseToJsonElement(metadataText)
+                    .let { it as? kotlinx.serialization.json.JsonObject }
+                    ?.get("input")
+            }.getOrNull()
 
             val modelBytes = readAsset(assets, "$MODEL_DIR/${metadata.modelFile}")
             val modelSha = ShaUtil.sha256Hex(modelBytes)
@@ -64,6 +74,7 @@ class ModelBundle private constructor(
             val options = Interpreter.Options().apply {
                 numThreads = Runtime.getRuntime().availableProcessors().coerceIn(1, 4)
             }
+            val threadCount = options.numThreads
             val interpreter = try {
                 Interpreter(buffer, options)
             } catch (e: Exception) {
@@ -101,6 +112,8 @@ class ModelBundle private constructor(
                 labelsSha256 = labelsSha,
                 lowConfidenceThreshold = metadata.lowConfidenceThreshold ?: DEFAULT_THRESHOLD,
                 normalization = normalization,
+                inputContract = inputContract,
+                numThreads = threadCount,
             )
         }
 

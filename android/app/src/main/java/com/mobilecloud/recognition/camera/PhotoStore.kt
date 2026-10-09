@@ -11,6 +11,7 @@ import java.util.UUID
 
 /**
  * 照片本地管理：保存到应用私有目录（无需存储权限），解码时按 EXIF 旋转为直立图（用例 T02）。
+ * 提供 internal 级辅助函数供端云一致性自检复用（示例图片从 assets 解码走同一套方向与灰底规则）。
  */
 class PhotoStore(context: Context) {
 
@@ -45,66 +46,86 @@ class PhotoStore(context: Context) {
             inPreferredConfig = Bitmap.Config.ARGB_8888
         }
         val decoded = BitmapFactory.decodeFile(file.absolutePath, options) ?: return null
-        val upright = applyExifOrientation(decoded, file)
+        val orientation = readExifOrientation(file)
+        val upright = applyExifOrientation(decoded, orientation)
         return compositeTransparencyOnGray(upright)
-    }
-
-    /** 契约：透明图片先在灰色(128)背景合成，再进入 letterbox 预处理 */
-    private fun compositeTransparencyOnGray(bitmap: Bitmap): Bitmap {
-        if (!bitmap.hasAlpha()) return bitmap
-        val width = bitmap.width
-        val height = bitmap.height
-        val pixels = IntArray(width * height)
-        bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
-        var hasTransparency = false
-        for (pixel in pixels) {
-            val alpha = (pixel ushr 24) and 0xFF
-            if (alpha != 0xFF) {
-                hasTransparency = true
-                break
-            }
-        }
-        if (!hasTransparency) return bitmap
-
-        for (i in pixels.indices) {
-            val pixel = pixels[i]
-            val alpha = (pixel ushr 24) and 0xFF
-            if (alpha == 0xFF) continue
-            val ratio = alpha / 255f
-            val r = (((pixel shr 16) and 0xFF) * ratio + 128f * (1f - ratio)).toInt()
-            val g = (((pixel shr 8) and 0xFF) * ratio + 128f * (1f - ratio)).toInt()
-            val b = ((pixel and 0xFF) * ratio + 128f * (1f - ratio)).toInt()
-            pixels[i] = (0xFF shl 24) or (r shl 16) or (g shl 8) or b
-        }
-        val composed = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-        composed.setPixels(pixels, 0, width, 0, 0, width, height)
-        if (composed != bitmap) bitmap.recycle()
-        return composed
-    }
-
-    private fun applyExifOrientation(bitmap: Bitmap, file: File): Bitmap {
-        val orientation = try {
-            ExifInterface(file.absolutePath)
-                .getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
-        } catch (_: Exception) {
-            ExifInterface.ORIENTATION_NORMAL
-        }
-        val transform = PreprocessMath.transformForExif(orientation)
-        if (transform.degrees == 0 && !transform.flipHorizontal && !transform.flipVertical) {
-            return bitmap
-        }
-        val matrix = Matrix().apply {
-            postRotate(transform.degrees.toFloat())
-            if (transform.flipHorizontal) postScale(-1f, 1f, bitmap.width / 2f, bitmap.height / 2f)
-            if (transform.flipVertical) postScale(1f, -1f, bitmap.width / 2f, bitmap.height / 2f)
-        }
-        val rotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
-        if (rotated != bitmap) bitmap.recycle()
-        return rotated
     }
 
     companion object {
         /** EXIF 方向常量，测试与文档引用 */
         val ORIENTATION_NORMAL = PreprocessMath.EXIF_NORMAL
     }
+}
+
+/** 从 assets 解码图片并按契约应用 EXIF 方向与灰底合成（端云一致性自检使用） */
+internal fun decodeAssetUpright(context: Context, assetPath: String): Bitmap? {
+    val assets = context.assets
+    val options = BitmapFactory.Options().apply { inPreferredConfig = Bitmap.Config.ARGB_8888 }
+    val decoded = assets.open(assetPath).use { input ->
+        BitmapFactory.decodeStream(input, null, options)
+    } ?: return null
+    val orientation = try {
+        assets.open(assetPath).use { input ->
+            ExifInterface(input).getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
+        }
+    } catch (_: Exception) {
+        ExifInterface.ORIENTATION_NORMAL
+    }
+    val upright = applyExifOrientation(decoded, orientation)
+    return compositeTransparencyOnGray(upright)
+}
+
+private fun readExifOrientation(file: File): Int = try {
+    ExifInterface(file.absolutePath)
+        .getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
+} catch (_: Exception) {
+    ExifInterface.ORIENTATION_NORMAL
+}
+
+internal fun applyExifOrientation(bitmap: Bitmap, orientation: Int): Bitmap {
+    val transform = PreprocessMath.transformForExif(orientation)
+    if (transform.degrees == 0 && !transform.flipHorizontal && !transform.flipVertical) {
+        return bitmap
+    }
+    val matrix = Matrix().apply {
+        postRotate(transform.degrees.toFloat())
+        if (transform.flipHorizontal) postScale(-1f, 1f, bitmap.width / 2f, bitmap.height / 2f)
+        if (transform.flipVertical) postScale(1f, -1f, bitmap.width / 2f, bitmap.height / 2f)
+    }
+    val rotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+    if (rotated != bitmap) bitmap.recycle()
+    return rotated
+}
+
+/** 契约：透明图片先在灰色(128)背景合成，再进入 letterbox 预处理 */
+internal fun compositeTransparencyOnGray(bitmap: Bitmap): Bitmap {
+    if (!bitmap.hasAlpha()) return bitmap
+    val width = bitmap.width
+    val height = bitmap.height
+    val pixels = IntArray(width * height)
+    bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
+    var hasTransparency = false
+    for (pixel in pixels) {
+        val alpha = (pixel ushr 24) and 0xFF
+        if (alpha != 0xFF) {
+            hasTransparency = true
+            break
+        }
+    }
+    if (!hasTransparency) return bitmap
+
+    for (i in pixels.indices) {
+        val pixel = pixels[i]
+        val alpha = (pixel ushr 24) and 0xFF
+        if (alpha == 0xFF) continue
+        val ratio = alpha / 255f
+        val r = (((pixel shr 16) and 0xFF) * ratio + 128f * (1f - ratio)).toInt()
+        val g = (((pixel shr 8) and 0xFF) * ratio + 128f * (1f - ratio)).toInt()
+        val b = ((pixel and 0xFF) * ratio + 128f * (1f - ratio)).toInt()
+        pixels[i] = (0xFF shl 24) or (r shl 16) or (g shl 8) or b
+    }
+    val composed = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+    composed.setPixels(pixels, 0, width, 0, 0, width, height)
+    if (composed != bitmap) bitmap.recycle()
+    return composed
 }

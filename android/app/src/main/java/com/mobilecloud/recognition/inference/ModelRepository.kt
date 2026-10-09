@@ -37,7 +37,7 @@ class ModelRepository(private val context: Context) {
 
     fun peek(): ModelInfo? = bundle?.toInfo()
 
-    /**
+/**
      * 推理全程持有与 [reload] 相同的锁：重载必须等待在途推理结束，
      * 避免 `bundle.close()` 释放在用的 Interpreter（原生资源访问崩溃）。
      */
@@ -45,6 +45,14 @@ class ModelRepository(private val context: Context) {
         mutex.withLock {
             val target = bundle ?: ModelBundle.load(context.assets).also { bundle = it }
             TfliteClassifier(target).classify(bitmap)
+        }
+    }
+
+    /** 在持锁状态下使用模型包（一致性自检等长任务专用），期间 reload 会等待其结束 */
+    suspend fun <T> withBundle(block: suspend (ModelBundle) -> T): T = withContext(Dispatchers.Default) {
+        mutex.withLock {
+            val target = bundle ?: ModelBundle.load(context.assets).also { bundle = it }
+            block(target)
         }
     }
 
