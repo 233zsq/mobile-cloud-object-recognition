@@ -426,7 +426,12 @@ def create_app(config=None):
                 abort(400, '拒绝时请填写原因')
             object_id, session_id, group_id = text('object_id', row['source'] == 'field'), text('session_id'), text('group_id')
             crop = request.form.get('crop', row['crop'])
-            if request.form.get('use_crop') and not crop:
+            crop_mode = request.form.get('crop_mode', 'legacy')
+            if crop_mode not in ('legacy', 'direct'):
+                abort(400, '未知框选模式')
+            if crop_mode == 'direct' and not request.form.get('draw_crop'):
+                crop = ''
+            if crop_mode == 'legacy' and request.form.get('use_crop') and not crop:
                 abort(400, '请先选择裁剪区域')
             try:
                 crop_box(crop, row['width'], row['height'])

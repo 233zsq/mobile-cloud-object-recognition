@@ -15,6 +15,7 @@
   <input name="revision" type="hidden" value="{{sample.revision}}">
   <input name="lease" type="hidden" value="{{lease.token if lease else ''}}">
   <input name="crop" type="hidden" value="{{sample.crop}}">
+  <input name="crop_mode" type="hidden" value="direct">
   <fieldset {{'disabled' if not lease}}>
     <section class="panel review-toolbar" aria-label="审核操作">
       <div class="review-toolbar-main">
@@ -50,13 +51,13 @@
     </section>
     <div class="review-workspace">
       <section class="panel image-panel review-photo">
-        <div class="photo-tools"><label class="check"><input id="crop-enabled" type="checkbox" name="use_crop" {{'checked' if sample.crop}}>框选主体，用裁剪区域训练</label><span class="muted">可选</span></div>
+        <div class="photo-tools"><label class="check"><input id="crop-enabled" type="checkbox" name="draw_crop" checked>允许框选（按住照片拖动）</label><button id="crop-clear" class="button" type="button" {{'disabled' if not sample.crop}}>清除选框</button></div>
         <div class="crop-stage" data-editable="{{'true' if lease else 'false'}}" data-width="{{sample.width}}" data-height="{{sample.height}}">
           <img draggable="false" decoding="async" src="{{url_for('image',sid=sample.id,size='detail')}}" alt="待审核{{categories[sample.category].display_name}}照片">
           <div class="crop-box" hidden></div>
         </div>
         <p id="crop-message" class="note">{{'已保存选框：'+sample.crop if sample.crop else '训练使用完整照片'}}</p>
-        <p class="muted photo-help">勾选后在照片上拖动选框；保留完整物品和少量背景，裁掉无关主体。手机也可拖动。</p>
+        <p class="muted photo-help">默认可直接拖动框选，松开后保留。未框选时使用整张照片；清除选框或关闭开关可恢复全图。保留完整物品和少量背景，手机也可拖动。</p>
         <noscript>框选需要JavaScript；现有坐标会保留。未启用自动续期时，请在15分钟内保存。</noscript>
       </section>
       <div class="review-sidebar">
