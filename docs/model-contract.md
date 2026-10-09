@@ -1,5 +1,7 @@
 # 模型交接约定
 
+新系列 `campus-evolve-*` 沿用本输入、输出及标签约定。`frozen` 表示技术包已冻结；若元数据含 `deployment_approval=pending_human_approval`，接入前还须取得与模型SHA-256匹配的 `approval.json`（status=approved）。该批准附录不改原模型或已冻结元数据，流程见 [ml-evolution.md](ml-evolution.md)。原 `campus-gpu-v1` 保持固定基准。
+
 由模型训练负责人提供，Android开发负责人接入手机，数据与云端负责人部署云端CPU推理，组长验证。
 当前GPU发布包为 `models/releases/campus-gpu-v1/`，模型、阈值和输入合同已冻结。公开验证准确率90.37%、宏F1=0.8993；独立实拍及Android/真实云端验收仍待完成，完整实验见 `ml-gpu-experiments.md`。历史CPU试验包保持原状态，较早合成fixture只作工具链验证。
 完整可执行接入、预处理和测试说明见 `ml-handover.md`。

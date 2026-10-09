@@ -87,7 +87,8 @@ def categories(version=None):
 
 def code_commit():
     try:
-        return subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
+        # Dataset storage may be elsewhere via RECOGNITION_ROOT; identify source.
+        return subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=Path(__file__).resolve().parents[3], text=True).strip()
     except (OSError, subprocess.CalledProcessError):
         return "unavailable"
 

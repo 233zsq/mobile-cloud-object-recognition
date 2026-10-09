@@ -90,6 +90,20 @@ def parser():
     a=s.add_parser("smoke",help="Synthetic fixtures; never formal accuracy evidence")
     a.add_argument("--id",default="smoke-v1")
     a.add_argument("--epochs",type=int,default=1)
+    a=s.add_parser('evolve',help='Reviewed batches and fixed-parent model comparison')
+    e=a.add_subparsers(dest='action',required=True)
+    a=e.add_parser('import-batch')
+    a.add_argument('--archive',required=True,type=__import__('pathlib').Path)
+    a.add_argument('--version',required=True)
+    a.add_argument('--base-version',default='campus-public-expanded-v1')
+    a.add_argument('--parent-release',default='campus-gpu-v1')
+    a=e.add_parser('compare')
+    a.add_argument('--release',required=True,type=__import__('pathlib').Path)
+    a.add_argument('--baseline',default='campus-gpu-v1')
+    a=e.add_parser('accept-approval')
+    a.add_argument('--release',required=True,type=__import__('pathlib').Path)
+    a.add_argument('--receipt',required=True,type=__import__('pathlib').Path)
+    a.add_argument('--comparison',required=True,type=__import__('pathlib').Path)
     return p
 
 
@@ -152,6 +166,14 @@ def main():
         elif args.command=="smoke":
             from .smoke import smoke
             value=smoke(args.id,args.epochs)
+        elif args.command=='evolve':
+            from .evolution import import_batch,compare,accept_approval
+            if args.action=='import-batch':
+                value=import_batch(args.archive,args.version,args.base_version,args.parent_release)
+            elif args.action=='compare':
+                value=str(compare(args.release,args.baseline))
+            else:
+                value=accept_approval(args.release,args.receipt,args.comparison)
         print(json.dumps(value,ensure_ascii=False,indent=2,default=str))
     except (ValueError,FileNotFoundError) as exc:
         print(f"ERROR: {exc}",file=sys.stderr)

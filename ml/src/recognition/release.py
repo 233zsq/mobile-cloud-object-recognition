@@ -28,6 +28,7 @@ def export(result_path,version,formal=False,reproduction=None,additional_reprodu
         if not result.get('environment',{}).get('gpu') or preflight.get('status')!='gpu_passed' or preflight.get('recommended_common_batch')!=result['config']['batch_size']:
             raise ValueError('Formal release requires successful GPU training and matching GPU batch preflight')
         repeat=read_json(reproduction)
+        validate_parent_reproduction(result,repeat)
         a,b=dict(result["config"]),dict(repeat["config"])
         a.pop("seed");b.pop("seed")
         if repeat["status"]!="complete" or repeat["config"]["seed"]!=43 or a!=b or repeat["identity"]["code_snapshot_sha256"]!=result["identity"]["code_snapshot_sha256"] or repeat["identity"]["data_metadata_sha256"]!=result["identity"]["data_metadata_sha256"]:
@@ -39,6 +40,7 @@ def export(result_path,version,formal=False,reproduction=None,additional_reprodu
             if not additional_reproduction:
                 raise ValueError("F1 gap > .05; investigate and provide --additional-reproduction seed44")
             extra=read_json(additional_reproduction)
+            validate_parent_reproduction(result,extra)
             c=dict(extra["config"]);c.pop("seed")
             if extra["status"]!="complete" or extra["config"]["seed"]!=44 or c!=a or extra["identity"]["code_snapshot_sha256"]!=result["identity"]["code_snapshot_sha256"] or extra["identity"]["data_metadata_sha256"]!=result["identity"]["data_metadata_sha256"]:
                 raise ValueError("Additional seed44 reproduction is incompatible")
@@ -67,6 +69,10 @@ def export(result_path,version,formal=False,reproduction=None,additional_reprodu
     (directory/"labels.txt").write_text("\n".join(c["label_key"] for c in cat["categories"])+"\n",encoding="utf-8")
     metadata={"status":"validation_pending","requested_status":"formal" if formal else "experimental","model_version":version,"model_file":"model.tflite","sha256":digest(directory/"model.tflite"),"labels_file":"labels.txt","labels_sha256":digest(directory/"labels.txt"),"category_version":cat["category_version"],"categories":cat["categories"],"data_version":result["config"]["data_version"],"experiment_id":result["experiment_id"],"code_commit":result["code_commit"],"code_snapshot_sha256":result["identity"]["code_snapshot_sha256"],"input":SPEC,"output":{"shape":[1,10],"dtype":"float32","interpretation":"softmax"},"low_confidence_threshold":result["threshold"]["threshold"],"threshold_status":result["threshold"]["status"],"created_at":now(),"model_bytes":len(blob),"acceptance":{"size_passed":len(blob)<=15000000,"independent_field_accuracy":"pending","android_latency":"pending","android_consistency":"pending","actual_cloud_consistency":"pending"},"export_environment":result["environment"],"checkpoint_sha256":result["checkpoint_sha256"]}
     write_json(directory/"metadata.json",metadata)
+    if result['identity'].get('parent_lineage'):
+        metadata['parent_lineage']=result['identity']['parent_lineage']
+        metadata['deployment_approval']='pending_human_approval'
+        write_json(directory/'metadata.json',metadata)
     if formal:
         write_json(directory/"reproduction.json",{"seed42":result["validation"],"seed43":repeat["validation"],"macro_f1_gap":gap,"seed44":extra["validation"] if gap>.05 else None,"variability_warning":gap>.05})
     runner=LiteRunner(directory,_allow_pending=True)
@@ -100,6 +106,17 @@ def export(result_path,version,formal=False,reproduction=None,additional_reprodu
     write_json(directory/"metadata.json",metadata)
     write_json(directory/"release-files.json",{p.relative_to(directory).as_posix():digest(p) for p in sorted(directory.rglob("*")) if p.is_file() and "saved_model" not in p.parts and p.name!="release-files.json"})
     return directory
+
+
+def validate_parent_reproduction(primary,repeat):
+    """Fixed-parent repeats must start from exactly the same verified weights."""
+    if primary['config'].get('training_mode')!='parent_finetune':
+        return
+    from .evolution import resolve_parent
+    _,expected=resolve_parent(primary['config'])
+    for result in (primary,repeat):
+        if result['identity'].get('parent_lineage')!=expected or result['identity'].get('initial_checkpoint_sha256')!=expected['checkpoint_sha256']:
+            raise ValueError('Reproduction parent lineage/checkpoint differs')
 
 
 def compare_external(release,report_path):
