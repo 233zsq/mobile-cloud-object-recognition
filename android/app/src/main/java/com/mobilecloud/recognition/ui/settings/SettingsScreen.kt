@@ -28,12 +28,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.ui.platform.LocalContext
 
 /**
  * 设置页：服务器地址与令牌、连接测试、模型包信息（F05 联调辅助 + T04 验证）。
  */
 @Composable
 fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
+    val context = LocalContext.current
     var baseUrl by remember { mutableStateOf("") }
     var token by remember { mutableStateOf("") }
     var initialized by remember { mutableStateOf(false) }
@@ -132,6 +134,73 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
         Text(
             "client_id 首次启动生成并固定，上报时随记录发送，服务端用于区分设备",
             style = MaterialTheme.typography.bodySmall,
+        )
+
+        Spacer(Modifier.height(16.dp))
+        HorizontalDivider()
+        Spacer(Modifier.height(12.dp))
+
+        Text("端云一致性自检", style = MaterialTheme.typography.titleMedium)
+        Spacer(Modifier.height(4.dp))
+        Text(
+            "对发布包附带的 20 张交接样例运行「参考张量」与「图片链路」两种对照，报告与输入张量" +
+                "写入应用外部目录并打包，供仓库 verify 工具正式判定（T05/M02–M04）。",
+            style = MaterialTheme.typography.bodySmall,
+        )
+        Spacer(Modifier.height(8.dp))
+        if (!viewModel.state.examplesAvailable) {
+            Text(
+                "自检样例未打包（样例仅包含在 debug 构建中），请使用含样例的 debug 版本",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+        } else if (viewModel.state.checkRunning) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                CircularProgressIndicator(modifier = Modifier.height(16.dp), strokeWidth = 2.dp)
+                Spacer(Modifier.width(8.dp))
+                Text(viewModel.state.checkProgress ?: "运行中…", style = MaterialTheme.typography.bodySmall)
+            }
+        } else {
+            Button(onClick = viewModel::runConsistencyCheck) { Text("运行自检（20 张样例）") }
+        }
+        viewModel.state.checkSummary?.let { summary ->
+            Spacer(Modifier.height(8.dp))
+            Text(
+                summary,
+                style = MaterialTheme.typography.bodySmall,
+                color = if (viewModel.state.checkFailed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+            )
+        }
+        viewModel.state.checkZipPath?.let { zipPath ->
+            Spacer(Modifier.height(8.dp))
+            OutlinedButton(onClick = { shareReport(context, zipPath) }) { Text("分享报告压缩包") }
+            Text(
+                "也可通过 USB 从 Android/data/${context.packageName}/files/consistency/ 复制",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+    }
+}
+
+/** 通过 FileProvider 分享自检报告 zip（微信传回电脑最方便） */
+private fun shareReport(context: android.content.Context, zipPath: String) {
+    val file = java.io.File(zipPath)
+    if (!file.exists()) return
+    runCatching {
+        val uri = androidx.core.content.FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            file,
+        )
+        val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+            type = "application/zip"
+            putExtra(android.content.Intent.EXTRA_STREAM, uri)
+            addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        context.startActivity(
+            android.content.Intent.createChooser(intent, "分享一致性报告").addFlags(
+                android.content.Intent.FLAG_ACTIVITY_NEW_TASK,
+            ),
         )
     }
 }

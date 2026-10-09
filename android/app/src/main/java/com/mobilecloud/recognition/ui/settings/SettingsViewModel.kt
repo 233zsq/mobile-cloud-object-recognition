@@ -21,6 +21,12 @@ data class SettingsUiState(
     val savedMessage: String? = null,
     val testing: Boolean = false,
     val testResult: String? = null,
+    val examplesAvailable: Boolean = false,
+    val checkRunning: Boolean = false,
+    val checkProgress: String? = null,
+    val checkSummary: String? = null,
+    val checkFailed: Boolean = false,
+    val checkZipPath: String? = null,
 )
 
 /**
@@ -38,6 +44,7 @@ class SettingsViewModel : ViewModel() {
             val clientId = AppGraph.settings.ensureClientId()
             update { it.copy(baseUrl = baseUrl, token = token, clientId = clientId) }
             AppGraph.apiClient.updateConfig(baseUrl, token)
+            update { it.copy(examplesAvailable = AppGraph.consistencyCheck.hasExamples()) }
             loadModelInfo()
         }
     }
@@ -110,6 +117,59 @@ class SettingsViewModel : ViewModel() {
 
     fun consumeMessages() {
         update { it.copy(savedMessage = null, testResult = null) }
+    }
+
+    /** 端云同图一致性自检：20 张交接样例跑参考张量与图片链路两种模式（T05/M02–M04） */
+    fun runConsistencyCheck() {
+        if (_state.value.checkRunning) return
+        update {
+            it.copy(
+                checkRunning = true,
+                checkProgress = "准备中…",
+                checkSummary = null,
+                checkFailed = false,
+                checkZipPath = null,
+            )
+        }
+        viewModelScope.launch {
+            try {
+                val summary = AppGraph.modelRepository.withBundle { bundle ->
+                    AppGraph.consistencyCheck.run(bundle) { progress ->
+                        update { it.copy(checkProgress = progress) }
+                    }
+                }
+                update {
+                    it.copy(
+                        checkRunning = false,
+                        checkProgress = null,
+                        checkFailed = !summary.allPassed,
+                        checkZipPath = summary.zipFile.absolutePath,
+                        checkSummary = buildString {
+                            appendLine("run_id：${summary.runId}")
+                            appendLine("设备：${summary.device}")
+                            appendLine("运行时：${summary.runtime}")
+                            appendLine("参考张量模式：${summary.reference.passed}/${summary.reference.total} 通过")
+                            appendLine("图片链路模式：${summary.imageChain.passed}/${summary.imageChain.total} 通过")
+                            val failures = summary.reference.failures + summary.imageChain.failures
+                            if (failures.isNotEmpty()) {
+                                appendLine("未通过样例：")
+                                failures.take(8).forEach { appendLine(" · $it") }
+                            }
+                            appendLine("输出目录：${summary.outputDir.absolutePath}")
+                        },
+                    )
+                }
+            } catch (e: Exception) {
+                update {
+                    it.copy(
+                        checkRunning = false,
+                        checkProgress = null,
+                        checkFailed = true,
+                        checkSummary = "自检失败：${e.message ?: e.javaClass.simpleName}",
+                    )
+                }
+            }
+        }
     }
 
     private fun update(transform: (SettingsUiState) -> SettingsUiState) {
