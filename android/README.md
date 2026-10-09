@@ -1,6 +1,6 @@
 # Android 客户端
 
-负责人：Android 开发负责人（刘亮）。
+负责人：Android 开发负责人（@fish123233）。
 
 **当前状态：App 首版可构建。** 采用 Kotlin + Jetpack Compose（计划书已同步切换为 Kotlin），
 CameraX 采集、LiteRT 端侧推理、Room 本地记录、Retrofit 上报与补传均已实现，
