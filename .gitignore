@@ -112,3 +112,6 @@ backups/
 
 # Android debug-only consistency check examples (delivery artifacts; copy from ml release locally)
 /android/app/src/debug/assets/models/examples/**
+
+# Device consistency-check inputs stay local (regenerable by re-running the in-app self-check)
+/experiments/reports/consistency/**/*_inputs/
