@@ -1,8 +1,15 @@
 package com.mobilecloud.recognition.util
 
 /**
- * 图像几何与数值预处理的纯函数集合，不依赖 Android 类，便于单元测试。
- * 预处理约定与 docs/model-contract.md 保持一致：中心裁剪、缩放到模型输入边长、按预设归一化。
+ * 预处理纯函数集合，实现契约 `rgb-letterbox-v1`（docs/model-contract.md、docs/ml-handover.md）。
+ * 不依赖 Android 类，便于单元测试；几何与归一化约定必须与云端/PC 参考实现逐字一致。
+ *
+ * 契约要点：
+ * - EXIF 纠正方向后等比缩放，双线性、half-pixel 坐标、不额外抗锯齿；
+ * - 缩放宽高 `floor(原尺寸 * scale + 0.5)`，`scale = 目标边长 / max(原宽, 原高)`；
+ * - 灰色 128 居中补边，不裁剪，奇数余量位于右/下；
+ * - 四邻域加权结果保留 float32，不先取整为 uint8；
+ * - 归一化在模型内部完成，端侧直送 0–255 原始像素。
  */
 object PreprocessMath {
 
@@ -15,6 +22,9 @@ object PreprocessMath {
     const val EXIF_FLIP_VERTICAL = 4
     const val EXIF_TRANSPOSE = 5
     const val EXIF_TRANSVERSE = 7
+
+    /** 契约：灰色补边值 */
+    const val PAD_VALUE = 128f
 
     data class ImageTransform(val degrees: Int, val flipHorizontal: Boolean, val flipVertical: Boolean)
 
@@ -29,37 +39,72 @@ object PreprocessMath {
         else -> ImageTransform(0, false, false)
     }
 
-    /** 在源图上取尽可能大的居中正方形裁剪区域 */
-    data class CropSpec(val left: Int, val top: Int, val size: Int)
+    /**
+     * 等比缩放后的内框尺寸与居中偏移。
+     * 契约：`scale = target / max(srcW, srcH)`，宽高 `floor(原尺寸 * scale + 0.5)`（round half up）。
+     */
+    data class LetterboxGeometry(
+        val innerWidth: Int,
+        val innerHeight: Int,
+        val offsetX: Int,
+        val offsetY: Int,
+    )
 
-    fun centerCropSpec(srcWidth: Int, srcHeight: Int): CropSpec {
+    fun letterboxGeometry(srcWidth: Int, srcHeight: Int, target: Int): LetterboxGeometry {
         require(srcWidth > 0 && srcHeight > 0) { "图片尺寸必须为正，实际 ${srcWidth}x$srcHeight" }
-        val side = minOf(srcWidth, srcHeight)
-        return CropSpec((srcWidth - side) / 2, (srcHeight - side) / 2, side)
+        require(target > 0) { "目标边长必须为正，实际 $target" }
+        val scale = target.toDouble() / maxOf(srcWidth, srcHeight)
+        val innerWidth = maxOf(1, floorToInt(srcWidth * scale + 0.5)).coerceAtMost(target)
+        val innerHeight = maxOf(1, floorToInt(srcHeight * scale + 0.5)).coerceAtMost(target)
+        // 居中；奇数余量在右/下，因此偏移取 floor（余下 1px 落到右/下）
+        return LetterboxGeometry(
+            innerWidth = innerWidth,
+            innerHeight = innerHeight,
+            offsetX = (target - innerWidth) / 2,
+            offsetY = (target - innerHeight) / 2,
+        )
     }
 
+    /** half-pixel 源坐标：contract `source_x = (target_x + 0.5) * source_width / target_width - 0.5` */
+    fun halfPixelSourceCoord(dstIndex: Int, dstSize: Int, srcSize: Int): Float =
+        ((dstIndex + 0.5f) * srcSize / dstSize) - 0.5f
+
+    /** 四邻域双线性加权，0–255 float 空间直接计算，不取整为整数 */
+    fun bilinearSample(v00: Float, v10: Float, v01: Float, v11: Float, fx: Float, fy: Float): Float =
+        v00 * (1f - fx) * (1f - fy) +
+            v10 * fx * (1f - fy) +
+            v01 * (1f - fx) * fy +
+            v11 * fx * fy
+
+    private fun floorToInt(value: Double): Int = kotlin.math.floor(value).toInt()
+
     /**
-     * 归一化预设，名称与模型包 metadata.json 的 input.normalization 字段对应。
-     * MOBILENET_V2_MINUS1_1：x/127.5 - 1，映射到 [-1, 1]（MobileNetV2 迁移学习基线）。
-     * UNIT_0_1：x/255，映射到 [0, 1]。
+     * 归一化预设。契约 rgb-letterbox-v1 的模型把 `x / 127.5 - 1` 做在模型内部，
+     * 端侧必须使用 [IDENTITY] 直送 0–255 原始像素（重复归一化会被参考张量对照检出）。
      */
-    enum class NormalizationPreset(val apply: (Int) -> Float) {
-        MOBILENET_V2_MINUS1_1({ it / 127.5f - 1f }),
-        UNIT_0_1({ it / 255f });
+    enum class NormalizationPreset(val apply: (Float) -> Float) {
+        /** 契约路径：端侧不做任何归一化 */
+        IDENTITY({ it }),
+        UNIT_0_1({ it / 255f }),
+
+        /** 历史占位模型的端侧归一化，仅用于兼容旧包；正式契约禁用 */
+        MOBILENET_V2_MINUS1_1({ it / 127.5f - 1f });
 
         companion object {
-            fun fromName(name: String?): NormalizationPreset = when (name?.trim()?.lowercase()) {
-                null, "", "mobilenet_v2_minus1_1" -> MOBILENET_V2_MINUS1_1
-                "unit_0_1" -> UNIT_0_1
-                else -> throw IllegalArgumentException("未知的归一化预设: $name，核对 metadata.json 的 input.normalization")
+            fun fromName(name: String?): NormalizationPreset {
+                val value = name?.trim()?.lowercase()
+                return when {
+                    value.isNullOrEmpty() -> IDENTITY
+                    value.startsWith("inside model") -> IDENTITY
+                    value == "identity" || value == "none" -> IDENTITY
+                    value == "unit_0_1" -> UNIT_0_1
+                    value == "mobilenet_v2_minus1_1" -> MOBILENET_V2_MINUS1_1
+                    else -> throw IllegalArgumentException(
+                        "未知的归一化约定「$name」；契约 rgb-letterbox-v1 要求 " +
+                            "\"inside model: x / 127.5 - 1\"，端侧使用恒等（原始 0–255）",
+                    )
+                }
             }
         }
     }
-
-    /** 解析 metadata 中 "1,224,224,3" 形式的形状字符串 */
-    fun parseShape(text: String?): IntArray? = text
-        ?.split(',', 'x', 'X', '×')
-        ?.mapNotNull { it.trim().toIntOrNull() }
-        ?.takeIf { it.isNotEmpty() }
-        ?.toIntArray()
 }

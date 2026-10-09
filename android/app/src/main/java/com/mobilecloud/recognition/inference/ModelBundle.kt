@@ -23,6 +23,8 @@ class ModelBundle private constructor(
     val sha256: String,
     val labelsSha256: String,
     val lowConfidenceThreshold: Float,
+    /** 归一化约定：正式契约在模型内部，端侧为恒等（原始 0–255） */
+    val normalization: PreprocessMath.NormalizationPreset,
 ) {
     /** 正方形输入边长（如 224），预处理直接使用 */
     val inputSize: Int = inputShape[1]
@@ -35,7 +37,8 @@ class ModelBundle private constructor(
     }
 
     companion object {
-        const val DEFAULT_THRESHOLD = 0.60f
+        /** 兜底阈值；正式包由 metadata.low_confidence_threshold 提供（契约 campus-gpu-v1 为 0.5） */
+        const val DEFAULT_THRESHOLD = 0.5f
         private const val MODEL_DIR = "models"
 
         fun load(assets: AssetManager): ModelBundle {
@@ -84,6 +87,9 @@ class ModelBundle private constructor(
                 throw ModelLoadException(errors.joinToString("；"))
             }
 
+            // 校验已通过，归一化约定必然可解析
+            val normalization = PreprocessMath.NormalizationPreset.fromName(metadata.input.normalization)
+
             return ModelBundle(
                 interpreter = interpreter,
                 labels = labels,
@@ -94,6 +100,7 @@ class ModelBundle private constructor(
                 sha256 = modelSha,
                 labelsSha256 = labelsSha,
                 lowConfidenceThreshold = metadata.lowConfidenceThreshold ?: DEFAULT_THRESHOLD,
+                normalization = normalization,
             )
         }
 
