@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- 端云一致性自检产物：应用外部私有目录 consistency/ -->
+    <external-files-path
+        name="consistency"
+        path="consistency/" />
+</paths>

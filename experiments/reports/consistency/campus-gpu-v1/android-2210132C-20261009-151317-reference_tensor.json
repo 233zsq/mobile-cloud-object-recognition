@@ -1,0 +1,213 @@
+{
+  "at": "2026-10-09T15:15:57+08:00",
+  "run_id": "android-2210132C-20261009-151317-reference_tensor",
+  "mode": "reference_tensor",
+  "device": "Xiaomi 2210132C / Android 16 (SDK 36)",
+  "runtime": "LiteRT java org.tensorflow.lite 1.4.1 / threads=4",
+  "model_sha256": "a58ca2be234d0d7e7db6bdec3853b3e077df6a88321da4f6bd7a8a5d5be51d13",
+  "labels_sha256": "3148fcb53e5859041bf7f6af5acbfb952a9d3fbd52a4fd334525b7d3af6a1064",
+  "submitted_report_sha256": "43737799798a7ef9e81be0d622713107e9b6fe6441fe6d52782c25d4ed718c09",
+  "passed": true,
+  "comparisons": [
+    {
+      "sample_id": "oi-30d38acdacfe06d0",
+      "actual_tensor_sha256": "e9176625dca64785493b831ec77b346289974ef1d6abe848b92b28c99648c57b",
+      "reference_tensor_sha256": "e9176625dca64785493b831ec77b346289974ef1d6abe848b92b28c99648c57b",
+      "input_passed": true,
+      "max_input_difference": null,
+      "top1_same": true,
+      "max_score_difference": 3.185272268169115e-09,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-101801303",
+      "actual_tensor_sha256": "6bf8ef97efd12c4725b2961815da5b538218b0e2ffe185050c7d8be91a821756",
+      "reference_tensor_sha256": "6bf8ef97efd12c4725b2961815da5b538218b0e2ffe185050c7d8be91a821756",
+      "input_passed": true,
+      "max_input_difference": null,
+      "top1_same": true,
+      "max_score_difference": 1.2963104256691338e-08,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-142628717",
+      "actual_tensor_sha256": "f78503674f4f6911d13825dad439d916975f4529bc5a6b431a1c92918675d96f",
+      "reference_tensor_sha256": "f78503674f4f6911d13825dad439d916975f4529bc5a6b431a1c92918675d96f",
+      "input_passed": true,
+      "max_input_difference": null,
+      "top1_same": true,
+      "max_score_difference": 8.758544889353459e-09,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-170447402",
+      "actual_tensor_sha256": "703bc624f7ffe2fcbf4e6903747b520780b18da919b50b94ecb949760fab9414",
+      "reference_tensor_sha256": "703bc624f7ffe2fcbf4e6903747b520780b18da919b50b94ecb949760fab9414",
+      "input_passed": true,
+      "max_input_difference": null,
+      "top1_same": true,
+      "max_score_difference": 7.71491508483324e-07,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-19912806",
+      "actual_tensor_sha256": "6f814e149a99b1317c88940ff447c6d92f6a591c23c972178f1b817372f4b145",
+      "reference_tensor_sha256": "6f814e149a99b1317c88940ff447c6d92f6a591c23c972178f1b817372f4b145",
+      "input_passed": true,
+      "max_input_difference": null,
+      "top1_same": true,
+      "max_score_difference": 2.369558715908937e-07,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-2987257",
+      "actual_tensor_sha256": "5b19a7f3b5da5f5c46d6da65eccd47f05eb38c1ae43c4fa292b6ad6a22f0a64f",
+      "reference_tensor_sha256": "5b19a7f3b5da5f5c46d6da65eccd47f05eb38c1ae43c4fa292b6ad6a22f0a64f",
+      "input_passed": true,
+      "max_input_difference": null,
+      "top1_same": true,
+      "max_score_difference": 2.289733846971842e-09,
+      "passed": true
+    },
+    {
+      "sample_id": "oi-6b784b107eaa3126",
+      "actual_tensor_sha256": "d7b5169a0521df9e74b6dddd9ee65196f0804212fdb9534b660e80b9493a772e",
+      "reference_tensor_sha256": "d7b5169a0521df9e74b6dddd9ee65196f0804212fdb9534b660e80b9493a772e",
+      "input_passed": true,
+      "max_input_difference": null,
+      "top1_same": true,
+      "max_score_difference": 3.259582492809443e-09,
+      "passed": true
+    },
+    {
+      "sample_id": "oi-10dd651ae86b43b3",
+      "actual_tensor_sha256": "3fef8b6a02a9f3c6737b856e8855ebaeb788196408093172b63fae45130d0640",
+      "reference_tensor_sha256": "3fef8b6a02a9f3c6737b856e8855ebaeb788196408093172b63fae45130d0640",
+      "input_passed": true,
+      "max_input_difference": null,
+      "top1_same": true,
+      "max_score_difference": 1.0307693476541147e-07,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-176030688",
+      "actual_tensor_sha256": "a3c345161ed2fbf644aa4a54ceaacc33616f7fa577cd8ff46d14dd0264488287",
+      "reference_tensor_sha256": "a3c345161ed2fbf644aa4a54ceaacc33616f7fa577cd8ff46d14dd0264488287",
+      "input_passed": true,
+      "max_input_difference": null,
+      "top1_same": true,
+      "max_score_difference": 1.800387573469564e-07,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-176030689",
+      "actual_tensor_sha256": "e34024ea98405c1ca09e5c4aa0834e8fad58b3b4f75f67f28b57adfa58d04e23",
+      "reference_tensor_sha256": "e34024ea98405c1ca09e5c4aa0834e8fad58b3b4f75f67f28b57adfa58d04e23",
+      "input_passed": true,
+      "max_input_difference": null,
+      "top1_same": true,
+      "max_score_difference": 1.7796417239868134e-07,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-109930862",
+      "actual_tensor_sha256": "b6c746510ebfe5f7ae0a5ab715be31ef9b947c503ee72f37e638b15b613bb428",
+      "reference_tensor_sha256": "b6c746510ebfe5f7ae0a5ab715be31ef9b947c503ee72f37e638b15b613bb428",
+      "input_passed": true,
+      "max_input_difference": null,
+      "top1_same": true,
+      "max_score_difference": 1.3784790087179033e-08,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-144261318",
+      "actual_tensor_sha256": "79c4fadc33bf29bb84fe470d47de2c87e632ef2c1ad4b302d487c0c5add31abc",
+      "reference_tensor_sha256": "79c4fadc33bf29bb84fe470d47de2c87e632ef2c1ad4b302d487c0c5add31abc",
+      "input_passed": true,
+      "max_input_difference": null,
+      "top1_same": true,
+      "max_score_difference": 1.0986328125017764e-07,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-14723373",
+      "actual_tensor_sha256": "6824f306670a12c23ded682dd35468494520a610cdef126b2094cf7159e75665",
+      "reference_tensor_sha256": "6824f306670a12c23ded682dd35468494520a610cdef126b2094cf7159e75665",
+      "input_passed": true,
+      "max_input_difference": null,
+      "top1_same": true,
+      "max_score_difference": 2.932968135027636e-08,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-72283140",
+      "actual_tensor_sha256": "cbc1450492ba8e0a100a95ee0172a76217f9150dd5b236d95975d42bb6f02a93",
+      "reference_tensor_sha256": "cbc1450492ba8e0a100a95ee0172a76217f9150dd5b236d95975d42bb6f02a93",
+      "input_passed": true,
+      "max_input_difference": null,
+      "top1_same": true,
+      "max_score_difference": 2.1646141051823165e-07,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-192911358",
+      "actual_tensor_sha256": "94d79bd1b5a0248f2aaffdb46e2116479b7fb65f2571425d8131f29f9b0c50a7",
+      "reference_tensor_sha256": "94d79bd1b5a0248f2aaffdb46e2116479b7fb65f2571425d8131f29f9b0c50a7",
+      "input_passed": true,
+      "max_input_difference": null,
+      "top1_same": true,
+      "max_score_difference": 1.5308837886252036e-07,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-13640856",
+      "actual_tensor_sha256": "35b09376894c49b0ea29b32cbf4cd3810fe12452cb8edd465ed6b28c6913c907",
+      "reference_tensor_sha256": "35b09376894c49b0ea29b32cbf4cd3810fe12452cb8edd465ed6b28c6913c907",
+      "input_passed": true,
+      "max_input_difference": null,
+      "top1_same": true,
+      "max_score_difference": 3.793884277847326e-07,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-79672988",
+      "actual_tensor_sha256": "f051ec6ca95cf0b4a40ca664aaf1e53432ca4da8d25c26271611b7fefdba74ce",
+      "reference_tensor_sha256": "f051ec6ca95cf0b4a40ca664aaf1e53432ca4da8d25c26271611b7fefdba74ce",
+      "input_passed": true,
+      "max_input_difference": null,
+      "top1_same": true,
+      "max_score_difference": 1.9496917746941733e-08,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-71474663",
+      "actual_tensor_sha256": "362c4a8d2d500a0dea75040185fe60788b8c27187955ad80390f7fa889094bb8",
+      "reference_tensor_sha256": "362c4a8d2d500a0dea75040185fe60788b8c27187955ad80390f7fa889094bb8",
+      "input_passed": true,
+      "max_input_difference": null,
+      "top1_same": true,
+      "max_score_difference": 2.22004699734768e-07,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-7151563",
+      "actual_tensor_sha256": "46b9a4cc735c2b00f0b3c0addb49bad15fc5de0a5c45c1f1db06bd8c996385be",
+      "reference_tensor_sha256": "46b9a4cc735c2b00f0b3c0addb49bad15fc5de0a5c45c1f1db06bd8c996385be",
+      "input_passed": true,
+      "max_input_difference": null,
+      "top1_same": true,
+      "max_score_difference": 1.3145446775553182e-07,
+      "passed": true
+    },
+    {
+      "sample_id": "oi-2fdfbd153b29517b",
+      "actual_tensor_sha256": "39c375ee44636f56f1c7770dec32a757e7dd4902080b5de1d50ec7756ed0a130",
+      "reference_tensor_sha256": "39c375ee44636f56f1c7770dec32a757e7dd4902080b5de1d50ec7756ed0a130",
+      "input_passed": true,
+      "max_input_difference": null,
+      "top1_same": true,
+      "max_score_difference": 1.2104812618929373e-07,
+      "passed": true
+    }
+  ]
+}
