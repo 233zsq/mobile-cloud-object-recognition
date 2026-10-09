@@ -345,3 +345,35 @@ def test_fixed_cohort_preserves_order_and_stops_changed_reference_before_api(app
     assert rejected.exit_code != 0 and 'cohort_reference_changed' in rejected.output
     with connect(app) as db:
         assert db.execute('SELECT SUM(attempts) FROM ai_reviews').fetchone()[0] == 1
+
+
+def test_explicit_profile_does_not_mutate_global_model_prompt_or_prices(app):
+    owner = admin(app); row = public_sample(app, owner)
+    before = (ai_review.MODEL, ai_review.PROMPT_VERSION, ai_review.INPUT_RATE, ai_review.RESERVATION)
+    profile = ai_review.Profile('qwen3.8-flash', 'campus-ai-review-v4')
+    def transport(key, text, photo):
+        assert '复核门槛' in text
+        return answer(), [300, 80], 1000
+    with connect(app) as db:
+        db.isolation_level = None
+        assert ai_review.analyze(db, Path(app.config['DATA_DIR']), row, categories(), {}, 'test-private-key-1234',
+                                 api=transport, profile=profile)[0] == 'done'
+        assert db.execute('SELECT model,charged_nano FROM ai_reviews').fetchone()[:] == ('qwen3.8-flash', 300 * 800 + 80 * 2700)
+        assert ai_review.suggestion(db, row, categories()) is None
+        assert ai_review.suggestion(db, row, categories(), profile)['decision'] == 'pass'
+    assert before == (ai_review.MODEL, ai_review.PROMPT_VERSION, ai_review.INPUT_RATE, ai_review.RESERVATION)
+
+
+def test_explicit_transport_requires_matching_model_and_alias_cache_generation(monkeypatch):
+    class Transport:
+        def open(self, request, timeout):
+            assert json.loads(request.data)['model'] == 'qwen3.8-flash'
+            return io.BytesIO(json.dumps({'model': 'qwen3.8-flash', 'usage': {'prompt_tokens': 300, 'completion_tokens': 80},
+                   'choices': [{'finish_reason': 'stop', 'message': {'content': answer()}}]}).encode())
+    monkeypatch.setattr(ai_review.urllib.request, 'build_opener', lambda *args: Transport())
+    assert ai_review.call_api('private', 'JSON', b'preview', model='qwen3.8-flash')[1] == [300, 80]
+    row = {'sha256': 'photo', 'crop': '', 'category': 0}
+    profile = ai_review.Profile('qwen3.8-flash', 'campus-ai-review-v3')
+    identity = ai_review.cache_key(row, categories(), profile)
+    monkeypatch.setitem(ai_review.ALIAS_GENERATIONS, 'qwen3.8-flash', 'new-provider-review-cycle')
+    assert identity != ai_review.cache_key(row, categories(), profile)

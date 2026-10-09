@@ -129,7 +129,8 @@ def create_app(config=None):
                       SESSION_COOKIE_SAMESITE='Lax', PERMANENT_SESSION_LIFETIME=28800,
                       REVIEW_LEASE_SECONDS=900,
                       REVIEW_AI_KEY_FILE=os.environ.get('REVIEW_AI_KEY_FILE', ''),
-                      REVIEW_AI_BUDGET_NANO=1_000_000_000, REVIEW_AI_MAX_CALLS=500,
+                      REVIEW_AI_BUDGET_NANO=int(os.environ.get('REVIEW_AI_BUDGET_NANO', '1000000000')),
+                      REVIEW_AI_MAX_CALLS=int(os.environ.get('REVIEW_AI_MAX_CALLS', '500')),
                       EGRESS_LIMIT_BYTES=int(float(os.environ.get('REVIEW_EGRESS_LIMIT_GIB', '20')) * 1024**3),
                       TRUSTED_HOSTS=['49.232.195.47', '127.0.0.1', 'localhost'])
     if config:
