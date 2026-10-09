@@ -9,10 +9,12 @@ import zipfile
 from collections import Counter
 from pathlib import Path, PurePosixPath
 
-from PIL import Image
+from PIL import Image, ImageOps
 
-from .common import ROOT, categories, category_path, digest, image_path, now, read_csv, read_json, safe_name, write_csv, write_json
-from .data import check_isolation, connected_groups, load_split, phash
+from .common import ROOT, FIELDS, categories, category_path, digest, image_path, now, read_csv, read_json, safe_name, write_csv, write_json
+from .data import check_isolation, connected_groups, load_split, phash, identity_keys, perceptual_keys
+
+EVOLUTION_FIELDS = FIELDS + ['source_sample_id', 'crop_box', 'parent_image_sha256', 'parent_phash']
 
 
 def resolve_parent(config, initial_checkpoint=None):
@@ -39,12 +41,11 @@ def resolve_parent(config, initial_checkpoint=None):
 
 
 def identities(row):
-    return {(k, row[k]) for k in ('sample_id', 'image_sha256', 'object_id', 'group_id', 'original_url') if row.get(k)}
+    return identity_keys(row)
 
 
 def overlaps(a, b):
-    return bool(identities(a) & identities(b)) or bool(a.get('phash') and b.get('phash') and
-            (int(a['phash'], 16) ^ int(b['phash'], 16)).bit_count() <= 6)
+    return bool(identities(a) & identities(b)) or any((x ^ y).bit_count() <= 6 for x in perceptual_keys(a) for y in perceptual_keys(b))
 
 
 def import_batch(archive, version, base_version='campus-public-expanded-v1', parent_release='campus-gpu-v1'):
@@ -118,21 +119,44 @@ def import_batch(archive, version, base_version='campus-public-expanded-v1', par
             raise ValueError('Manifest and image paths differ')
         for row in rows:
             path = PurePosixPath(row['image_path'])
-            if len(path.parts) != 2 or path.parts[0] != 'images' or row['source_dataset'] != 'field' or row['review_status'] != 'approved' or not row['object_id'] or not row['session_id'] or not row['group_id'] or int(row['category_id']) not in range(10):
-                raise ValueError('Approved field photo identity/label missing')
+            source = row.get('source_dataset')
+            public = source in ('wikimedia_commons', 'open_images')
+            if len(path.parts) != 2 or path.parts[0] != 'images' or source not in ('field', 'wikimedia_commons', 'open_images') or row['review_status'] != 'approved' or (not public and not row['object_id']) or not row['session_id'] or not row['group_id'] or int(row['category_id']) not in range(10):
+                raise ValueError('Approved photo identity/label missing')
+            if public and not all(row.get(k) for k in ('source_id', 'source_url', 'original_url', 'license', 'source_sample_id')):
+                raise ValueError('Public source attribution missing')
             photo = staging / path
             if digest(photo) != row['image_sha256']:
                 raise ValueError('Manifest photo hash mismatch')
             with Image.open(photo) as im:
+                if im.format not in ('JPEG', 'PNG', 'WEBP') or getattr(im, 'n_frames', 1) != 1 or im.width * im.height > 16_000_000:
+                    raise ValueError('Batch image format/frame/pixel budget exceeded')
                 im.load()
-                if min(im.size) < 128:
+                corrected = ImageOps.exif_transpose(im).convert('RGB')
+                if min(corrected.size) < 128:
                     raise ValueError('Field photo too small')
                 row['phash'] = phash(im)
+                # Always compute parent identity locally, never trust supplied lineage hashes.
+                row['parent_image_sha256'] = row['image_sha256']
+                row['parent_phash'] = row['phash']
+                if row.get('crop_box'):
+                    box = json.loads(row['crop_box'])
+                    if not isinstance(box, list) or len(box) != 4 or any(type(v) is not int for v in box) or not (0 <= box[0] < box[2] <= corrected.width and 0 <= box[1] < box[3] <= corrected.height) or min(box[2]-box[0], box[3]-box[1]) < 128:
+                        raise ValueError('Invalid crop box')
+                    photo = staging / 'derived' / (safe_name(row['sample_id']) + '.jpg')
+                    photo.parent.mkdir(exist_ok=True)
+                    cropped = corrected.crop(box)
+                    cropped.save(photo, 'JPEG', quality=95, subsampling=0)
+                    if photo.stat().st_size > 8 * 1024**2:
+                        raise ValueError('Derived crop exceeds image budget')
+                    row['image_sha256'] = digest(photo)
+                    row['phash'] = phash(cropped)
+                    row['width'], row['height'] = map(str, cropped.size)
             if any(overlaps(row, t) for t in heldout):
                 raise ValueError('Independent test identity cannot enter development data')
             if any(row['image_sha256'] == r['image_sha256'] or row['sample_id'] == r['sample_id'] for r in train + val):
                 raise ValueError('Photo already present in base dataset')
-            row['image_path'] = (destination / path).relative_to(ROOT).as_posix()
+            row['image_path'] = (destination / photo.relative_to(staging)).relative_to(ROOT).as_posix()
         # Union perceptual neighbours as well as the human-reviewed identity graph.
         for i, row in enumerate(rows):
             related = [r for r in rows[:i] if overlaps(row, r)]
@@ -151,6 +175,8 @@ def import_batch(archive, version, base_version='campus-public-expanded-v1', par
             linked_val = any(overlaps(a, b) for a in group for b in val)
             if linked_train and linked_val:
                 raise ValueError('New group bridges old train/validation identities')
+            if any(overlaps(a, b) and a['category_id'] != b['category_id'] for a in group for b in train + val):
+                raise ValueError('New photo conflicts with a related base category')
             (added_train if linked_train else added_val if linked_val else independent).append(group)
         rng = random.Random(42)
         for category in range(10):
@@ -185,7 +211,7 @@ def import_batch(archive, version, base_version='campus-public-expanded-v1', par
         for row in selected:
             row.update(split_name=name, data_version=version)
         path = split_dir / (name + '.csv')
-        write_csv(path, selected)
+        write_csv(path, selected, fields=EVOLUTION_FIELDS)
         metadata['files'][name] = {'count': len(selected), 'sha256': digest(path), 'counts': dict(Counter(r['category_id'] for r in selected))}
     write_json(split_dir / 'dataset.json', metadata)
     write_json(ROOT / 'ml/configs/generated' / (version + '.json'), config)
@@ -221,6 +247,7 @@ def compare(release, baseline='campus-gpu-v1'):
     legacy, _ = load_split(old.metadata['data_version'], 'validation')
     legacy_ids = {r['sample_id'] for r in legacy}
     subsets = {'original_public_validation': [r for r in rows if r['sample_id'] in legacy_ids],
+               'new_public_development_validation': [r for r in rows if r['sample_id'] not in legacy_ids and r.get('source_dataset') in ('wikimedia_commons', 'open_images')],
                'field_development_validation': [r for r in rows if r.get('source_dataset') in ('field', 'self_captured')]}
     if {r['sample_id'] for r in subsets['original_public_validation']} != legacy_ids:
         raise ValueError('Original baseline validation membership changed')

@@ -8,6 +8,8 @@
 
 导入保留基准数据中每张照片原有训练/验证归属，仅对新增独立组按约75%/25%划分。新照片关联旧训练组时归训练，关联旧验证组时归验证，连接两者则拒绝；近重复跨集合也拒绝。单类只有一个独立新组时全部归训练，不能据此声称实拍验证改善。正式测试清单仅用于比对身份，导入和训练不会读测试图片。
 
+批次也可包含经人工重新审核的 Commons/Open Images 网图，来源、作者、许可及下载版本随清单保留。可选框选仅裁剪训练主体，原图继续存档。导入先验原始字节，再在EXIF纠正后的坐标中裁剪，重新计算训练照片哈希与感知哈希；同时保留原图哈希、原图感知哈希及来源样本ID，统一参与分组、旧划分归属及独立测试隔离。原图与裁剪的关系不能通过改组名解除，裁剪不计作新的独立原始照片。与旧组标签矛盾的候选须重新审核。
+
 仍使用MobileNetV2和冻结十类别顺序。首轮默认从基准 `.keras` 检查点开始，Dropout0.4、学习率0.0001、最后一块、batch32、最多20轮、耐心3、停止时间23:00。Dropout须与父检查点一致；其他参数可在首次训练前调整并保存，修改后用新实验ID。不使用原ImageNet分类头的三阶段sweep入口。
 
 示例在训练仓库根目录执行（新源码和已有大文件在同一仓库时）：
@@ -38,7 +40,7 @@ python -m recognition export --result experiments/reports/campus-evolve-v1-seed4
 python -m recognition evolve compare --release models/releases/campus-evolve-v1
 ```
 
-仍执行FP32内置算子导出、≤15MB、完整验证集Keras/LiteRT对照、每类2张共20张样例和发布包哈希检查。导出的 `frozen` 表示技术包已冻结，新系列另记 `deployment_approval=pending_human_approval`。比较报告在 `experiments/reports/evolution/`，将固定原公开验证集和新增实拍开发验证分别比较，不读取最终测试图片。缺少类别会列出实际类别支持数；固定十类宏F1对缺失类别按0计算，不与全十类实拍结果混作提升率。
+仍执行FP32内置算子导出、≤15MB、完整验证集Keras/LiteRT对照、每类2张共20张样例和发布包哈希检查。导出的 `frozen` 表示技术包已冻结，新系列另记 `deployment_approval=pending_human_approval`。比较报告在 `experiments/reports/evolution/`，将固定原公开验证集、新增公开开发验证和新增实拍开发验证分别比较，不读取最终测试图片。缺少类别会列出实际类别支持数；固定十类宏F1对缺失类别按0计算，不与全十类实拍结果混作提升率。
 
 将比较报告通过SSH交管理员导入：
 

@@ -232,14 +232,27 @@ def freeze_split(manifest, version, seed=42, test_manifest=None):
     return meta
 
 
+def identity_keys(row):
+    """Source/crop identities share namespaces with their original sample."""
+    keys = {(field, row[field]) for field in ('sample_id', 'image_sha256', 'object_id', 'group_id', 'original_url') if row.get(field)}
+    for field, alias in (('source_sample_id', 'sample_id'), ('parent_image_sha256', 'image_sha256')):
+        if row.get(field):
+            keys.add((alias, row[field]))
+    if row.get('source_id') and row.get('source_dataset'):
+        keys.add(('source_identity', row['source_dataset'] + ':' + row['source_id']))
+    return keys
+
+
+def perceptual_keys(row):
+    return {int(row[field], 16) for field in ('phash', 'parent_phash') if row.get(field)}
+
+
 def check_isolation(*sets):
     previous=set()
     for rows in sets:
         keys=set()
         for row in rows:
-            for field in ("sample_id","image_sha256","object_id","group_id","original_url"):
-                if row.get(field):
-                    keys.add(field+":"+row[field])
+            keys.update(identity_keys(row))
         if keys & previous:
             raise ValueError("Cross-split identity/hash/source leakage detected")
         previous |= keys
@@ -248,7 +261,7 @@ def check_isolation(*sets):
         for b in sets[:i]:
             for ra in a:
                 for rb in b:
-                    if ra.get("phash") and rb.get("phash") and (int(ra["phash"],16)^int(rb["phash"],16)).bit_count()<=6:
+                    if any((a ^ b).bit_count() <= 6 for a in perceptual_keys(ra) for b in perceptual_keys(rb)):
                         raise ValueError("Cross-split perceptual near duplicate")
 
 

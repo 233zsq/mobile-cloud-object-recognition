@@ -73,7 +73,8 @@ def test_import_preserves_every_old_assignment_and_parent(workspace):
     for name, old in before.items():
         current, _ = data.load_split('evolve-1', name)
         for a, b in zip(old, current):
-            assert {k: v for k, v in a.items() if k != 'data_version'} == {k: v for k, v in b.items() if k != 'data_version'}
+            assert {k: v for k, v in a.items() if k != 'data_version'} == {k: b[k] for k in a if k != 'data_version'}
+            assert not any(b.get(k) for k in evolution.EVOLUTION_FIELDS if k not in common.FIELDS)
     config = common.read_json(root / 'ml/configs/generated/evolve-1.json')
     checkpoint, lineage = evolution.resolve_parent(config)
     assert lineage['checkpoint_sha256'] == common.digest(checkpoint)
@@ -88,6 +89,61 @@ def test_new_photo_related_to_old_validation_stays_in_validation(workspace):
     new['object_id'] = 'validation0'
     result = evolution.import_batch(archive([new]), 'related', 'base')
     assert result['new_train_count'] == 0 and result['new_validation_count'] == 1
+
+
+def public_row(row):
+    return {**row, 'source_dataset': 'wikimedia_commons', 'source_id': 'test-source',
+            'source_sample_id': 'commons-test-source', 'object_id': '',
+            'source_url': 'https://commons.wikimedia.org/wiki/File:Test.jpg',
+            'original_url': 'https://upload.wikimedia.org/test.jpg', 'license': 'CC BY 4.0'}
+
+
+def test_public_crop_keeps_original_lineage_and_actual_pixels(workspace):
+    root, row, archive = workspace
+    new = public_row(row('public-crop'))
+    original = root/new['image_path']
+    Image.fromarray(np.random.default_rng(947).integers(0, 256, (256, 256, 3), np.uint8)).save(original)
+    new['image_sha256'] = common.digest(original)
+    new['crop_box'] = '[32,32,224,224]'
+    result = evolution.import_batch(archive([new]), 'public-crop', 'base')
+    assert result['new_train_count'] == 1
+    selected = common.read_csv(root/'data/splits/public-crop/train.csv')[-1]
+    assert selected['image_sha256'] != selected['parent_image_sha256'] == common.digest(original)
+    assert '/derived/' in selected['image_path'] and selected['license'] == 'CC BY 4.0'
+    with Image.open(root/selected['image_path']) as im:
+        assert im.size == (192, 192)
+    assert (root/'data/raw/evolution/public-crop/images'/original.name).read_bytes() == original.read_bytes()
+    with pytest.raises(ValueError, match='leakage'):
+        data.check_isolation([new], [selected])
+
+
+def test_cropped_old_validation_photo_cannot_enter_training(workspace):
+    root, row, archive = workspace
+    old = common.read_csv(root/'data/splits/base/validation.csv')[0]
+    new = public_row(row('validation-crop'))
+    (root/new['image_path']).write_bytes((root/old['image_path']).read_bytes())
+    new.update(image_sha256=old['image_sha256'], crop_box='[0,0,128,128]', source_sample_id=old['sample_id'])
+    result = evolution.import_batch(archive([new]), 'validation-crop', 'base')
+    assert result['new_train_count'] == 0 and result['new_validation_count'] == 1
+
+
+def test_crop_of_frozen_test_photo_is_rejected_by_parent_identity(workspace):
+    root, row, archive = workspace
+    heldout = row('heldout')
+    manifest = root/'data/splits/field-v1/test.csv'
+    common.write_csv(manifest, [heldout])
+    common.write_json(manifest.parent/'dataset.json', {'status':'frozen', 'files':{'test':{'sha256':common.digest(manifest)}}})
+    new = public_row(heldout); new.update(sample_id='new-crop', crop_box='[0,0,128,128]')
+    with pytest.raises(ValueError, match='Independent test identity'):
+        evolution.import_batch(archive([new]), 'test-crop', 'base')
+
+
+@pytest.mark.parametrize('box', ['[-1,0,128,128]', '[0,0,129,128]', '[0,0,64,128]', '[0.0,0,128,128]'])
+def test_invalid_crop_box_is_rejected(workspace, box):
+    root, row, archive = workspace
+    new = row('bad-crop'); new['crop_box'] = box
+    with pytest.raises(ValueError, match='Invalid crop'):
+        evolution.import_batch(archive([new]), 'bad-crop', 'base')
 
 
 def test_bridge_of_existing_train_and_validation_is_rejected(workspace):

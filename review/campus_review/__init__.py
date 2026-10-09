@@ -22,6 +22,7 @@ from PIL import Image, ImageOps
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.exceptions import SecurityError
 from werkzeug.middleware.proxy_fix import ProxyFix
+from .assets import PUBLIC_SOURCES, SOURCE_FIELDS, crop_box, renditions, source_metadata
 
 ROOT = Path(__file__).resolve().parents[1]
 Image.MAX_IMAGE_PIXELS = 16_000_000
@@ -40,6 +41,8 @@ CREATE TABLE IF NOT EXISTS batches(id TEXT PRIMARY KEY, receipt TEXT NOT NULL, c
 CREATE TABLE IF NOT EXISTS candidates(version TEXT PRIMARY KEY, report TEXT NOT NULL, digest TEXT NOT NULL,
  status TEXT NOT NULL DEFAULT 'pending', decision TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS login_attempts(key TEXT PRIMARY KEY, failures INTEGER NOT NULL, reset_at REAL NOT NULL);
+CREATE TABLE IF NOT EXISTS egress(id INTEGER PRIMARY KEY CHECK(id=1), bytes INTEGER NOT NULL DEFAULT 0);
+INSERT OR IGNORE INTO egress(id,bytes) VALUES(1,0);
 """
 
 
@@ -121,6 +124,7 @@ def create_app(config=None):
                       MAX_CONTENT_LENGTH=9 * 1024 * 1024,
                       SESSION_COOKIE_SECURE=True, SESSION_COOKIE_HTTPONLY=True,
                       SESSION_COOKIE_SAMESITE='Lax', PERMANENT_SESSION_LIFETIME=28800,
+                      EGRESS_LIMIT_BYTES=int(float(os.environ.get('REVIEW_EGRESS_LIMIT_GIB', '20')) * 1024**3),
                       TRUSTED_HOSTS=['49.232.195.47', '127.0.0.1', 'localhost'])
     if config:
         app.config.update(config)
@@ -128,7 +132,7 @@ def create_app(config=None):
         raise ValueError('Set REVIEW_SECRET_KEY to at least 32 random characters')
     data = Path(app.config['DATA_DIR']).resolve()
     data.mkdir(parents=True, exist_ok=True)
-    for name in ('images', 'previews', 'batches'):
+    for name in ('images', 'previews', 'thumbs', 'details', 'batches'):
         (data / name).mkdir(exist_ok=True)
     categories_file = Path(app.config.get('CATEGORIES_FILE', ROOT.parent / 'shared/categories.json'))
     category_bytes = categories_file.read_bytes()
@@ -138,6 +142,13 @@ def create_app(config=None):
     connection = sqlite3.connect(data / 'review.sqlite3')
     connection.execute('PRAGMA journal_mode=WAL')
     connection.executescript(SCHEMA)
+    columns = {r[1] for r in connection.execute('PRAGMA table_info(samples)')}
+    for name, definition in (('source', "TEXT NOT NULL DEFAULT 'field'"),
+                             ('source_meta', "TEXT NOT NULL DEFAULT '{}'"),
+                             ('crop', "TEXT NOT NULL DEFAULT ''")):
+        if name not in columns:
+            connection.execute(f'ALTER TABLE samples ADD COLUMN {name} {definition}')
+    connection.commit()
     connection.close()
 
     @app.before_request
@@ -158,14 +169,72 @@ def create_app(config=None):
         response.headers['X-Content-Type-Options'] = 'nosniff'
         response.headers['X-Frame-Options'] = 'DENY'
         response.headers['Referrer-Policy'] = 'no-referrer'
-        response.headers['Cache-Control'] = 'no-store'
+        if request.endpoint == 'image' and response.status_code in (200, 304):
+            response.headers['Cache-Control'] = 'private, no-cache'
+            response.vary.add('Cookie')
+        else:
+            response.headers['Cache-Control'] = 'no-store'
         response.headers['Content-Security-Policy'] = "default-src 'self'; img-src 'self'; style-src 'self'; script-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
         return response
 
     @app.context_processor
     def globals_():
         return {'categories': cat['categories'], 'csrf': session.get('csrf'),
-                'baseline': baseline, 'base_metrics': base_metrics}
+                'baseline': baseline, 'base_metrics': base_metrics,
+                'source_labels': {'field': '成员实拍', 'wikimedia_commons': 'Commons 网图', 'open_images': 'Open Images 网图'}}
+
+    def budgeted_file(path, **kwargs):
+        response = send_file(path, conditional=True, **kwargs)
+        size = response.content_length or 0
+        if request.method != 'HEAD' and response.status_code in (200, 206) and size:
+            db().execute('BEGIN IMMEDIATE')
+            changed = db().execute('UPDATE egress SET bytes=bytes+? WHERE id=1 AND bytes+?<=?',
+                                   (size, size, app.config['EGRESS_LIMIT_BYTES'])).rowcount
+            if not changed:
+                db().rollback()
+                response.close()
+                abort(429, '审核资源累计流量预算已用完，请联系管理员核对服务器余量')
+            db().commit()
+        return response
+
+    def store_photo(content, category, object_id, session_id, group_id, owner, meta=None):
+        if len(content) > 8 * 1024**2:
+            raise ValueError('单张照片最大8MiB')
+        identity = sha(content)
+        if db().execute('SELECT 1 FROM samples WHERE sha256=?', (identity,)).fetchone():
+            raise ValueError('这张照片已经上传')
+        sid = uuid.uuid4().hex
+        with IMAGE_LOCK, Image.open(io.BytesIO(content)) as im:
+            if im.format not in ('JPEG', 'PNG', 'WEBP') or getattr(im, 'n_frames', 1) != 1 or im.width * im.height > Image.MAX_IMAGE_PIXELS:
+                raise ValueError('仅支持1600万像素以内的单帧 JPEG、PNG、WebP')
+            im.load()
+            corrected = ImageOps.exif_transpose(im).convert('RGB')
+            width, height = corrected.size
+            if min(width, height) < 128:
+                raise ValueError('照片短边至少128像素')
+            fingerprint = perceptual(im)
+            ext = {'JPEG': '.jpg', 'PNG': '.png', 'WEBP': '.webp'}[im.format]
+            renditions(corrected, data, sid)
+        filename = sid + ext
+        original = data / 'images' / filename
+        original.write_bytes(content)
+        try:
+            db().execute('BEGIN IMMEDIATE')
+            db().execute('INSERT INTO samples(id,owner,filename,sha256,category,object_id,session_id,group_id,phash,width,height,created_at,source,source_meta) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+                         (sid, owner, filename, identity, category, object_id, session_id, group_id or sid,
+                          fingerprint, width, height, stamp(), meta['source_dataset'] if meta else 'field',
+                          json.dumps(meta or {}, ensure_ascii=False)))
+            db().execute('INSERT INTO events(actor,action,subject,details,created_at) VALUES(?,?,?,?,?)',
+                         (owner, 'public_import' if meta else 'upload', sid,
+                          json.dumps({'sha256': identity, 'category': category}), stamp()))
+            db().commit()
+        except Exception:
+            db().rollback()
+            original.unlink(missing_ok=True)
+            for name in ('thumbs', 'details'):
+                (data / name / (sid + '.webp')).unlink(missing_ok=True)
+            raise
+        return sid
 
     @app.errorhandler(400)
     @app.errorhandler(403)
@@ -237,18 +306,27 @@ def create_app(config=None):
     @require()
     def index():
         status = request.args.get('status', 'pending')
+        source = request.args.get('source', 'all')
+        category = request.args.get('category', '')
+        if source not in ('all', 'field', *PUBLIC_SOURCES) or category not in ('', *map(str, range(10))):
+            abort(400, '未知来源或类别')
         if status not in ('pending', 'approved', 'rejected', 'all'):
             abort(400, '未知筛选')
         try:
             page = max(1, int(request.args.get('page', 1)))
         except ValueError:
             abort(400)
-        where = '' if status == 'all' else 'WHERE status=?'
-        args = () if status == 'all' else (status,)
+        conditions, args = [], []
+        for field, value, default in (('status', status, 'all'), ('source', source, 'all'), ('category', category, '')):
+            if value != default:
+                conditions.append(field + '=?'); args.append(value)
+        where = 'WHERE ' + ' AND '.join(conditions) if conditions else ''
         count = db().execute(f'SELECT COUNT(*) FROM samples {where}', args).fetchone()[0]
         samples = db().execute(f'SELECT * FROM samples {where} ORDER BY created_at DESC,id LIMIT 24 OFFSET ?', (*args, (page - 1) * 24)).fetchall()
         stats = dict(db().execute('SELECT status,COUNT(*) FROM samples GROUP BY status').fetchall())
-        return render_template('index.html', samples=samples, stats=stats, status=status, page=page, count=count,
+        return render_template('index.html', samples=samples, stats=stats, status=status, source=source, category=category,
+                               page=page, count=count, egress_bytes=db().execute('SELECT bytes FROM egress WHERE id=1').fetchone()[0],
+                               egress_limit=app.config['EGRESS_LIMIT_BYTES'],
                                batches=db().execute('SELECT * FROM batches ORDER BY created_at DESC').fetchall(),
                                candidates=db().execute('SELECT * FROM candidates ORDER BY created_at DESC').fetchall())
 
@@ -270,51 +348,28 @@ def create_app(config=None):
             if db().execute('SELECT 1 FROM samples WHERE sha256=?', (identity,)).fetchone():
                 abort(409, '这张照片已经上传，请在审核列表中查找')
             try:
-                with IMAGE_LOCK, Image.open(io.BytesIO(content)) as im:
-                    if im.format not in ('JPEG', 'PNG', 'WEBP') or getattr(im, 'n_frames', 1) != 1:
-                        raise ValueError('仅支持单帧 JPEG、PNG、WebP')
-                    if im.width * im.height > Image.MAX_IMAGE_PIXELS:
-                        raise ValueError('照片超过1600万像素')
-                    im.load()
-                    corrected = ImageOps.exif_transpose(im).convert('RGB')
-                    width, height = corrected.size
-                    if min(width, height) < 128:
-                        raise ValueError('照片短边至少128像素')
-                    fingerprint = perceptual(im)
-                    corrected.thumbnail((960, 960))
-                    preview = io.BytesIO()
-                    corrected.save(preview, 'JPEG', quality=85)
-                    ext = {'JPEG': '.jpg', 'PNG': '.png', 'WEBP': '.webp'}[im.format]
+                sid = store_photo(content, int(category), object_id, session_id, text('group_id', False), g.user['id'])
+            except sqlite3.IntegrityError:
+                abort(409, '这张照片已经上传')
             except (OSError, ValueError, Image.DecompressionBombError) as exc:
                 abort(400, '照片无法接收：' + str(exc))
-            sid = uuid.uuid4().hex
-            filename = sid + ext
-            original = data / 'images' / filename
-            thumb = data / 'previews' / (sid + '.jpg')
-            original.write_bytes(content)
-            thumb.write_bytes(preview.getvalue())
-            try:
-                db().execute('BEGIN IMMEDIATE')
-                db().execute('INSERT INTO samples(id,owner,filename,sha256,category,object_id,session_id,group_id,phash,width,height,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
-                             (sid, g.user['id'], filename, identity, int(category), object_id, session_id, text('group_id', False) or sid, fingerprint, width, height, stamp()))
-                event('upload', sid, {'sha256': identity, 'category': int(category)})
-                db().commit()
-            except Exception:
-                db().rollback()
-                original.unlink(missing_ok=True)
-                thumb.unlink(missing_ok=True)
-                if db().execute('SELECT 1 FROM samples WHERE sha256=?', (identity,)).fetchone():
-                    abort(409, '这张照片已经上传')
-                raise
             return redirect(url_for('sample', sid=sid))
         return render_template('upload.html')
 
     @app.get('/images/<sid>')
     @require()
     def image(sid):
-        if not db().execute('SELECT 1 FROM samples WHERE id=?', (sid,)).fetchone():
+        row = db().execute('SELECT * FROM samples WHERE id=?', (sid,)).fetchone()
+        if not row:
             abort(404)
-        return send_file(data / 'previews' / (safe(sid) + '.jpg'), mimetype='image/jpeg')
+        size = request.args.get('size', 'detail')
+        if size not in ('thumb', 'detail'):
+            abort(400)
+        path = data / ('thumbs' if size == 'thumb' else 'details') / (safe(sid) + '.webp')
+        if not path.exists():
+            with IMAGE_LOCK, Image.open(data / 'images' / row['filename']) as im:
+                renditions(ImageOps.exif_transpose(im).convert('RGB'), data, sid)
+        return budgeted_file(path, mimetype='image/webp')
 
     @app.route('/samples/<sid>', methods=['GET', 'POST'])
     @require()
@@ -332,18 +387,25 @@ def create_app(config=None):
                 abort(400)
             if status == 'rejected' and not reason:
                 abort(400, '拒绝时请填写原因')
-            object_id, session_id, group_id = text('object_id'), text('session_id'), text('group_id')
+            object_id, session_id, group_id = text('object_id', row['source'] == 'field'), text('session_id'), text('group_id')
+            crop = request.form.get('crop', row['crop'])
+            if request.form.get('use_crop') and not crop:
+                abort(400, '请先选择裁剪区域')
+            try:
+                crop_box(crop, row['width'], row['height'])
+            except (ValueError, TypeError):
+                abort(400, '裁剪坐标无效或原图裁剪区域小于128×128')
             db().execute('BEGIN IMMEDIATE')
-            changed = db().execute('UPDATE samples SET status=?,category=?,reason=?,object_id=?,session_id=?,group_id=?,revision=revision+1 WHERE id=? AND revision=? AND batch IS NULL',
-                                   (status, int(category), reason, object_id, session_id, group_id, sid, request.form.get('revision', ''))).rowcount
+            changed = db().execute('UPDATE samples SET status=?,category=?,reason=?,object_id=?,session_id=?,group_id=?,crop=?,revision=revision+1 WHERE id=? AND revision=? AND batch IS NULL',
+                                   (status, int(category), reason, object_id, session_id, group_id, crop, sid, request.form.get('revision', ''))).rowcount
             if not changed:
                 abort(409, '其他成员已更新照片，刷新页面后再审核')
-            event('review', sid, {'status': status, 'category': category, 'reason': reason, 'object_id': object_id, 'session_id': session_id, 'group_id': group_id})
+            event('review', sid, {'status': status, 'category': category, 'reason': reason, 'object_id': object_id, 'session_id': session_id, 'group_id': group_id, 'crop': crop})
             db().commit()
             return redirect(url_for('sample', sid=sid))
-        related = [r for r in db().execute('SELECT * FROM samples WHERE id<>?', (sid,)) if r['object_id'] == row['object_id'] or r['group_id'] == row['group_id'] or (int(r['phash'], 16) ^ int(row['phash'], 16)).bit_count() <= 6]
+        related = [r for r in db().execute('SELECT * FROM samples WHERE id<>?', (sid,)) if (row['object_id'] and r['object_id'] == row['object_id']) or r['group_id'] == row['group_id'] or (int(r['phash'], 16) ^ int(row['phash'], 16)).bit_count() <= 6]
         history = db().execute('SELECT e.*,u.username FROM events e JOIN users u ON e.actor=u.id WHERE subject=? ORDER BY e.id DESC', (sid,)).fetchall()
-        return render_template('sample.html', sample=row, related=related[:20], history=history)
+        return render_template('sample.html', sample=row, source_meta=json.loads(row['source_meta']), related=related[:20], history=history)
 
     @app.post('/batches')
     @require('admin')
@@ -358,7 +420,8 @@ def create_app(config=None):
         labels = {}
         for row in rows:
             for field in ('object_id', 'group_id'):
-                labels.setdefault((field, row[field]), set()).add(row['category'])
+                if row[field]:
+                    labels.setdefault((field, row[field]), set()).add(row['category'])
         if any(len(values)>1 for values in labels.values()):
             abort(409, '同一实物或重复组出现多个类别，请先复核标签')
         manifests = []
@@ -367,8 +430,11 @@ def create_app(config=None):
                 abort(409, '原照片哈希发生变化，冻结中止')
             manifests.append({'sample_id': row['id'], 'image_path': 'images/' + row['filename'], 'image_sha256': row['sha256'],
                               'category_id': row['category'], 'object_id': row['object_id'], 'session_id': row['session_id'],
-                              'group_id': row['group_id'], 'phash': row['phash'], 'collector': row['username'], 'captured_at': row['created_at'],
-                              'review_status': 'approved', 'review_reason': row['reason'], 'source_dataset': 'field',
+                              'group_id': row['group_id'], 'phash': row['phash'], 'collector': row['username'], 'captured_at': row['created_at'] if row['source']=='field' else '',
+                              'review_status': 'approved', 'review_reason': row['reason'],
+                              **{key: json.loads(row['source_meta']).get(key, '') for key in SOURCE_FIELDS if key != 'previous_review_reason'},
+                              'source_dataset': row['source'], 'source_sample_id': json.loads(row['source_meta']).get('sample_id', ''),
+                              'crop_box': json.dumps(crop_box(row['crop'], row['width'], row['height'])) if row['crop'] else '',
                               'width': row['width'], 'height': row['height']})
         stream = io.StringIO(newline='')
         writer = csv.DictWriter(stream, fieldnames=list(manifests[0]))
@@ -401,7 +467,7 @@ def create_app(config=None):
         archive = data / 'batches' / (version + '.zip')
         if file_sha(archive) != json.loads(row['receipt'])['archive_sha256']:
             abort(409, '批次包哈希错误')
-        return send_file(archive, as_attachment=True)
+        return budgeted_file(archive, as_attachment=True)
 
     @app.post('/invites')
     @require('admin')
@@ -462,6 +528,58 @@ def create_app(config=None):
         token = secrets.token_urlsafe(32)
         db().execute('INSERT INTO invites VALUES(?,?,?,0)', (sha(token.encode()), 'admin', time.time() + 86400))
         click.echo('/join/' + token)
+
+    @app.cli.command('import-public')
+    @click.argument('archive_file', type=click.Path(exists=True, path_type=Path))
+    @click.option('--report', type=click.Path(path_type=Path))
+    def import_public(archive_file, report):
+        """Import bounded, locally collected sources as pending; no remote URL fetch."""
+        summary = {'imported': 0, 'skipped_existing': 0, 'rejected': [], 'at': stamp()}
+        with zipfile.ZipFile(archive_file) as package:
+            infos = package.infolist()
+            names = [i.filename for i in infos]
+            if len(names) != len(set(names)) or len(names) > 3002 or sum(i.file_size for i in infos) > 3 * 1024**3:
+                raise click.ClickException('Public archive budget exceeded')
+            if any(i.file_size > 8 * 1024**2 or i.filename.startswith('/') or '\\' in i.filename or '..' in Path(i.filename).parts for i in infos):
+                raise click.ClickException('Unsafe public archive path or size')
+            receipt = json.loads(package.read('queue.json'))
+            if receipt.get('purpose') != 'public_review_queue' or receipt.get('categories_sha256') != sha(category_bytes):
+                raise click.ClickException('Public queue purpose/categories differ')
+            if set(names) != {'queue.json', *receipt['files']} or sha(package.read('samples.csv')) != receipt['files']['samples.csv']:
+                raise click.ClickException('Public queue file identity differs')
+            rows = list(csv.DictReader(io.StringIO(package.read('samples.csv').decode('utf-8-sig'))))
+            if len(rows) != receipt['count'] or set(receipt['files']) != {'samples.csv', *[r['image_path'] for r in rows]}:
+                raise click.ClickException('Public queue manifest differs')
+            owner = db().execute("SELECT id FROM users WHERE username='@public-import' AND active=0").fetchone()
+            if not owner:
+                db().execute("INSERT INTO users(username,password,role,active) VALUES(?,?,'reviewer',0)",
+                             ('@public-import', generate_password_hash(secrets.token_urlsafe(32))))
+                owner = db().execute("SELECT id FROM users WHERE username='@public-import'").fetchone()
+            for index, row in enumerate(rows):
+                try:
+                    path = Path(row['image_path'])
+                    if len(path.parts) != 2 or path.parts[0] != 'images' or int(row['category_id']) not in range(10):
+                        raise ValueError('Invalid image path/category')
+                    content = package.read(row['image_path'])
+                    if sha(content) != row['image_sha256'] or sha(content) != receipt['files'][row['image_path']]:
+                        raise ValueError('Public photo hash differs')
+                    if db().execute('SELECT 1 FROM samples WHERE sha256=?', (row['image_sha256'],)).fetchone():
+                        summary['skipped_existing'] += 1
+                        continue
+                    meta = source_metadata(row)
+                    meta['sample_id'] = safe(row['sample_id'])
+                    object_id, group_id = row.get('object_id', ''), row.get('group_id') or row['sample_id']
+                    if len(object_id) > 160 or len(group_id) > 160:
+                        raise ValueError('Identity too long')
+                    store_photo(content, int(row['category_id']), object_id, 'public-collection', group_id, owner['id'], meta)
+                    summary['imported'] += 1
+                except (OSError, ValueError, Image.DecompressionBombError) as exc:
+                    summary['rejected'].append({'sample_id': row.get('sample_id'), 'reason': str(exc)[:180]})
+                if (index + 1) % 100 == 0:
+                    click.echo(f"Processed {index+1}/{len(rows)}")
+        if report:
+            report.write_bytes(encode(summary))
+        click.echo(json.dumps(summary, ensure_ascii=False))
 
     @app.cli.command('register-candidate')
     @click.argument('report_file', type=click.Path(exists=True, path_type=Path))

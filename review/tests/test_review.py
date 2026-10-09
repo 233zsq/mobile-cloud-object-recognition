@@ -4,6 +4,8 @@ import re
 import sqlite3
 import sys
 import zipfile
+import csv
+import hashlib
 from pathlib import Path
 
 import pytest
@@ -162,3 +164,88 @@ def test_concurrent_reviewers_cannot_overwrite_each_other(app):
     with ThreadPoolExecutor(max_workers=2) as pool:
         jobs=[pool.submit(c.post,path,data=b) for c,b in zip((first,second),bodies)]
         assert sorted(job.result().status_code for job in jobs)==[302,409]
+
+
+def public_archive(app, path):
+    content = photo().getvalue()
+    row = {'sample_id': 'commons-test', 'image_path': 'images/test.jpg',
+           'image_sha256': hashlib.sha256(content).hexdigest(), 'category_id': '0', 'group_id': 'web-group',
+           'source_dataset': 'wikimedia_commons', 'source_id': 'test', 'source_url': 'https://commons.wikimedia.org/wiki/File:Test.jpg',
+           'original_url': 'https://upload.wikimedia.org/test.jpg', 'license': 'CC BY-SA 4.0', 'author': 'Test author'}
+    stream = io.StringIO(newline=''); writer = csv.DictWriter(stream, fieldnames=list(row))
+    writer.writeheader(); writer.writerow(row); payload = stream.getvalue().encode()
+    from campus_review import ROOT
+    receipt = {'purpose': 'public_review_queue', 'count': 1,
+               'categories_sha256': hashlib.sha256((ROOT.parent/'shared/categories.json').read_bytes()).hexdigest(),
+               'files': {'samples.csv': hashlib.sha256(payload).hexdigest(), row['image_path']: row['image_sha256']}}
+    with zipfile.ZipFile(path, 'w') as package:
+        package.writestr('queue.json', json.dumps(receipt)); package.writestr('samples.csv', payload)
+        package.writestr(row['image_path'], content)
+    return content
+
+
+def test_public_import_stays_pending_preserves_source_and_supports_crop(app, tmp_path):
+    client = admin(app); archive = tmp_path/'public.zip'; original = public_archive(app, archive)
+    runner = app.test_cli_runner()
+    result = runner.invoke(args=['import-public', str(archive)])
+    assert result.exit_code == 0, result.output
+    assert '"imported": 1' in result.output
+    assert '"skipped_existing": 1' in runner.invoke(args=['import-public', str(archive)]).output
+    conn = sqlite3.connect(tmp_path/'review.sqlite3'); conn.row_factory = sqlite3.Row
+    row = conn.execute('SELECT * FROM samples').fetchone()
+    assert row['status'] == 'pending' and not row['object_id'] and row['source'] == 'wikimedia_commons'
+    assert conn.execute("SELECT active FROM users WHERE username='@public-import'").fetchone()[0] == 0
+    conn.close()
+    page = client.get('/?source=wikimedia_commons&category=0')
+    assert 'Commons 网图' in page.text and 'loading="lazy"' in page.text and 'size=thumb' in page.text
+    assert row['id'] not in client.get('/?source=field').text
+    path = '/samples/'+row['id']
+    assert 'CC BY-SA 4.0' in client.get(path).text
+    body = {'csrf': csrf(client, path), 'revision': '1', 'category': '0', 'status': 'approved', 'object_id': '',
+            'session_id': 'public-collection', 'group_id': 'web-group', 'reason': 'clear crop', 'crop': '[0,0,8000,8000]'}
+    assert client.post(path, data={**body, 'crop': '[0,0,100,100]'}).status_code == 400
+    assert client.post(path, data=body).status_code == 302
+    assert client.post(path, data={**body, 'crop': ''}).status_code == 409
+    assert client.post('/batches', data={'csrf': csrf(client, '/'), 'version': 'public-crop'}).status_code == 302
+    with zipfile.ZipFile(io.BytesIO(client.get('/batches/public-crop.zip').data)) as package:
+        selected = list(csv.DictReader(io.StringIO(package.read('samples.csv').decode())))[0]
+        assert selected['crop_box'] == '[0, 0, 160, 160]'
+        assert selected['source_dataset'] == 'wikimedia_commons' and selected['source_sample_id'] == 'commons-test'
+        assert selected['license'] == 'CC BY-SA 4.0' and selected['original_url'].startswith('https://upload.')
+        assert package.read(selected['image_path']) == original
+
+
+def test_small_renditions_conditional_cache_and_cumulative_budget(app, tmp_path):
+    client = admin(app); path = upload(client); sid = path.split('/')[-1]
+    thumb = client.get('/images/'+sid+'?size=thumb')
+    assert thumb.mimetype == 'image/webp' and len(thumb.data) <= 32*1024
+    assert thumb.headers['Cache-Control'] == 'private, no-cache' and 'Cookie' in thumb.headers['Vary']
+    with Image.open(io.BytesIO(thumb.data)) as im:
+        assert max(im.size) <= 320
+    conn = sqlite3.connect(tmp_path/'review.sqlite3')
+    count = conn.execute('SELECT bytes FROM egress').fetchone()[0]
+    cached = client.get('/images/'+sid+'?size=thumb', headers={'If-None-Match': thumb.headers['ETag']})
+    assert cached.status_code == 304 and not cached.data
+    assert conn.execute('SELECT bytes FROM egress').fetchone()[0] == count
+    assert client.head('/images/'+sid+'?size=thumb').status_code == 200
+    assert conn.execute('SELECT bytes FROM egress').fetchone()[0] == count
+    partial = client.get('/images/'+sid+'?size=thumb', headers={'Range': 'bytes=0-9'})
+    assert partial.status_code == 206 and len(partial.data) == 10
+    count += 10
+    assert conn.execute('SELECT bytes FROM egress').fetchone()[0] == count
+    app.config['EGRESS_LIMIT_BYTES'] = count
+    assert client.get('/images/'+sid+'?size=detail').status_code == 429
+    assert client.get('/images/'+sid+'?size=thumb', headers={'Range': 'bytes=0-9'}).status_code == 429
+    assert app.test_client().get('/images/'+sid+'?size=thumb').status_code == 302
+    conn.close()
+
+
+def test_noisy_renditions_obey_byte_ceiling_and_invalid_filter_fails(app, tmp_path):
+    from campus_review.assets import renditions
+    im = Image.effect_noise((1800, 1400), 100).convert('RGB')
+    renditions(im, tmp_path, 'noisy')
+    assert (tmp_path/'thumbs/noisy.webp').stat().st_size <= 32*1024
+    assert (tmp_path/'details/noisy.webp').stat().st_size <= 160*1024
+    client = admin(app)
+    assert client.get('/?source=evil').status_code == 400
+    assert client.get('/?category=10').status_code == 400
