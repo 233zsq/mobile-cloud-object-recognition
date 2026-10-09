@@ -30,7 +30,7 @@ try:
 except urllib.error.HTTPError as error:
     checks['csrf_rejected']=error.code==400
 report={'at':datetime.now(timezone.utc).isoformat(),'url':args.url,'tls_certificate_validation':True,
-        'checks':checks,'passed':all(checks.values()),'new_photos_uploaded':0,'accounts_created':0}
+        'checks':checks,'passed':all(checks.values()),'probe_photos_uploaded':0,'probe_accounts_created':0}
 args.output.parent.mkdir(parents=True,exist_ok=True)
 args.output.write_bytes((json.dumps(report,indent=2)+'\n').encode('utf-8'))
 print(json.dumps(report,indent=2))
