@@ -72,9 +72,10 @@ object LetterboxEncoder {
                 val p01 = srcPixels[rowOffset1 + x0c]
                 val p11 = srcPixels[rowOffset1 + x1c]
 
-                buffer.putFloat(preset.apply(PreprocessMath.bilinearSample(r(p00), r(p10), r(p01), r(p11), fx, fy)))
-                buffer.putFloat(preset.apply(PreprocessMath.bilinearSample(g(p00), g(p10), g(p01), g(p11), fx, fy)))
-                buffer.putFloat(preset.apply(PreprocessMath.bilinearSample(b(p00), b(p10), b(p01), b(p11), fx, fy)))
+                // 契约要求 0–255：双线性舍入可能越界 ±1 ulp，写缓冲前钳制（见 PreprocessMath.clampPixel）
+                buffer.putFloat(preset.apply(PreprocessMath.clampPixel(PreprocessMath.bilinearSample(r(p00), r(p10), r(p01), r(p11), fx, fy))))
+                buffer.putFloat(preset.apply(PreprocessMath.clampPixel(PreprocessMath.bilinearSample(g(p00), g(p10), g(p01), g(p11), fx, fy))))
+                buffer.putFloat(preset.apply(PreprocessMath.clampPixel(PreprocessMath.bilinearSample(b(p00), b(p10), b(p01), b(p11), fx, fy))))
             }
         }
         buffer.rewind()

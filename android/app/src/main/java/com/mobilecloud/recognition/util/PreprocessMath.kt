@@ -69,12 +69,23 @@ object PreprocessMath {
     fun halfPixelSourceCoord(dstIndex: Int, dstSize: Int, srcSize: Int): Float =
         ((dstIndex + 0.5f) * srcSize / dstSize) - 0.5f
 
-    /** 四邻域双线性加权，0–255 float 空间直接计算，不取整为整数 */
-    fun bilinearSample(v00: Float, v10: Float, v01: Float, v11: Float, fx: Float, fy: Float): Float =
-        v00 * (1f - fx) * (1f - fy) +
-            v10 * fx * (1f - fy) +
-            v01 * (1f - fx) * fy +
-            v11 * fx * fy
+    /**
+     * 四邻域双线性加权，0–255 float 空间直接计算，不取整为整数。
+     * 求值顺序与 Python 参考实现（`recognition.preprocessing.bilinear`）一致：
+     * 先水平两段、再垂直混合——顺序不同会造成舍入方向不同，
+     * 曾导致输出越过 255 上界、被端云一致性校验器拒绝（PR 联调修复项）。
+     */
+    fun bilinearSample(v00: Float, v10: Float, v01: Float, v11: Float, fx: Float, fy: Float): Float {
+        val top = v00 * (1f - fx) + v10 * fx
+        val bottom = v01 * (1f - fx) + v11 * fx
+        return top * (1f - fy) + bottom * fy
+    }
+
+    /**
+     * 契约要求输入像素在 0–255。浮点舍入可能产生 ±1 ulp 的越界（如 255.00003），
+     * 写输入缓冲前收敛到合法范围；钳制量 ≤1e-5，远低于端云对照 0.001 的阈值。
+     */
+    fun clampPixel(value: Float): Float = value.coerceIn(0f, 255f)
 
     private fun floorToInt(value: Double): Int = kotlin.math.floor(value).toInt()
 

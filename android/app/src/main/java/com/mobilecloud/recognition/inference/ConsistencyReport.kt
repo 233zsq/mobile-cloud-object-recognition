@@ -19,6 +19,15 @@ object ConsistencyReport {
     const val MODE_REFERENCE_TENSOR = "reference_tensor"
     const val MODE_IMAGE_CHAIN = "image_chain"
 
+    /** run_id 必须匹配 `recognition.common.safe_name`：仅字母、数字、下划线、连字符 */
+    val SAFE_RUN_ID = Regex("[A-Za-z0-9_-]+")
+
+    /**
+     * 每份报告使用不同 run_id（交接约定）：同一 run_id 提交两种模式时，
+     * 校验器会在第二份报告报 "Consistency evidence exists"。
+     */
+    fun runIdFor(base: String, mode: String): String = "$base-$mode"
+
     data class SampleReport(
         val sampleId: String,
         val scores: FloatArray,

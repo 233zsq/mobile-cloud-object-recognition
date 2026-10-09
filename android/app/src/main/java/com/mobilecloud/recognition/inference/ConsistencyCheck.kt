@@ -63,6 +63,10 @@ class ConsistencyCheck(private val context: Context) {
             require(samples.isNotEmpty()) { "样例清单为空" }
 
             val runId = buildRunId()
+            // 交接约定：每份报告使用不同的 run_id（团队既有记录为 ...-image_chain / ...-reference_tensor 后缀），
+            // 否则校验器在第二份报告时报 "Consistency evidence exists"
+            val referenceRunId = ConsistencyReport.runIdFor(runId, ConsistencyReport.MODE_REFERENCE_TENSOR)
+            val imageRunId = ConsistencyReport.runIdFor(runId, ConsistencyReport.MODE_IMAGE_CHAIN)
             val outputDir = File(context.getExternalFilesDir(null), "consistency/$runId").apply { mkdirs() }
             val device = deviceLabel()
             val runtime = runtimeLabel(bundle.numThreads)
@@ -94,7 +98,7 @@ class ConsistencyCheck(private val context: Context) {
             }
             val refReport = ConsistencyReport.build(
                 mode = ConsistencyReport.MODE_REFERENCE_TENSOR,
-                runId = runId,
+                runId = referenceRunId,
                 device = device,
                 runtime = runtime,
                 modelSha256 = bundle.sha256,
@@ -136,7 +140,7 @@ class ConsistencyCheck(private val context: Context) {
             }
             val imgReport = ConsistencyReport.build(
                 mode = ConsistencyReport.MODE_IMAGE_CHAIN,
-                runId = runId,
+                runId = imageRunId,
                 device = device,
                 runtime = runtime,
                 modelSha256 = bundle.sha256,

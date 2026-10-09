@@ -148,6 +148,31 @@ class PreprocessMathTest {
     }
 
     @Test
+    fun `reference order bilinear stays within neighbour range over weight grid`() {
+        // 修复前四项求和顺序会让全 255 邻域在部分权重下产出 255.00003（越界、被校验器拒绝）
+        var fx = 0f
+        while (fx <= 1f) {
+            var fy = 0f
+            while (fy <= 1f) {
+                val v = PreprocessMath.bilinearSample(255f, 255f, 255f, 255f, fx, fy)
+                assertTrue("fx=$fx fy=$fy v=$v", v <= 255f)
+                val low = PreprocessMath.bilinearSample(0f, 0f, 0f, 0f, fx, fy)
+                assertTrue("fx=$fx fy=$fy v=$low", low >= 0f)
+                fy += 0.1f
+            }
+            fx += 0.1f
+        }
+    }
+
+    @Test
+    fun `clampPixel enforces contract range`() {
+        assertEquals(255f, PreprocessMath.clampPixel(255.00003f), 0f)
+        assertEquals(0f, PreprocessMath.clampPixel(-0.00003f), 0f)
+        assertEquals(128f, PreprocessMath.clampPixel(128f), 0f)
+        assertEquals(254.9f, PreprocessMath.clampPixel(254.9f), 0f)
+    }
+
+    @Test
     fun `identity preset preserves raw pixel values`() {
         val preset = PreprocessMath.NormalizationPreset.IDENTITY
         assertEquals(128f, preset.apply(PreprocessMath.PAD_VALUE), 0f)

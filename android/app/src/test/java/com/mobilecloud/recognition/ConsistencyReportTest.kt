@@ -109,6 +109,17 @@ class ConsistencyReportTest {
     }
 
     @Test
+    fun `per-mode run ids differ and stay within safe_name charset`() {
+        val base = "android-2210132C-20261009-140510"
+        val ref = ConsistencyReport.runIdFor(base, ConsistencyReport.MODE_REFERENCE_TENSOR)
+        val img = ConsistencyReport.runIdFor(base, ConsistencyReport.MODE_IMAGE_CHAIN)
+        assertTrue(ref, ConsistencyReport.SAFE_RUN_ID.matches(ref))
+        assertTrue(img, ConsistencyReport.SAFE_RUN_ID.matches(img))
+        // 同一 run_id 提交两种模式会被校验器拒绝（Consistency evidence exists）
+        assertFalse(ref == img)
+    }
+
+    @Test
     fun `max float diff and range read little endian`() {
         val a = java.nio.ByteBuffer.allocate(8).order(java.nio.ByteOrder.LITTLE_ENDIAN)
             .putFloat(128f).putFloat(255f).array()
