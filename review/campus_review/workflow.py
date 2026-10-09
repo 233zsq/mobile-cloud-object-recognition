@@ -4,6 +4,7 @@ import time
 from contextlib import contextmanager
 
 from werkzeug.exceptions import BadRequest, Conflict, Forbidden, NotFound
+from .ai_triage import ACTIVE
 
 SCHEMA = '''
 CREATE TABLE IF NOT EXISTS category_assignments(
@@ -40,11 +41,11 @@ class Workflow:
                                    (self.user['id'],)).fetchone()
         default_scope = 'mine' if assigned and self.user['role'] != 'admin' else 'all'
         value = {key: params.get(key, default) for key, default in (
-            ('status', 'pending'), ('source', 'all'), ('category', ''), ('scope', default_scope))}
+            ('status', 'pending'), ('source', 'all'), ('category', ''), ('scope', default_scope), ('triage', 'all'))}
         if (value['status'] not in ('pending', 'approved', 'rejected', 'all') or
                 value['source'] not in ('all', 'field', 'wikimedia_commons', 'open_images') or
                 value['category'] not in ('', *map(str, range(10))) or
-                value['scope'] not in ('mine', 'all', 'unassigned')):
+                value['scope'] not in ('mine', 'all', 'unassigned') or value['triage'] not in ('all', 'auto', 'audit')):
             raise BadRequest('未知筛选条件')
         return value
 
@@ -58,6 +59,9 @@ class Workflow:
             clauses.append('a.reviewer_id=?'); args.append(self.user['id'])
         elif filters['scope'] == 'unassigned':
             clauses.append('a.reviewer_id IS NULL')
+        if filters.get('triage', 'all') != 'all':
+            extra = ' AND d.audit_required=1' if filters['triage'] == 'audit' else ''
+            clauses.append('s.batch IS NULL AND EXISTS(SELECT 1 FROM ai_auto_decisions d WHERE ' + ACTIVE + extra + ')')
         return clauses, args
 
     def listing(self, filters, page):

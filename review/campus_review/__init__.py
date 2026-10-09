@@ -25,7 +25,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from .assets import PUBLIC_SOURCES, SOURCE_FIELDS, crop_box, renditions, source_metadata
 from .decisions import CHOICES, initial_choice, resolve_choice
 from .workflow import SCHEMA as WORKFLOW_SCHEMA, Workflow
-from . import ai_review
+from . import ai_review, ai_triage
 
 ROOT = Path(__file__).resolve().parents[1]
 Image.MAX_IMAGE_PIXELS = 16_000_000
@@ -131,6 +131,7 @@ def create_app(config=None):
                       REVIEW_AI_KEY_FILE=os.environ.get('REVIEW_AI_KEY_FILE', ''),
                       REVIEW_AI_BUDGET_NANO=int(os.environ.get('REVIEW_AI_BUDGET_NANO', '1000000000')),
                       REVIEW_AI_MAX_CALLS=int(os.environ.get('REVIEW_AI_MAX_CALLS', '500')),
+                      REVIEW_TRIAGE_PRIMARY_MODEL=os.environ.get('REVIEW_TRIAGE_PRIMARY_MODEL', 'qwen3.8-flash'),
                       EGRESS_LIMIT_BYTES=int(float(os.environ.get('REVIEW_EGRESS_LIMIT_GIB', '20')) * 1024**3),
                       TRUSTED_HOSTS=['49.232.195.47', '127.0.0.1', 'localhost'])
     if config:
@@ -158,7 +159,7 @@ def create_app(config=None):
     base_metrics = json.loads((ROOT.parent / 'models/releases/campus-gpu-v1/evaluation-validation.json').read_text(encoding='utf-8'))['metrics']
     connection = sqlite3.connect(data / 'review.sqlite3')
     connection.execute('PRAGMA journal_mode=WAL')
-    connection.executescript(SCHEMA + WORKFLOW_SCHEMA + ai_review.SCHEMA)
+    connection.executescript(SCHEMA + WORKFLOW_SCHEMA + ai_review.SCHEMA + ai_triage.SCHEMA)
     connection.executemany('INSERT OR IGNORE INTO category_assignments(category) VALUES(?)', [(i,) for i in range(10)])
     columns = {r[1] for r in connection.execute('PRAGMA table_info(samples)')}
     for name, definition in (('source', "TEXT NOT NULL DEFAULT 'field'"),
@@ -340,6 +341,9 @@ def create_app(config=None):
                                ai_suggestions={row['id']: ai_review.suggestion(db(), row, cat) for row in samples},
                                ai_summary=ai_review.latest_report(db()),
                                ai_pilot=ai_review.latest_report(db(), 'pilot'),
+                               triage_summary=ai_triage.summary(db()), ai_usage=ai_review.usage_report(ai_review.usage_totals(db())),
+                               ai_budget=app.config['REVIEW_AI_BUDGET_NANO']/1e9, ai_max_calls=app.config['REVIEW_AI_MAX_CALLS'],
+                               automatic_decisions={r['id']: ai_triage.current_decision(db(), r) for r in samples},
                                assignments=work.assignments(), review_now=time.time(),
                                reviewers=db().execute('SELECT id,username FROM users WHERE active=1 ORDER BY username').fetchall(),
                                page=page, count=count, egress_bytes=db().execute('SELECT bytes FROM egress WHERE id=1').fetchone()[0],
@@ -370,6 +374,40 @@ def create_app(config=None):
                           lambda old: event('assign_category', str(category), {'from': old, 'to': reviewer_id}))
         flash('品类分工已保存；改派后，原审核页面须重新领取。')
         return redirect(url_for('index') + '#assignments')
+
+    @app.post('/ai-triage/policy')
+    @require('admin')
+    def triage_policy():
+        value = request.form.get('enabled')
+        if value not in ('true', 'false'):
+            abort(400, '请选择开启或暂停')
+        ai_triage.set_enabled(db(), g.user['id'], value == 'true')
+        flash('严格分流已开启。' if value == 'true' else '严格分流已暂停；进行中的调用结束后停止写入。')
+        return redirect(url_for('index') + '#ai-triage')
+
+    @app.post('/ai-triage/jobs')
+    @require('admin')
+    def triage_job():
+        try:
+            limit = int(request.form.get('limit', '20'))
+        except ValueError:
+            abort(400, '请输入1到50之间的整数')
+        identity = ai_triage.new_job(db(), g.user['id'], limit, app.config)
+        try:
+            pid = ai_triage.launch(app, identity)
+            db().execute('UPDATE ai_triage_jobs SET pid=? WHERE id=? AND state="queued"', (pid, identity))
+        except OSError:
+            db().execute('UPDATE ai_triage_jobs SET state="interrupted",error_code="launch_failed" WHERE id=? AND state="queued"', (identity,))
+            abort(409, '任务未能启动，请联系管理员检查服务')
+        flash('分流任务已启动，刷新可查看进度。')
+        return redirect(url_for('index') + '#ai-triage')
+
+    @app.post('/samples/<sid>/ai-undo')
+    @require('admin')
+    def undo_automatic(sid):
+        ai_triage.undo(db(), g.user['id'], sid, request.form.get('revision', ''))
+        flash('AI决定已撤回，照片回到人工待审核队列。')
+        return redirect(url_for('index', status='pending'))
 
     @app.route('/upload', methods=['GET', 'POST'])
     @require()
@@ -456,7 +494,9 @@ def create_app(config=None):
         related = [r for r in db().execute('SELECT * FROM samples WHERE id<>?', (sid,)) if (row['object_id'] and r['object_id'] == row['object_id']) or r['group_id'] == row['group_id'] or (int(r['phash'], 16) ^ int(row['phash'], 16)).bit_count() <= 6]
         history = db().execute('SELECT e.*,u.username FROM events e JOIN users u ON e.actor=u.id WHERE subject=? ORDER BY e.id DESC', (sid,)).fetchall()
         decision, review_note = initial_choice(row)
+        automatic = ai_triage.current_decision(db(), row)
         return render_template('sample.html', sample=row, lease=lease, notice=notice, filters=filters,
+                               automatic=automatic, auto_evidence=json.loads(automatic['evidence']) if automatic else None,
                                ai=ai_review.suggestion(db(), row, cat),
                                decision=decision, decision_choices=CHOICES, review_note=review_note,
                                source_meta=json.loads(row['source_meta']), related=related[:20], history=history)
@@ -484,6 +524,8 @@ def create_app(config=None):
     def freeze():
         batch_id = safe(text('version'))
         db().execute('BEGIN IMMEDIATE')
+        if ai_triage.pending_approval_audits(db()):
+            abort(409, '请先完成AI自动通过照片抽检，再冻结训练批次')
         rows = db().execute("SELECT s.*,u.username FROM samples s JOIN users u ON s.owner=u.id WHERE s.status='approved' AND s.batch IS NULL ORDER BY s.id").fetchall()
         if not rows:
             abort(400, '没有待冻结的已通过照片')
@@ -514,6 +556,7 @@ def create_app(config=None):
         manifest_bytes = stream.getvalue().encode('utf-8')
         receipt = {'schema_version': 1, 'purpose': 'training_only', 'batch_id': batch_id, 'created_at': stamp(),
                    'category_version': cat['category_version'], 'categories_sha256': sha(category_bytes),
+                   'ai_review_provenance': ai_triage.provenance(db(), rows),
                    'count': len(rows), 'files': {'samples.csv': sha(manifest_bytes), **{r['image_path']: r['image_sha256'] for r in manifests}}}
         archive = data / 'batches' / (batch_id + '.zip')
         temp = archive.with_suffix('.tmp')
@@ -682,4 +725,5 @@ def create_app(config=None):
 
     app.extensions['review_data'] = data
     ai_review.register(app, db, data, cat)
+    ai_triage.register(app, db, data, cat)
     return app

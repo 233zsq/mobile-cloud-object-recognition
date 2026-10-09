@@ -398,7 +398,7 @@ def usage_report(totals):
 def register(app, get_db, data, categories):
     @app.cli.command('ai-review')
     @click.option('--mode', type=click.Choice(['pilot', 'pending']), default='pilot')
-    @click.option('--limit', type=click.IntRange(1, 100), default=20)
+    @click.option('--limit', type=click.IntRange(1, 50), default=20)
     @click.option('--category', type=click.IntRange(0, 9))
     @click.option('--retry-errors', is_flag=True, help='Explicitly retry failed suggestions, preserving all prior charged/reserved usage.')
     @click.option('--cohort', type=click.Path(exists=True, path_type=Path), help='Reuse sample IDs and unchanged human references from a pilot report.')
@@ -467,7 +467,7 @@ def register(app, get_db, data, categories):
                   'pass_precision': agreed / len(passed) if mode == 'pilot' and passed else None,
                   'pass_reference_count': len(passed) if mode == 'pilot' else 0,
                   'false_passes': pass_disagreements,
-                  'auto_approval_enabled': False, 'auto_approval_note': '初审校验阶段；AI建议不改动人工状态，需验证后另行启用自动通过。',
+                  'auto_approval_enabled': False, 'auto_approval_note': '此入口只保存建议，不修改照片状态；严格分流由独立策略入口控制。',
                   'cumulative_usage': usage_report(usage),
                   'run_usage': usage_report(tuple(a - b for a, b in zip(usage, usage_before))),
                   'cohort_usage': usage_report(usage_totals(connection, [cache_key(row, categories) for row in rows])),

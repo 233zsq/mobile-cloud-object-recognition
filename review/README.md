@@ -41,15 +41,15 @@
 set -a
 . /home/ubuntu/.config/campus-review/review.env
 set +a
-/home/ubuntu/apps/campus-review/venv/bin/flask --app wsgi ai-review --mode pilot --limit 100 \
+/home/ubuntu/apps/campus-review/venv/bin/flask --app wsgi ai-review --mode pilot --limit 50 \
   --report /home/ubuntu/apps/campus-review/shared/ai-pilot.json
 # 试运行后可为尚未审核的网图生成建议；单次最多100张
-/home/ubuntu/apps/campus-review/venv/bin/flask --app wsgi ai-review --mode pending --limit 100
+/home/ubuntu/apps/campus-review/venv/bin/flask --app wsgi ai-review --mode pending --limit 50
 ```
 
-`pilot`按类别及人工通过/拒绝分层抽取（种子42），报告建议通过样本与人工结果的一致率、分歧ID、覆盖数量和真实Token用量；它衡量的是初审效果，不是识别模型独立测试成绩。首页展示最近任务及当前提示版本的最近人工对照，详情展示建议及原因，可由人工点击“采用建议选框”并保存；AI不会更改照片状态、类别、修订或冻结批次。自动通过当前关闭，须在有足够代表性的人工基准上校验后再实施；模型自报置信度不作为自动批准依据。
+`pilot`按类别及人工通过/拒绝分层抽取（种子42），报告建议通过样本与人工结果的一致率、分歧ID、覆盖数量和真实Token用量；它衡量的是初审效果，不是识别模型独立测试成绩。首页展示最近任务及当前提示版本的最近人工对照，详情展示建议及原因，可由人工点击“采用建议选框”并保存；此建议入口不会更改照片状态、类别、修订或冻结批次。严格自动分流由下述独立策略控制；模型自报置信度不作为自动批准依据。
 
-缓存绑定原图SHA-256、现有选框、类别版本、完整提示词及固定模型版本。待审模式自动跳过当前输入已有建议的照片，可分批继续；重复调用不重复收费；改标签、选框或类别口径后旧建议失效。累计预算持久化在同一个SQLite数据库，按2026-10-09北京≤32K档标价估算：Flash输入/输出每百万Token为0.15/1.5元，Plus为1/10元；预算预留及结算自动匹配模型，累计最多1元、500次请求，单次运行最多100张；免费额度和活动优惠未计入。调用前原子预留32K输入及500输出Token的费用；网络错误、进程中断等未知用量保留预留，不自动重试或重置。供应商、鉴权或预算错误停止任务；单图格式错误保留安全错误代码并继续，图片仍交人工审核。修复错误后可显式加 `--retry-errors` 重试已失败记录，历次已知用量和未知预留仍累计保留；正在处理或中断后停留在reserved的记录不会被自动接管。该预算仅约束这份服务密钥在此程序中的调用，账户实际费用以百炼账单为准。[官方价格](https://help.aliyun.com/zh/model-studio/model-pricing)。
+缓存绑定原图SHA-256、现有选框、类别版本、完整提示词及固定模型版本。待审模式自动跳过当前输入已有建议的照片，可分批继续；重复调用不重复收费；改标签、选框或类别口径后旧建议失效。累计预算持久化在同一个SQLite数据库，按2026-10-09北京≤32K档标价估算：Flash输入/输出每百万Token为0.15/1.5元，Plus为1/10元；预算预留及结算自动匹配模型，安装默认累计1元、500次请求，当前云端授权30元、5000次请求，单次运行最多50张；免费额度和活动优惠未计入。调用前原子预留32K输入及500输出Token的费用；网络错误、进程中断等未知用量保留预留，不自动重试或重置。供应商、鉴权或预算错误停止任务；单图格式错误保留安全错误代码并继续，图片仍交人工审核。修复错误后可显式加 `--retry-errors` 重试已失败记录，历次已知用量和未知预留仍累计保留；正在处理或中断后停留在reserved的记录不会被自动接管。该预算仅约束这份服务密钥在此程序中的调用，账户实际费用以百炼账单为准。[官方价格](https://help.aliyun.com/zh/model-studio/model-pricing)。
 
 Python≥3.12，已在Windows3.13及Ubuntu3.14验证；本模块不安装TensorFlow、NumPy或LiteRT。
 
@@ -107,7 +107,7 @@ python3 /home/ubuntu/apps/campus-review/current/review/deploy/manage.py import-p
 
 ### 固定样本比较Plus与提示词
 
-`--cohort`只用于pilot，读取既有试运行报告的照片ID、类别、人工状态和修订，保持相同顺序。参考发生变化时，在任何调用前停止；不向模型发送参考答案。报告补充照片哈希、选框、参考文件哈希、模型费率、当前样本累计用量及本轮增量用量。缓存包含模型和完整提示词，两种模型及两种提示不会相互覆盖，所有配置共享原有总预算。
+`--cohort`只用于pilot，读取既有试运行报告的照片ID、类别、人工状态和修订，保持相同顺序。参考发生变化时，在任何调用前停止；不向模型发送参考答案。报告补充照片哈希、选框、参考文件哈希、模型费率、当前样本累计用量及本轮增量用量。缓存包含模型和完整提示词，各模型及各版提示不会相互覆盖，所有配置共享原有总预算。
 
 ```bash
 REVIEW_AI_MODEL=qwen3-vl-plus-2025-12-19 REVIEW_AI_PROMPT_VERSION=campus-ai-review-v3 \
@@ -121,6 +121,27 @@ REVIEW_AI_MODEL=qwen3-vl-plus-2025-12-19 REVIEW_AI_PROMPT_VERSION=campus-ai-revi
 
 人工记录不是标准答案。报告的 `pass_reference_agreement` 表示通过建议与现有人工记录的一致率，`pass_reference_disagreements`、`reject_reference_disagreements` 分别保留两个方向的分歧，`approved_needing_crop_recheck` 标出已通过但建议裁剪的照片。旧字段 `pass_precision`、`false_passes` 仅为兼容历史消费者的同义字段，不能当作准确率或已确认错误。复核时先按类别规则独立看图，再查看双方理由；分歧需第二位审核人或管理员裁决，一致项仍抽检。当前未增加独立双人盲审或自动裁决功能。
 
-未经代表性校验，不因换用Plus或单次小样本高一致率开启自动通过。
+单次建议与严格分流是两个入口。建议接口不改状态；严格分流经管理员开启后，只处理未经人工修改、没有正在编辑占用的待审网图。历史人工通过/拒绝、实拍和冻结照片都跳过。
 
 2026-10-09云端已选择 `qwen3-vl-plus-2025-12-19` / `campus-ai-review-v3` 作为辅助建议配置；v4、v5试验与局限见 [Plus对照记录](experiments/2026-10-09-bailian-plus.md)。代码默认值仍为Flash，可通过服务环境变量选择固定模型/提示，历史缓存及累计用量保留。
+
+### Qwen3.8与严格分流
+
+新增 `qwen3.8-flash`：支持图片和JSON输出，北京输入/输出每百万Token标价0.8/2.7元，非思考模式。[官方说明](https://help.aliyun.com/zh/model-studio/qwen3-8-flash)。当前官方只公布别名，本项目记录内部缓存代次 `review-evaluation-20261009-r1`，不能据此声称供应商权重已固定；供应商升级后应重新抽样评测并更换代次。模型与提示词通过不可变 `Profile` 独立传递，不改变其他任务的全局模型或价格。
+
+严格策略 `strict-crosscheck-v1` 依次核验：`REVIEW_TRIAGE_PRIMARY_MODEL`（默认Qwen3.8）/v4、VL-Plus/v3、VL-Plus/v5。前一步不满足候选条件或出现分歧立即交人工，节省后续调用。只有三项均为同类、无问题、无需裁剪的通过，才自动通过；只有三项均明确为表外物或图解，才自动拒绝。遮挡、模糊、目标太小、其他十类标签、选框及不确定均留给人工。理由出现人物场景、局部或不确定等描述时也会拦截。交叉核验用于保守筛选，不把Plus或人工历史当标准答案；同一供应商模型可能产生共同偏差，无法保证零错误。
+
+首页“AI严格分流”可开启/暂停、启动1–50张任务、进入抽检或查看自动决定。一次只允许一个严格分流任务；不循环处理全库。任务不在HTTP请求中等待API，刷新首页查看进度；暂停在当前调用结束后阻止后续自动写入。管理员在详情页可撤回未冻结的AI决定；人工也可领取后保存新的判断。并发占用和修订冲突仍受原有规则保护。模型建议、照片哈希、策略、任务、自动状态事件及撤回事件保存在SQLite中；训练包收据包含仍由AI决定的照片的依据哈希。
+
+每批每种自动结果至少抽检10%且至少1张；任务异常中断来不及抽样时，已决定照片默认全部待抽检。人工保存即结束该张抽检，自动通过抽检未完成时冻结返回409。发现错误应先暂停、撤回并复核同批，调整策略后另做评测。
+
+预算使用服务环境 `REVIEW_AI_BUDGET_NANO`（十亿为1元）和 `REVIEW_AI_MAX_CALLS`。安装默认仍是1元/500次；当前所有者已授权云端累计30元/5000次，每个分流批次最多50张。全部模型、对照试验和分流共享原有账本，不重置历史；费用为标价估算，实际扣费和免费额度以百炼账单为准。
+
+```bash
+# 服务器：使用已有私密配置运行，actor为现有管理员ID。
+python3 review/deploy/manage.py ai-triage-policy --actor <管理员ID> --enabled true
+python3 review/deploy/manage.py ai-triage --actor <管理员ID> --limit 20
+# 上一条是只读预演；添加--apply才会应用，且策略须开启。
+python3 review/deploy/manage.py ai-triage --actor <管理员ID> --limit 50 --apply
+python3 review/deploy/manage.py ai-triage-policy --actor <管理员ID> --enabled false
+```

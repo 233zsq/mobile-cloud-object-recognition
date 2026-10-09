@@ -152,7 +152,7 @@ def test_pilot_report_uses_hidden_human_reference_and_keeps_all_statuses(app, mo
     # Production default is bound at definition; inject only the transport boundary.
     original = ai_review.analyze
     monkeypatch.setattr(ai_review, 'analyze', lambda *args: original(*args, api=fake_api))
-    result = app.test_cli_runner().invoke(args=['ai-review', '--limit', '100', '--report', str(tmp_path / 'pilot.json')])
+    result = app.test_cli_runner().invoke(args=['ai-review', '--limit', '50', '--report', str(tmp_path / 'pilot.json')])
     assert result.exit_code == 0, result.output
     report = json.loads((tmp_path / 'pilot.json').read_text(encoding='utf-8'))
     assert report['pass_precision'] == 0 and report['false_passes'] == [row['id']]
