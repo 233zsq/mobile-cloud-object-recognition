@@ -42,6 +42,7 @@ if (stage) {
     if (!enabled.checked) { input.value = ''; show(null); }
   });
   document.querySelector('#review-form').addEventListener('submit', event => {
+    if (event.submitter && event.submitter.formNoValidate) return;
     if (enabled.checked && !input.value) {
       event.preventDefault(); message.textContent = '请先在照片上拖动选框，或取消勾选以使用全图';
     }

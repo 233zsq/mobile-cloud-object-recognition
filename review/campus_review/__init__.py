@@ -17,12 +17,13 @@ from functools import wraps
 from pathlib import Path
 
 import click
-from flask import Flask, abort, current_app, g, redirect, render_template, request, send_file, session, url_for
+from flask import Flask, abort, current_app, flash, g, redirect, render_template, request, send_file, session, url_for
 from PIL import Image, ImageOps
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.exceptions import SecurityError
 from werkzeug.middleware.proxy_fix import ProxyFix
 from .assets import PUBLIC_SOURCES, SOURCE_FIELDS, crop_box, renditions, source_metadata
+from .workflow import SCHEMA as WORKFLOW_SCHEMA, Workflow
 
 ROOT = Path(__file__).resolve().parents[1]
 Image.MAX_IMAGE_PIXELS = 16_000_000
@@ -124,6 +125,7 @@ def create_app(config=None):
                       MAX_CONTENT_LENGTH=9 * 1024 * 1024,
                       SESSION_COOKIE_SECURE=True, SESSION_COOKIE_HTTPONLY=True,
                       SESSION_COOKIE_SAMESITE='Lax', PERMANENT_SESSION_LIFETIME=28800,
+                      REVIEW_LEASE_SECONDS=900,
                       EGRESS_LIMIT_BYTES=int(float(os.environ.get('REVIEW_EGRESS_LIMIT_GIB', '20')) * 1024**3),
                       TRUSTED_HOSTS=['49.232.195.47', '127.0.0.1', 'localhost'])
     if config:
@@ -148,7 +150,8 @@ def create_app(config=None):
     base_metrics = json.loads((ROOT.parent / 'models/releases/campus-gpu-v1/evaluation-validation.json').read_text(encoding='utf-8'))['metrics']
     connection = sqlite3.connect(data / 'review.sqlite3')
     connection.execute('PRAGMA journal_mode=WAL')
-    connection.executescript(SCHEMA)
+    connection.executescript(SCHEMA + WORKFLOW_SCHEMA)
+    connection.executemany('INSERT OR IGNORE INTO category_assignments(category) VALUES(?)', [(i,) for i in range(10)])
     columns = {r[1] for r in connection.execute('PRAGMA table_info(samples)')}
     for name, definition in (('source', "TEXT NOT NULL DEFAULT 'field'"),
                              ('source_meta', "TEXT NOT NULL DEFAULT '{}'"),
@@ -189,6 +192,9 @@ def create_app(config=None):
         return {'categories': cat['categories'], 'csrf': session.get('csrf'),
                 'baseline': baseline, 'base_metrics': base_metrics,
                 'source_labels': {'field': '成员实拍', 'wikimedia_commons': 'Commons 网图', 'open_images': 'Open Images 网图'}}
+
+    def workflow():
+        return Workflow(db(), g.user, app.config['REVIEW_LEASE_SECONDS'])
 
     def budgeted_file(path, **kwargs):
         response = send_file(path, conditional=True, **kwargs)
@@ -283,6 +289,8 @@ def create_app(config=None):
 
     @app.post('/logout')
     def logout():
+        if g.user:
+            db().execute('DELETE FROM review_leases WHERE user_id=?', (g.user['id'],))
         session.clear()
         return redirect(url_for('login'))
 
@@ -312,30 +320,44 @@ def create_app(config=None):
     @app.get('/')
     @require()
     def index():
-        status = request.args.get('status', 'pending')
-        source = request.args.get('source', 'all')
-        category = request.args.get('category', '')
-        if source not in ('all', 'field', *PUBLIC_SOURCES) or category not in ('', *map(str, range(10))):
-            abort(400, '未知来源或类别')
-        if status not in ('pending', 'approved', 'rejected', 'all'):
-            abort(400, '未知筛选')
+        work = workflow()
+        filters = work.filters(request.args)
         try:
             page = max(1, int(request.args.get('page', 1)))
         except ValueError:
             abort(400)
-        conditions, args = [], []
-        for field, value, default in (('status', status, 'all'), ('source', source, 'all'), ('category', category, '')):
-            if value != default:
-                conditions.append(field + '=?'); args.append(value)
-        where = 'WHERE ' + ' AND '.join(conditions) if conditions else ''
-        count = db().execute(f'SELECT COUNT(*) FROM samples {where}', args).fetchone()[0]
-        samples = db().execute(f'SELECT * FROM samples {where} ORDER BY created_at DESC,id LIMIT 24 OFFSET ?', (*args, (page - 1) * 24)).fetchall()
-        stats = dict(db().execute('SELECT status,COUNT(*) FROM samples GROUP BY status').fetchall())
-        return render_template('index.html', samples=samples, stats=stats, status=status, source=source, category=category,
+        samples, count, stats = work.listing(filters, page)
+        return render_template('index.html', samples=samples, stats=stats, filters=filters, **filters,
+                               assignments=work.assignments(), review_now=time.time(),
+                               reviewers=db().execute('SELECT id,username FROM users WHERE active=1 ORDER BY username').fetchall(),
                                page=page, count=count, egress_bytes=db().execute('SELECT bytes FROM egress WHERE id=1').fetchone()[0],
                                egress_limit=app.config['EGRESS_LIMIT_BYTES'],
                                batches=db().execute('SELECT * FROM batches ORDER BY created_at DESC').fetchall(),
                                candidates=db().execute('SELECT * FROM candidates ORDER BY created_at DESC').fetchall())
+
+    @app.get('/review/next')
+    @require()
+    def next_review():
+        work = workflow()
+        filters = work.filters(request.args)
+        sid = work.next(filters, request.args.get('exclude', ''))
+        if sid:
+            return redirect(url_for('sample', sid=sid, **filters))
+        flash('当前筛选下没有可领取的下一张照片：照片可能已审核、被占用或分配给其他成员。')
+        return redirect(url_for('index', **filters))
+
+    @app.post('/assignments/<int:category>')
+    @require('admin')
+    def assign_category(category):
+        value = request.form.get('reviewer_id', '')
+        try:
+            reviewer_id = int(value) if value else None
+        except ValueError:
+            abort(400, '请选择有效的组员账号')
+        workflow().assign(category, reviewer_id, request.form.get('revision', ''),
+                          lambda old: event('assign_category', str(category), {'from': old, 'to': reviewer_id}))
+        flash('品类分工已保存；改派后，原审核页面须重新领取。')
+        return redirect(url_for('index') + '#assignments')
 
     @app.route('/upload', methods=['GET', 'POST'])
     @require()
@@ -381,12 +403,17 @@ def create_app(config=None):
     @app.route('/samples/<sid>', methods=['GET', 'POST'])
     @require()
     def sample(sid):
-        row = db().execute('SELECT * FROM samples WHERE id=?', (sid,)).fetchone()
-        if not row:
-            abort(404)
+        work = workflow()
+        filters = work.filters(request.args)
+        row = work.sample(sid)
         if request.method == 'POST':
             if row['batch']:
                 abort(409, '照片已冻结，不能修改')
+            if not work.allowed(row):
+                abort(403, '该品类由其他成员负责，请联系管理员调整分工')
+            intent = request.form.get('action', 'save')
+            if intent not in ('save', 'next'):
+                abort(400, '未知审核操作')
             status = request.form.get('status')
             category = request.form.get('category')
             reason = text('reason', False)
@@ -402,17 +429,36 @@ def create_app(config=None):
                 crop_box(crop, row['width'], row['height'])
             except (ValueError, TypeError):
                 abort(400, '裁剪坐标无效或原图裁剪区域小于128×128')
-            db().execute('BEGIN IMMEDIATE')
-            changed = db().execute('UPDATE samples SET status=?,category=?,reason=?,object_id=?,session_id=?,group_id=?,crop=?,revision=revision+1 WHERE id=? AND revision=? AND batch IS NULL',
-                                   (status, int(category), reason, object_id, session_id, group_id, crop, sid, request.form.get('revision', ''))).rowcount
-            if not changed:
-                abort(409, '其他成员已更新照片，刷新页面后再审核')
-            event('review', sid, {'status': status, 'category': category, 'category_version': cat['category_version'], 'reason': reason, 'object_id': object_id, 'session_id': session_id, 'group_id': group_id, 'crop': crop})
-            db().commit()
-            return redirect(url_for('sample', sid=sid))
+            work.save(sid, request.form.get('lease', ''), request.form.get('revision', ''),
+                      (status, int(category), reason, object_id, session_id, group_id, crop),
+                      lambda: event('review', sid, {'status': status, 'category': category, 'category_version': cat['category_version'], 'reason': reason, 'object_id': object_id, 'session_id': session_id, 'group_id': group_id, 'crop': crop}))
+            if intent == 'next':
+                return redirect(url_for('next_review', exclude=sid, **filters))
+            flash('审核已保存。')
+            return redirect(url_for('sample', sid=sid, **filters))
+        row, lease, notice = work.open(sid)
         related = [r for r in db().execute('SELECT * FROM samples WHERE id<>?', (sid,)) if (row['object_id'] and r['object_id'] == row['object_id']) or r['group_id'] == row['group_id'] or (int(r['phash'], 16) ^ int(row['phash'], 16)).bit_count() <= 6]
         history = db().execute('SELECT e.*,u.username FROM events e JOIN users u ON e.actor=u.id WHERE subject=? ORDER BY e.id DESC', (sid,)).fetchall()
-        return render_template('sample.html', sample=row, source_meta=json.loads(row['source_meta']), related=related[:20], history=history)
+        return render_template('sample.html', sample=row, lease=lease, notice=notice, filters=filters,
+                               source_meta=json.loads(row['source_meta']), related=related[:20], history=history)
+
+    @app.post('/samples/<sid>/skip')
+    @require()
+    def skip_sample(sid):
+        filters = workflow().filters(request.args)
+        workflow().release(sid, request.form.get('lease', ''))
+        return redirect(url_for('next_review', exclude=sid, **filters))
+
+    @app.post('/samples/<sid>/lease')
+    @require()
+    def renew_lease(sid):
+        return {'expires': workflow().renew(sid, request.form.get('lease', ''))}
+
+    @app.post('/samples/<sid>/release')
+    @require()
+    def release_lease(sid):
+        workflow().release(sid, request.form.get('lease', ''))
+        return '', 204
 
     @app.post('/batches')
     @require('admin')
@@ -461,6 +507,7 @@ def create_app(config=None):
         receipt['archive_sha256'] = file_sha(archive)
         db().execute('INSERT INTO batches VALUES(?,?,?)', (batch_id, encode(receipt).decode(), stamp()))
         db().executemany('UPDATE samples SET batch=?,revision=revision+1 WHERE id=?', [(batch_id, r['id']) for r in rows])
+        db().execute('DELETE FROM review_leases WHERE sample_id IN (SELECT id FROM samples WHERE batch=?)', (batch_id,))
         event('freeze', batch_id, receipt)
         db().commit()
         return redirect(url_for('index', status='approved'))

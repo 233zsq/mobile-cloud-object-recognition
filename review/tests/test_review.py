@@ -41,23 +41,32 @@ def admin(app):
     return client
 
 
-def photo():
+def photo(color='orange'):
     stream = io.BytesIO()
-    Image.new('RGB', (200, 200), 'orange').save(stream, 'JPEG')
+    Image.new('RGB', (200, 200), color).save(stream, 'JPEG')
     stream.seek(0)
     return stream
 
 
-def upload(client):
-    response = client.post('/upload', data={'csrf': csrf(client, '/upload'), 'image': (photo(), '../../evil.jpg'),
-                           'object_id': 'cup-01', 'session_id': 'lab-01', 'category': '0'})
+def upload(client, category='0', color='orange'):
+    response = client.post('/upload', data={'csrf': csrf(client, '/upload'), 'image': (photo(color), '../../evil.jpg'),
+                           'object_id': 'cup-01', 'session_id': 'lab-01', 'category': category})
     assert response.status_code == 302
     return response.headers['Location']
 
 
+def lease(client, path):
+    return re.search(r'name="lease"[^>]*value="([^"]*)"', client.get(path).text).group(1)
+
+
+def review_body(client, path, revision='1', **changes):
+    return {'csrf': csrf(client, path), 'lease': lease(client, path), 'revision': revision,
+            'category': '0', 'status': 'approved', 'object_id': 'cup-01', 'session_id': 'lab-01',
+            'group_id': 'series-01', 'reason': 'clear cup', **changes}
+
+
 def review(client, path, revision='1'):
-    return client.post(path, data={'csrf': csrf(client, path), 'revision': revision, 'category': '0', 'status': 'approved',
-                                  'object_id': 'cup-01', 'session_id': 'lab-01', 'group_id': 'series-01', 'reason': 'clear cup'})
+    return client.post(path, data=review_body(client, path, revision))
 
 
 def test_invitation_is_single_use_and_roles_are_enforced(app):
@@ -165,6 +174,7 @@ def test_concurrent_reviewers_cannot_overwrite_each_other(app):
     bodies=[]
     for client in (first,second):
         bodies.append({'csrf':csrf(client,path),'revision':'1','category':'0','status':'approved',
+                       'lease':lease(client,path),
                        'object_id':'cup-01','session_id':'lab-01','group_id':'series-01','reason':'checked'})
     with ThreadPoolExecutor(max_workers=2) as pool:
         jobs=[pool.submit(c.post,path,data=b) for c,b in zip((first,second),bodies)]
@@ -207,6 +217,7 @@ def test_public_import_stays_pending_preserves_source_and_supports_crop(app, tmp
     path = '/samples/'+row['id']
     assert 'CC BY-SA 4.0' in client.get(path).text
     body = {'csrf': csrf(client, path), 'revision': '1', 'category': '0', 'status': 'approved', 'object_id': '',
+            'lease': lease(client, path),
             'session_id': 'public-collection', 'group_id': 'web-group', 'reason': 'clear crop', 'crop': '[0,0,8000,8000]'}
     assert client.post(path, data={**body, 'crop': '[0,0,100,100]'}).status_code == 400
     assert client.post(path, data=body).status_code == 302
