@@ -1,1 +1,1 @@
-"""Future shared-model loading, validation and controlled CPU inference."""
+"""Private IPC client for the separately managed, verified CPU model runtime."""

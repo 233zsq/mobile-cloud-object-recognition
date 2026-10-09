@@ -101,7 +101,11 @@ def http(data):
 
     wait_ready()
     status, health = call('/api/health')
-    assert status == 200 and health['model_loaded'] is False
+    assert status == 200
+    if values.get('INFERENCE_SOCKET'):
+        assert health['model_loaded'] is True and health['model_version'] == values['INFERENCE_MODEL_VERSION']
+    else:
+        assert health['model_loaded'] is False
     data['health'] = health
     missing = call('/api/records', {}, method='POST')[0]
     wrong_case = call('/api/records', {}, bearer=token.upper(), method='POST')[0]

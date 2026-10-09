@@ -28,7 +28,7 @@
 mobile-cloud-object-recognition/
 ├── android/             # Kotlin Android App：拍照、推理、本地保存与同步
 │   └── app/src/main/    # java/、res/、assets/models/
-├── backend/             # Flask记录入库与去重已实现；查询、纠错、统计、推理待接入
+├── backend/             # Flask记录入库、去重及CPU推理；查询、纠错、统计待接入
 ├── web/                 # HTML/JavaScript 统计页，计划每 5 秒刷新
 │   └── assets/          # css/、js/、images/
 ├── ml/                  # TensorFlow/Keras：训练、评估与 tflite 导出

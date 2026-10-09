@@ -17,7 +17,7 @@
 | Gunicorn | 单 worker、2 threads，只监听 `127.0.0.1:8080` |
 | MySQL | 只监听回环地址；128MiB buffer pool、40 个连接、关闭 Performance Schema |
 | 公网入口 | `https://49.232.195.47`；80 跳转到 443 |
-| 模型 | 未加载，云端推理接口尚未实现 |
+| 模型 | 初始记录发布未加载；新增CPU推理服务的安装和启用见 INFERENCE.md |
 
 原 `/home/gongyi/projects/mobile-cloud-object-recognition` 的 ML 工作区保留。此次发布使用固定提交归档，部署脚本、配置模板和证据在本 PR 后续提交维护。
 
@@ -35,7 +35,7 @@ SHA-256 指纹：`73:7D:DB:0A:98:47:3E:94:E2:08:B1:D6:C7:5B:A6:5A:6A:9D:D7:0F:CF
 curl.exe --noproxy "*" --cacert deploy/certs/server.crt https://49.232.195.47/api/health
 ```
 
-结果应为 `status=ok`、`version=0.1.0+9eb92b9`、`model_loaded=false`。记录调用需配置令牌及证书信任；不能把忽略证书验证作为正式客户端配置。后续绑定域名及受信任证书时，同步更新客户端 API 地址。
+初始记录发布结果为 `status=ok`、`version=0.1.0+9eb92b9`、`model_loaded=false`。启用独立推理工作进程后返回新发布版本、model_loaded=true、model_version=campus-gpu-v1及model_status=ready。记录调用需配置令牌及证书信任；不能把忽略证书验证作为正式客户端配置。后续更换受信任证书时，同步更新客户端信任配置和 API 地址。
 
 腾讯云安全组放行 443 后，公网 HTTPS 已验证通过。入站规则为 `TCP:443`、来源 `0.0.0.0/0`、允许，见 [腾讯云安全组操作说明](https://cloud.tencent.com/document/product/213/112614)。不需要开放 MySQL 3306/33060 或 Gunicorn 8080。
 
@@ -96,3 +96,6 @@ sudo journalctl -u mobile-cloud-backend-backup.service -n 20 --no-pager
 证据见 [server-deployment-20261008.json](../tests/evidence/server-deployment-20261008.json)：75 项通过、3 项 SQLite 下的 MySQL 专用用例跳过，真实 MySQL 用例执行；初始 SQL、HTTPS 201/200/409、四个并发首次上传、实际服务重启后去重、令牌保护及备份恢复通过。临时账号、验证库及正式库测试记录已清理。
 
 公网已实测 HTTP 308、HTTPS 健康 200、无令牌 401 及正确令牌的入库 201、重试 200、冲突 409。公开证书通过固定 SSH 主机指纹渠道取得，TLS 验证未跳过。
+## 云端推理接入
+
+新增 `POST /api/infer` 使用独立 Python 3.12 CPU 模型进程，保留当前 Flask/MySQL 部署；安装、回传文件与回退说明见 [INFERENCE.md](INFERENCE.md)。
