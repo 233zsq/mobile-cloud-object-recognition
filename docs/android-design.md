@@ -65,6 +65,20 @@ uploaded=1 且 correctionPending=0 ──纠错──> correctionPending=1 ─�
   经 `runCatching` 转为采集页错误提示。
 - 设置页保存前校验服务器地址格式，无效输入不写入持久化配置（否则重启后回退默认地址，
   上报与补传持续失败）。
+- **配置以单个 `ServerConfig` 快照读写**：DataStore 一次事务写入地址与令牌，请求层用
+  `AtomicReference` 原子替换，拦截器每个请求只读取一次快照（`RequestRewriter.plan`），
+  避免并发切换时出现「A 的地址 + B 的令牌」交叉组合。
+- 显式端口必须落在 `1..65535`，超出范围视为无效地址并在保存前拒绝。
+- 透明图灰底合成使用与 Python 参考实现（PIL `alpha_composite`）一致的四舍五入
+  `(v*a + bg*(255-a) + 127)/255`；截断会在半透明像素上产生 1 的偏差（已实测：截断 1 → 四舍五入 0）。
+
+### 传输安全（TLS）
+- 后端为 IP 自签名证书（`deploy/certs/server.crt`，CN/SAN `49.232.195.47`，有效期至
+  2027-01-06）。`res/xml/network_security_config.xml` 的 domain-config **显式信任该公钥证书**，
+  不依赖设备安装；服务器换证或换 IP 时同步更新该文件与 `deploy/certs/server.crt`。
+- base-config 默认信任系统 CA；联调期保留明文 http 供局域网使用，后端全面 HTTPS 后收紧。
+- debug 构建额外信任设备上用户安装的 CA（`debug-overrides`），便于局域网/自签环境联调；
+  release 构建不生效。
 
 ### 类别清单
 `assets/categories.json` 为 `shared/categories.json`（冻结版 campus-10-v2，2026-10-07）的

@@ -62,7 +62,11 @@ python scripts/make_placeholder_model.py   # 仓库根目录执行，需要 tens
 
 ## 联调说明
 
-- 默认服务器地址 `http://localhost:8080`（与 `.env.example` 的 `API_BASE_URL` 一致），
-  真机联调请在 App「设置」页改为服务器的局域网/公网地址。
-- Manifest 声明 `usesCleartextTraffic` 以支持 http 联调；后端启用 HTTPS 后应移除。
-- 字段名提案与冻结项见 `docs/api/android-client-notes.md`。
+- **组内云端已部署**：`https://49.232.195.47`（IP 自签名证书，`deploy/certs/server.crt`
+  已内置信任，见 `res/xml/network_security_config.xml`）；`POST/PATCH` 需要
+  `Authorization: Bearer <API_TOKEN>`，令牌在 App「设置」页填写（服务器端配置持有真实值，勿提交到仓库）。
+- 默认占位地址 `http://localhost:8080`（与 `.env.example` 的 `API_BASE_URL` 一致）表示"未配置"，
+  此时请求快速失败并保留待传记录。
+- 局域网/自签环境联调：debug 构建信任设备上用户安装的 CA，可在手机上安装对应证书后使用 https；
+  明文 http 联调在 base-config 中保留，后端全面 HTTPS 后收紧。
+- 字段名提案与冻结项见 `docs/api/android-client-notes.md`；配置以原子快照读写（地址与令牌同源）。
