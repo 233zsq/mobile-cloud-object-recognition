@@ -106,8 +106,13 @@ class Workflow:
 
     def assignments(self):
         return self.db.execute('''SELECT a.*,u.username,
-            (SELECT COUNT(*) FROM samples s WHERE s.category=a.category AND s.status='pending') AS pending
-            FROM category_assignments a LEFT JOIN users u ON u.id=a.reviewer_id ORDER BY a.category''').fetchall()
+            (SELECT COUNT(*) FROM samples s WHERE s.category=a.category AND s.status='pending') AS pending,
+            (SELECT COUNT(*) FROM samples s WHERE s.category=a.category AND s.status='pending' AND s.batch IS NULL AND
+             (s.source='field' OR s.revision>1 OR EXISTS(SELECT 1 FROM ai_triage_routes r WHERE
+              r.sample_id=s.id AND r.revision=s.revision AND r.photo_sha256=s.sha256 AND
+              r.category=s.category AND r.context=? AND r.state='manual'))) AS human_pending
+            FROM category_assignments a LEFT JOIN users u ON u.id=a.reviewer_id ORDER BY a.category''',
+            (self.routing_context,)).fetchall()
 
     def allowed(self, row):
         return self.user['role'] == 'admin' or row['reviewer_id'] in (None, self.user['id'])
