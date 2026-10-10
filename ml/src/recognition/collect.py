@@ -166,10 +166,18 @@ def fetch(url, limit, retries=3):
 
 
 def api(params):
+    # Cache only public API responses within this collection day. Resuming a
+    # bounded round must not repeatedly enumerate all historical source IDs.
+    cache = ROOT / 'data/raw/commons-api-cache' / now()[:10]
+    path = cache / (__import__('hashlib').sha256(json.dumps(params, sort_keys=True).encode()).hexdigest() + '.json')
+    if path.exists():
+        return read_json(path)
     time.sleep(.5)
     result = json.loads(fetch(API + "?" + urllib.parse.urlencode({"format": "json", "maxlag": 5, **params}), 10 * 1024**2))
     if "error" in result:
         raise ValueError(str(result["error"]))
+    if sum(p.stat().st_size for p in cache.glob('*.json')) < 128 * 1024**2:
+        write_json(path, result)
     return result
 
 
@@ -178,7 +186,8 @@ def candidate_ids(key, max_candidates, exclude_ids):
     seen, count = set(exclude_ids), 0
     queries = [("categorymembers", {"cmtitle": "Category:" + name, "cmtype": "file", "cmlimit": 50}) for name in names]
     queries += [("search", {"srsearch": term + " filetype:bitmap", "srnamespace": 6, "srlimit": 50}) for term in searches]
-    for kind, params in queries:
+    expanded = set(names)
+    for query_index, (kind, params) in enumerate(queries):
         continuation = {}
         while count < max_candidates:
             result = api({"action": "query", "list": kind, **params, **continuation})
@@ -193,6 +202,18 @@ def candidate_ids(key, max_candidates, exclude_ids):
             if "continue" not in result:
                 break
             continuation = result["continue"]
+        # Relevant Commons files often live only in a child category. Visit at
+        # most twenty direct children, never a whole unbounded category tree.
+        if kind == 'categorymembers' and params['cmtitle'].removeprefix('Category:') in names:
+            children = api({'action':'query', 'list':'categorymembers', 'cmtitle':params['cmtitle'],
+                            'cmtype':'subcat', 'cmlimit':50}).get('query', {}).get('categorymembers', [])
+            additional=[]
+            for child in children:
+                name=child['title'].removeprefix('Category:')
+                if child['title'].startswith('Category:') and name not in expanded and len(expanded)-len(names)<20:
+                    expanded.add(name)
+                    additional.append(('categorymembers', {'cmtitle':child['title'], 'cmtype':'file', 'cmlimit':50}))
+            queries[query_index+1:query_index+1] = additional
 
 
 def candidates(key, max_candidates=400, exclude_ids=()):
@@ -295,15 +316,15 @@ def collect_commons(keys=None, per_class=120, *, class_cap=240, max_new=None):
     return rows
 
 
-def collect_openimages(keys, per_class=120, source_split="validation", *, class_cap=240, max_new=None):
+def collect_openimages(keys, per_class=120, source_split="validation", *, class_cap=240, max_new=None, include_crop_candidates=False):
     """Scan only the bounded boxable label/metadata subset; no bbox archive."""
     from PIL import Image
     if any(k not in MIDS for k in keys):
         raise ValueError("Open Images fallback supports only the eight boxable categories")
     validate_limits(per_class, class_cap, max_new)
     if source_split in ("validation","public-test"):
-        return collect_openimages_validation(keys, per_class, source_split, class_cap=class_cap, max_new=max_new)
-    if class_cap != 240 or max_new is not None:
+        return collect_openimages_validation(keys, per_class, source_split, class_cap=class_cap, max_new=max_new, include_crop_candidates=include_crop_candidates)
+    if class_cap != 240 or max_new is not None or include_crop_candidates:
         raise ValueError("Expanded collection uses cached public validation/test indexes; no new train-index scan")
     if source_split!="train":
         raise ValueError("Unknown public source split")
@@ -365,7 +386,7 @@ def collect_openimages(keys, per_class=120, source_split="validation", *, class_
     return rows
 
 
-def collect_openimages_validation(keys, per_class, source_split="validation", *, class_cap=240, max_new=None):
+def collect_openimages_validation(keys, per_class, source_split="validation", *, class_cap=240, max_new=None, include_crop_candidates=False):
     """Cache small official indexes once; these are public training sources here."""
     from PIL import Image
     cache=ROOT/"data/raw/openimages-index"
@@ -418,11 +439,11 @@ def collect_openimages_validation(keys, per_class, source_split="validation", *,
                     boxes.setdefault((item["ImageID"],key),[]).append(item)
         dominant=set()
         for (sid,key),items in boxes.items():
-            if len(items)!=1:
+            if not include_crop_candidates and len(items)!=1:
                 continue
-            box=items[0]
-            area=(float(box["XMax"])-float(box["XMin"]))*(float(box["YMax"])-float(box["YMin"]))
-            if area>=.25 and all(box.get(flag,"0")=="0" for flag in ("IsGroupOf","IsDepiction","IsTruncated")):
+            minimum = .10 if include_crop_candidates else .25
+            if any((float(box["XMax"])-float(box["XMin"]))*(float(box["YMax"])-float(box["YMin"]))>=minimum and
+                   all(box.get(flag,"0")=="0" for flag in ("IsGroupOf","IsDepiction","IsTruncated")) for box in items):
                 dominant.add((sid,key))
     manifest=ROOT/"data/manifests/openimages-candidates.csv"
     rows=read_csv(manifest) if manifest.exists() else []
@@ -458,7 +479,8 @@ def collect_openimages_validation(keys, per_class, source_split="validation", *,
                 path=ROOT/"data/raw/openimages"/key/(sid+".jpg")
                 store_download(path,blob,key,class_cap=class_cap)
                 row={k:"" for k in FIELDS}
-                row.update(sample_id=sid,image_path=path.relative_to(ROOT).as_posix(),image_sha256=digest(path),category_id=str(mapping[key]),source_dataset="open_images",source_id=item["ImageID"],source_url=item.get("OriginalLandingURL",""),original_url=item.get("OriginalURL",""),download_url=url,author=item.get("Author",""),license=item.get("License",""),license_url=item.get("License",""),collector="open-images-official",review_status="pending",group_id=sid,downloaded_at=now(),source_version=f"Open Images V7 public {subset} image / V5 human boxable labels"+("; one non-depicted box >=25% image area" if dominant is not None else ""))
+                box_rule = "; untruncated non-depicted box >=10% image area; crop candidates require review" if include_crop_candidates else "; one non-depicted box >=25% image area"
+                row.update(sample_id=sid,image_path=path.relative_to(ROOT).as_posix(),image_sha256=digest(path),category_id=str(mapping[key]),source_dataset="open_images",source_id=item["ImageID"],source_url=item.get("OriginalLandingURL",""),original_url=item.get("OriginalURL",""),download_url=url,author=item.get("Author",""),license=item.get("License",""),license_url=item.get("License",""),collector="open-images-official",review_status="pending",group_id=sid,downloaded_at=now(),source_version=f"Open Images V7 public {subset} image / V5 human boxable labels"+(box_rule if dominant is not None else ""))
                 rows.append(row);seen.add(sid);counts[key]+=1;hashes.add(photo_hash);added+=1
                 write_csv(manifest,rows)
                 if counts[key]%10==0:

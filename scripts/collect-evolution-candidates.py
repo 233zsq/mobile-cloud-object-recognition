@@ -12,6 +12,7 @@ parser.add_argument('--root', type=Path, required=True)
 parser.add_argument('--state', type=Path, required=True)
 parser.add_argument('--stop-after', type=int, choices=(500, 2000), default=500)
 parser.add_argument('--remote-fetch', choices=('tencent',), help='Fetch bounded official image URLs through the existing SSH host')
+parser.add_argument('--providers', nargs='+', choices=('commons', 'openimages'), default=['commons', 'openimages'])
 args = parser.parse_args()
 os.environ['RECOGNITION_ROOT'] = str(args.root.resolve())
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'ml/src'))
@@ -22,7 +23,13 @@ targets = {'charger': 350, 'key': 350, 'umbrella': 250, 'earphones': 250, 'mouse
            'pencil_case': 120, 'book': 120, 'cup': 120, 'keyboard': 120, 'backpack': 120}
 mapping = {c['label_key']: str(c['id']) for c in collect.categories()['categories']}
 if args.remote_fetch:
+    direct_fetch = collect.fetch
     def remote_fetch(url, limit, retries=3):
+        if collect.urllib.parse.urlsplit(url).hostname != 'commons.wikimedia.org':
+            try:
+                return direct_fetch(url, limit, retries=1)
+            except (collect.urllib.error.URLError, TimeoutError):
+                pass
         # Only fixed dataset origins; no general-purpose public proxy or port.
         code = '''import sys, urllib.request, urllib.parse
 url, limit = sys.argv[1], int(sys.argv[2])
@@ -82,7 +89,7 @@ def progress():
     return rows
 
 
-for provider in ('commons', 'openimages'):
+for provider in args.providers:
     for key, total_target in targets.items():
         current = progress()
         remaining = args.stop_after - len(current)
@@ -103,13 +110,13 @@ for provider in ('commons', 'openimages'):
             collect.collect_commons([key], target, class_cap=750, max_new=needed)
         else:
             # The already-scanned train index is never downloaded again.
-            collect.collect_openimages([key], target, 'validation', class_cap=750, max_new=needed)
+            collect.collect_openimages([key], target, 'validation', class_cap=750, max_new=needed, include_crop_candidates=True)
             progress()
             left = min(args.stop_after - state['downloaded'],
                        desired - state['by_category'].get(mapping[key], 0))
             if left > 0:
                 source_count = sum(r['category_id'] == mapping[key] for r in read_csv(ROOT / 'data/manifests' / source_name))
-                collect.collect_openimages([key], min(750, source_count + left), 'public-test', class_cap=750, max_new=left)
+                collect.collect_openimages([key], min(750, source_count + left), 'public-test', class_cap=750, max_new=left, include_crop_candidates=True)
         progress()
 state.update(state='checkpoint' if state['downloaded'] >= args.stop_after else 'source_gap', checkpoint=args.stop_after)
 progress()

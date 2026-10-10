@@ -60,6 +60,46 @@ def test_old_commons_ids_are_skipped_before_metadata_and_download(monkeypatch):
     assert len(calls) == 1
 
 
+def test_commons_resume_reuses_public_api_page_but_never_caches_errors(tmp_path, monkeypatch):
+    monkeypatch.setattr(collect, 'ROOT', tmp_path)
+    monkeypatch.setattr(collect.time, 'sleep', lambda _: None)
+    calls=[]
+    def fetch(*args):
+        calls.append(args)
+        return b'{"query":{"categorymembers":[]}}'
+    monkeypatch.setattr(collect, 'fetch', fetch)
+    assert collect.api({'action':'query'}) == collect.api({'action':'query'})
+    assert len(calls) == 1
+    monkeypatch.setattr(collect, 'fetch', lambda *args: b'{"error":{"code":"maxlag"}}')
+    for _ in range(2):
+        with pytest.raises(ValueError, match='maxlag'):
+            collect.api({'action':'different'})
+    assert len(list((tmp_path/'data/raw/commons-api-cache').rglob('*.json'))) == 1
+
+
+def test_expansion_adds_small_crop_candidates_but_keeps_depictions_out(tmp_path, monkeypatch):
+    import io
+    from PIL import Image
+    monkeypatch.setattr(collect, 'ROOT', tmp_path)
+    monkeypatch.setattr(collect, 'categories', lambda:{'categories':[{'id':2,'label_key':'book'}]})
+    labels=b'ImageID,LabelName,Confidence\na,/m/0bt_c3,1\nb,/m/0bt_c3,1\nc,/m/0bt_c3,1\n'
+    metadata=b'ImageID,OriginalLandingURL,OriginalURL,Author,License\na,https://example.org/a,https://example.org/a.jpg,A,CC-BY\nb,https://example.org/b,https://example.org/b.jpg,A,CC-BY\nc,https://example.org/c,https://example.org/c.jpg,A,CC-BY\n'
+    boxes=b'ImageID,LabelName,XMin,XMax,YMin,YMax,IsGroupOf,IsDepiction,IsTruncated\na,/m/0bt_c3,0,.4,0,.3,0,0,0\nb,/m/0bt_c3,0,.6,0,.6,0,0,0\nc,/m/0bt_c3,0,.6,0,.6,0,1,0\n'
+    class Response(io.BytesIO):
+        def __init__(self, data):
+            super().__init__(data); self.headers={'Content-Length':str(len(data))}
+    monkeypatch.setattr(collect.urllib.request, 'urlopen', lambda request, **kwargs: Response(
+        boxes if 'bbox' in request.full_url else labels if 'imagelabels' in request.full_url else metadata))
+    def fetch(url, *args):
+        stream=io.BytesIO(); Image.new('RGB',(200,200),'red' if '/a.' in url else 'blue').save(stream,'JPEG')
+        return stream.getvalue()
+    monkeypatch.setattr(collect, 'fetch', fetch)
+    assert [r['source_id'] for r in collect.collect_openimages(['book'],80,'public-test')] == ['b']
+    rows=collect.collect_openimages(['book'],750,'public-test',class_cap=750,max_new=1,include_crop_candidates=True)
+    assert {r['source_id'] for r in rows} == {'a','b'}
+    assert all(r['review_status']=='pending' for r in rows)
+
+
 def test_response_limit_is_checked_before_read(monkeypatch):
     class Response:
         headers={"Content-Length":"1000"}
