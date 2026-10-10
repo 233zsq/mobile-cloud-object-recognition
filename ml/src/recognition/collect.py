@@ -17,19 +17,35 @@ UA = "CampusRecognitionCourse/0.1 (educational image classification; source attr
 API = "https://commons.wikimedia.org/w/api.php"
 SOURCES = {
     "cup": (["Mugs", "Drinking glasses", "Cups"], ['"drinking cup"', '"coffee mug"']),
-    "umbrella": (["Folded umbrellas", "Closed umbrellas", "Umbrellas"], ['"umbrella"']),
+    "umbrella": (["Folded umbrellas", "Closed umbrellas", "Umbrellas", "Parasols"], ['"umbrella"', '"parasol"', '"sun umbrella"']),
     "book": (["Books on tables", "Open books", "Bookbindings"], ['intitle:"book" "on table"', 'intitle:"book" "hardcover"']),
     "pencil_case": (["Pen and pencil cases"], ['"pencil case"', '"pencil pouch"']),
     "mouse": (["Computer mice"], ['"computer mouse"']),
     "keyboard": (["Computer keyboards"], ['"computer keyboard"']),
     "earphones": (["In-ear headphones", "Wireless earbuds", "Headphones"], ['"earbuds"', '"headphones"']),
-    "charger": (["Power adapters", "USB chargers", "Laptop power adapters", "Mobile phone chargers"], ['"USB charger"', '"laptop power adapter"', '"mobile phone charger"']),
-    "key": (["Keys on key rings", "Keys"], ['"door key"', '"car key"']),
+    "charger": (["Power adapters", "USB chargers", "Laptop power adapters", "Mobile phone chargers"], ['"USB charger"', '"laptop power adapter"', '"mobile phone charger"', '"AC adapter"', '"USB power adapter"', '"phone charger"']),
+    "key": (["Keys on key rings", "Keys", "Car keys"], ['"door key"', '"car key"', '"house key"', '"lock key"', '"key fob"']),
     "backpack": (["Backpacks"], ['"backpack"']),
 }
 MIDS = {"cup": "/m/02jvh9", "umbrella": "/m/0hnnb", "book": "/m/0bt_c3", "pencil_case": "/m/05676x", "mouse": "/m/020lf", "keyboard": "/m/01m2v", "earphones": "/m/01b7fy", "backpack": "/m/01940j"}
 INDEX_BUDGET = int(1.2 * 1024**3)
 INDEX_CHUNK_BYTES = 1024**2
+PHOTO_BUDGET = 3 * 1024**3
+MAX_CLASS_CAP = 750
+
+
+def validate_limits(per_class, class_cap, max_new):
+    if type(class_cap) is not int or not 1 <= class_cap <= MAX_CLASS_CAP:
+        raise ValueError("class-cap must be 1..750")
+    if type(per_class) is not int or not 1 <= per_class <= class_cap:
+        raise ValueError("per-class must be 1..class-cap (default cap 240)")
+    if max_new is not None and (type(max_new) is not int or not 1 <= max_new <= 2000):
+        raise ValueError("max-new must be 1..2000")
+
+
+def known_photo_hashes():
+    return {r['image_sha256'] for name in ('public-candidates.csv', 'openimages-candidates.csv', 'public-reviewed.csv')
+            if (path := ROOT / 'data/manifests' / name).exists() for r in read_csv(path) if r.get('image_sha256')}
 
 
 @contextmanager
@@ -58,13 +74,14 @@ def quota_lock():
                 fcntl.flock(stream.fileno(),fcntl.LOCK_UN)
 
 
-def store_download(path,blob,key):
+def store_download(path,blob,key,*,class_cap=240):
+    validate_limits(1, class_cap, None)
     with quota_lock():
         count=sum(1 for provider in ("commons","openimages") for p in (ROOT/"data/raw"/provider/key).glob("*") if p.is_file())
         total=sum(p.stat().st_size for provider in ("commons","openimages") for p in (ROOT/"data/raw"/provider).rglob("*") if p.is_file())
         previous=path.stat().st_size if path.exists() else 0
-        if (count>=240 and not path.exists()) or total-previous+len(blob)>3*1024**3:
-            raise ValueError("Global public-photo quota reached (240 per class / 3 GiB)")
+        if (count>=class_cap and not path.exists()) or total-previous+len(blob)>PHOTO_BUDGET:
+            raise ValueError(f"Global public-photo quota reached ({class_cap} per class / 3 GiB)")
         path.parent.mkdir(parents=True,exist_ok=True)
         path.write_bytes(blob)
 
@@ -156,30 +173,33 @@ def api(params):
     return result
 
 
-def candidates(key, max_candidates=400):
+def candidate_ids(key, max_candidates, exclude_ids):
     names, searches = SOURCES[key]
-    titles = {}
-    for name in names:
+    seen, count = set(exclude_ids), 0
+    queries = [("categorymembers", {"cmtitle": "Category:" + name, "cmtype": "file", "cmlimit": 50}) for name in names]
+    queries += [("search", {"srsearch": term + " filetype:bitmap", "srnamespace": 6, "srlimit": 50}) for term in searches]
+    for kind, params in queries:
         continuation = {}
-        while len(titles) < max_candidates:
-            result = api({"action": "query", "list": "categorymembers", "cmtitle": "Category:" + name, "cmtype": "file", "cmlimit": 50, **continuation})
-            for item in result.get("query", {}).get("categorymembers", []):
-                titles[item["pageid"]] = item["title"]
+        while count < max_candidates:
+            result = api({"action": "query", "list": kind, **params, **continuation})
+            for item in result.get("query", {}).get(kind, []):
+                if str(item['pageid']) in seen:
+                    continue
+                seen.add(str(item['pageid']))
+                yield item['pageid']
+                count += 1
+                if count >= max_candidates:
+                    return
             if "continue" not in result:
                 break
             continuation = result["continue"]
-    for term in searches:
-        continuation = {}
-        while len(titles) < max_candidates:
-            result = api({"action": "query", "list": "search", "srsearch": term + " filetype:bitmap", "srnamespace": 6, "srlimit": 50, **continuation})
-            for item in result.get("query", {}).get("search", []):
-                titles[item["pageid"]] = item["title"]
-            if "continue" not in result:
-                break
-            continuation = result["continue"]
-    ids = list(titles)[:max_candidates]
-    for start in range(0, len(ids), 10):
-        result = api({"action": "query", "pageids": "|".join(map(str, ids[start:start+10])), "prop": "imageinfo", "iiprop": "url|size|mime|sha1|timestamp|extmetadata", "iiurlwidth": 960})
+
+
+def candidates(key, max_candidates=400, exclude_ids=()):
+    from itertools import islice
+    ids = iter(candidate_ids(key, max_candidates, exclude_ids))
+    while batch := list(islice(ids, 10)):
+        result = api({"action": "query", "pageids": "|".join(map(str, batch)), "prop": "imageinfo", "iiprop": "url|size|mime|sha1|timestamp|extmetadata", "iiurlwidth": 960})
         for page in result.get("query", {}).get("pages", {}).values():
             info = page.get("imageinfo", [{}])[0]
             if info.get("mime") not in ("image/jpeg", "image/png", "image/webp") or min(info.get("width", 0), info.get("height", 0)) < 256:
@@ -206,26 +226,29 @@ def clean(value):
     return html.unescape(re.sub("<[^>]+>", "", value)).strip()
 
 
-def collect_commons(keys=None, per_class=120):
+def collect_commons(keys=None, per_class=120, *, class_cap=240, max_new=None):
     from PIL import Image
-    if not 1 <= per_class <= 240:
-        raise ValueError("per-class must be 1..240")
+    validate_limits(per_class, class_cap, max_new)
     manifest = ROOT / "data/manifests/public-candidates.csv"
     rows = read_csv(manifest) if manifest.exists() else []
     seen = {r["sample_id"] for r in rows}
+    hashes, added = known_photo_hashes(), 0
     budget = sum(p.stat().st_size for provider in ("commons","openimages") for p in (ROOT/"data/raw"/provider).rglob("*") if p.is_file())
     errors = []
     ordered = ["pencil_case", "charger", "earphones", "key", "cup", "umbrella", "book", "mouse", "keyboard", "backpack"]
     mapping = {c["label_key"]: c["id"] for c in categories()["categories"]}
     for key in keys or ordered:
+        if max_new is not None and added >= max_new:
+            break
         count = sum(r["category_id"] == str(mapping[key]) for r in rows)
         if count >= per_class:
             print(f"{key}: already {count}, skipping network",flush=True)
             continue
         try:
-            for pageid, title, info in candidates(key,max_candidates=min(400,max(100,per_class*2))):
+            for pageid, title, info in candidates(key,max_candidates=min(1500,max(100,per_class*2)),
+                                                  exclude_ids={sid.removeprefix('commons-') for sid in seen if sid.startswith('commons-')}):
                 total_class=sum(1 for provider in ("commons","openimages") for p in (ROOT/"data/raw"/provider/key).glob("*") if p.is_file())
-                if count >= per_class or total_class>=240 or budget >= 3 * 1024**3:
+                if count >= per_class or total_class>=class_cap or budget >= PHOTO_BUDGET or (max_new is not None and added >= max_new):
                     break
                 sid = f"commons-{pageid}"
                 if sid in seen:
@@ -237,18 +260,24 @@ def collect_commons(keys=None, per_class=120):
                 url = info.get("thumburl", info["url"])
                 try:
                     blob = fetch(url, min(2 * 1024**2, 3 * 1024**3 - budget))
+                    photo_hash = __import__('hashlib').sha256(blob).hexdigest()
+                    if photo_hash in hashes:
+                        seen.add(sid)
+                        continue
                     with Image.open(io.BytesIO(blob)) as im:
                         im.verify()
                     suffix = Path(urllib.parse.urlparse(url).path).suffix.lower()
                     if suffix not in (".jpg", ".jpeg", ".png", ".webp"):
                         suffix = ".jpg"
                     path = ROOT / "data/raw/commons" / key / (sid + suffix)
-                    store_download(path,blob,key)
+                    store_download(path,blob,key,class_cap=class_cap)
                     row = {k: "" for k in FIELDS}
                     row.update(sample_id=sid, image_path=path.relative_to(ROOT).as_posix(), image_sha256=digest(path), category_id=str(mapping[key]), collector="commons-api", captured_at="", review_status="pending", source_dataset="wikimedia_commons", source_id=str(pageid), source_url=info.get("descriptionurl", "https://commons.wikimedia.org/wiki/"+urllib.parse.quote(title)), original_url=info["url"], download_url=url, author=clean(meta.get("Artist", {}).get("value", "")), license=license_name, license_url=meta.get("LicenseUrl", {}).get("value", ""), group_id=sid, width=str(info["width"]), height=str(info["height"]))
                     row.update(downloaded_at=now(),source_version="Commons file timestamp="+info.get("timestamp","")+"; source sha1="+info.get("sha1","")+"; requested thumbnail="+str(info["requested_thumbnail_width"])+"px")
                     rows.append(row)
                     seen.add(sid)
+                    hashes.add(photo_hash)
+                    added += 1
                     budget += len(blob)
                     count += 1
                     write_csv(manifest, rows)
@@ -266,13 +295,16 @@ def collect_commons(keys=None, per_class=120):
     return rows
 
 
-def collect_openimages(keys, per_class=120, source_split="validation"):
+def collect_openimages(keys, per_class=120, source_split="validation", *, class_cap=240, max_new=None):
     """Scan only the bounded boxable label/metadata subset; no bbox archive."""
     from PIL import Image
-    if any(k not in MIDS for k in keys) or not 1 <= per_class <= 240:
-        raise ValueError("Open Images fallback supports only the eight boxable categories, cap 240")
+    if any(k not in MIDS for k in keys):
+        raise ValueError("Open Images fallback supports only the eight boxable categories")
+    validate_limits(per_class, class_cap, max_new)
     if source_split in ("validation","public-test"):
-        return collect_openimages_validation(keys, per_class, source_split)
+        return collect_openimages_validation(keys, per_class, source_split, class_cap=class_cap, max_new=max_new)
+    if class_cap != 240 or max_new is not None:
+        raise ValueError("Expanded collection uses cached public validation/test indexes; no new train-index scan")
     if source_split!="train":
         raise ValueError("Unknown public source split")
     if (ROOT/"data/raw/openimages-index/scan.json").exists():
@@ -333,7 +365,7 @@ def collect_openimages(keys, per_class=120, source_split="validation"):
     return rows
 
 
-def collect_openimages_validation(keys, per_class, source_split="validation"):
+def collect_openimages_validation(keys, per_class, source_split="validation", *, class_cap=240, max_new=None):
     """Cache small official indexes once; these are public training sources here."""
     from PIL import Image
     cache=ROOT/"data/raw/openimages-index"
@@ -395,10 +427,13 @@ def collect_openimages_validation(keys, per_class, source_split="validation"):
     manifest=ROOT/"data/manifests/openimages-candidates.csv"
     rows=read_csv(manifest) if manifest.exists() else []
     seen={r["sample_id"] for r in rows}
+    hashes, added = known_photo_hashes(), 0
     mapping={c["label_key"]:c["id"] for c in categories()["categories"]}
     counts={k:sum(r["category_id"]==str(mapping[k]) for r in rows) for k in keys}
     with (cache/f"{subset}-images.csv").open(encoding="utf-8-sig",newline="") as f:
         for item in csv.DictReader(f):
+            if max_new is not None and added >= max_new:
+                break
             labels=positive.get(item["ImageID"],set())
             # Do not introduce ambiguous labels among our ten target categories.
             if len(labels)!=1:
@@ -414,13 +449,17 @@ def collect_openimages_validation(keys, per_class, source_split="validation"):
             url=f"https://open-images-dataset.s3.amazonaws.com/{subset}/{item['ImageID']}.jpg"
             try:
                 blob=fetch(url,2*1024**2)
+                photo_hash = __import__('hashlib').sha256(blob).hexdigest()
+                if photo_hash in hashes:
+                    seen.add(sid)
+                    continue
                 with Image.open(io.BytesIO(blob)) as im:
                     im.verify()
                 path=ROOT/"data/raw/openimages"/key/(sid+".jpg")
-                store_download(path,blob,key)
+                store_download(path,blob,key,class_cap=class_cap)
                 row={k:"" for k in FIELDS}
                 row.update(sample_id=sid,image_path=path.relative_to(ROOT).as_posix(),image_sha256=digest(path),category_id=str(mapping[key]),source_dataset="open_images",source_id=item["ImageID"],source_url=item.get("OriginalLandingURL",""),original_url=item.get("OriginalURL",""),download_url=url,author=item.get("Author",""),license=item.get("License",""),license_url=item.get("License",""),collector="open-images-official",review_status="pending",group_id=sid,downloaded_at=now(),source_version=f"Open Images V7 public {subset} image / V5 human boxable labels"+("; one non-depicted box >=25% image area" if dominant is not None else ""))
-                rows.append(row);seen.add(sid);counts[key]+=1
+                rows.append(row);seen.add(sid);counts[key]+=1;hashes.add(photo_hash);added+=1
                 write_csv(manifest,rows)
                 if counts[key]%10==0:
                     print(f"{key}: {counts[key]}/{per_class}",flush=True)

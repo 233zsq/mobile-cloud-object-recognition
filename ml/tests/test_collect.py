@@ -35,6 +35,31 @@ def test_bad_openimages_category_refused_before_network():
         collect.collect_openimages(["charger"])
 
 
+def test_expanded_cap_is_explicit_and_still_bounded(tmp_path, monkeypatch):
+    monkeypatch.setattr(collect, 'ROOT', tmp_path)
+    directory = tmp_path / 'data/raw/commons/key'
+    directory.mkdir(parents=True)
+    for n in range(240):
+        (directory / f'{n}.jpg').write_bytes(b'x')
+    collect.store_download(directory / 'new.jpg', b'x', 'key', class_cap=750)
+    with pytest.raises(ValueError, match='1..750'):
+        collect.store_download(directory / 'overflow.jpg', b'x', 'key', class_cap=751)
+    with pytest.raises(ValueError, match='max-new'):
+        collect.collect_commons(['key'], 750, class_cap=750, max_new=2001)
+
+
+def test_old_commons_ids_are_skipped_before_metadata_and_download(monkeypatch):
+    calls=[]
+    def api(params):
+        calls.append(params)
+        if params.get('list') == 'categorymembers':
+            return {'query': {'categorymembers': [{'pageid': 1, 'title': 'old'}, {'pageid': 2, 'title': 'new'}]}}
+        return {'query': {'search': []}}
+    monkeypatch.setattr(collect, 'api', api)
+    assert list(collect.candidate_ids('key', 1, {'1'})) == [2]
+    assert len(calls) == 1
+
+
 def test_response_limit_is_checked_before_read(monkeypatch):
     class Response:
         headers={"Content-Length":"1000"}

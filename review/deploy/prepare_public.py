@@ -14,9 +14,15 @@ from campus_review.assets import source_metadata
 parser = argparse.ArgumentParser()
 parser.add_argument('--root', type=Path, required=True)
 parser.add_argument('--output', type=Path, required=True)
+parser.add_argument('--manifest', type=Path, help='Package only this increment, rather than all cached candidates')
+parser.add_argument('--exclude', type=Path, help='CSV of previously reviewed sample_id/image_sha256, including rejections')
 args = parser.parse_args()
 root = args.root.resolve()
 used_ids, used_hashes = set(), set()
+if args.exclude:
+    with args.exclude.open(encoding='utf-8-sig', newline='') as stream:
+        for row in csv.DictReader(stream):
+            used_ids.add(row['sample_id']); used_hashes.add(row['image_sha256'])
 for manifest in (root / 'data/splits').glob('*/*.csv'):
     if manifest.name not in ('train.csv', 'validation.csv', 'test.csv'):
         continue
@@ -24,8 +30,9 @@ for manifest in (root / 'data/splits').glob('*/*.csv'):
         for row in csv.DictReader(stream):
             used_ids.add(row['sample_id']); used_hashes.add(row['image_sha256'])
 rows, paths, seen = [], {}, set()
-for name in ('public-reviewed.csv', 'public-candidates.csv', 'openimages-candidates.csv'):
-    with (root / 'data/manifests' / name).open(encoding='utf-8-sig', newline='') as stream:
+manifests = [args.manifest] if args.manifest else [root / 'data/manifests' / name for name in ('public-reviewed.csv', 'public-candidates.csv', 'openimages-candidates.csv')]
+for manifest in manifests:
+    with manifest.open(encoding='utf-8-sig', newline='') as stream:
         for row in csv.DictReader(stream):
             if row['sample_id'] in used_ids or row['image_sha256'] in used_hashes or row['image_sha256'] in seen:
                 continue

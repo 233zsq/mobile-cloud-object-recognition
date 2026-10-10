@@ -131,6 +131,7 @@ def create_app(config=None):
                       REVIEW_AI_KEY_FILE=os.environ.get('REVIEW_AI_KEY_FILE', ''),
                       REVIEW_AI_BUDGET_NANO=int(os.environ.get('REVIEW_AI_BUDGET_NANO', '1000000000')),
                       REVIEW_AI_MAX_CALLS=int(os.environ.get('REVIEW_AI_MAX_CALLS', '500')),
+                      REVIEW_AI_AUDIT_PERCENT=int(os.environ.get('REVIEW_AI_AUDIT_PERCENT', '5')),
                       REVIEW_TRIAGE_PRIMARY_MODEL=os.environ.get('REVIEW_TRIAGE_PRIMARY_MODEL', 'qwen3.8-flash'),
                       REVIEW_TRIAGE_POLICY=os.environ.get('REVIEW_TRIAGE_POLICY', ai_triage.CASCADE_POLICY),
                       EGRESS_LIMIT_BYTES=int(float(os.environ.get('REVIEW_EGRESS_LIMIT_GIB', '20')) * 1024**3),
@@ -206,7 +207,8 @@ def create_app(config=None):
                 'source_labels': {'field': '成员实拍', 'wikimedia_commons': 'Commons 网图', 'open_images': 'Open Images 网图'}}
 
     def workflow():
-        return Workflow(db(), g.user, app.config['REVIEW_LEASE_SECONDS'])
+        return Workflow(db(), g.user, app.config['REVIEW_LEASE_SECONDS'],
+                        ai_triage.routing_context(cat, ai_triage.configured_profiles(app.config)))
 
     def budgeted_file(path, **kwargs):
         response = send_file(path, conditional=True, **kwargs)
@@ -340,6 +342,7 @@ def create_app(config=None):
             abort(400)
         samples, count, stats = work.listing(filters, page)
         return render_template('index.html', samples=samples, stats=stats, filters=filters, **filters,
+                               queue_counts=work.queue_counts(filters), ai_audit_percent=app.config['REVIEW_AI_AUDIT_PERCENT'],
                                ai_suggestions={row['id']: ai_review.suggestion(db(), row, cat) for row in samples},
                                ai_summary=ai_review.latest_report(db()),
                                ai_pilot=ai_review.latest_report(db(), 'pilot'),

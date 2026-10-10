@@ -23,8 +23,9 @@ LEFT JOIN users holder ON holder.id=l.user_id'''
 
 
 class Workflow:
-    def __init__(self, connection, user, ttl=900):
+    def __init__(self, connection, user, ttl=900, routing_context=''):
         self.db, self.user, self.ttl = connection, user, ttl
+        self.routing_context = routing_context
 
     @contextmanager
     def transaction(self):
@@ -41,16 +42,18 @@ class Workflow:
                                    (self.user['id'],)).fetchone()
         default_scope = 'mine' if assigned and self.user['role'] != 'admin' else 'all'
         value = {key: params.get(key, default) for key, default in (
-            ('status', 'pending'), ('source', 'all'), ('category', ''), ('scope', default_scope), ('triage', 'all'))}
+            ('status', 'pending'), ('source', 'all'), ('category', ''), ('scope', default_scope), ('triage', 'human' if 'status' not in params else 'all'))}
         if (value['status'] not in ('pending', 'approved', 'rejected', 'all') or
                 value['source'] not in ('all', 'field', 'wikimedia_commons', 'open_images') or
                 value['category'] not in ('', *map(str, range(10))) or
-                value['scope'] not in ('mine', 'all', 'unassigned') or value['triage'] not in ('all', 'auto', 'audit')):
+                value['scope'] not in ('mine', 'all', 'unassigned') or value['triage'] not in ('all', 'auto', 'audit', 'human', 'waiting', 'error')):
             raise BadRequest('未知筛选条件')
         # Automatic decisions are approved/rejected; a pending-only audit
         # filter would otherwise silently hide the entire audit queue.
-        if value['triage'] != 'all' and value['status'] == 'pending':
+        if value['triage'] in ('auto', 'audit') and value['status'] == 'pending':
             value['status'] = 'all'
+        if value['triage'] in ('human', 'waiting', 'error'):
+            value['status'] = 'pending'
         return value
 
     def selection(self, filters, ignore_status=False):
@@ -63,10 +66,30 @@ class Workflow:
             clauses.append('a.reviewer_id=?'); args.append(self.user['id'])
         elif filters['scope'] == 'unassigned':
             clauses.append('a.reviewer_id IS NULL')
-        if filters.get('triage', 'all') != 'all':
+        triage = filters.get('triage', 'all')
+        route = ('r.sample_id=s.id AND r.revision=s.revision AND r.photo_sha256=s.sha256 '
+                 'AND r.category=s.category AND r.context=?')
+        if triage in ('human', 'waiting', 'error'):
+            clauses.append('s.batch IS NULL')
+            if triage == 'human':
+                clauses.append("(s.source='field' OR s.revision>1 OR EXISTS(SELECT 1 FROM ai_triage_routes r WHERE " + route + " AND r.state='manual'))")
+            elif triage == 'error':
+                clauses.append("EXISTS(SELECT 1 FROM ai_triage_routes r WHERE " + route + " AND r.state='error')")
+            else:
+                clauses.append("s.source<>'field' AND s.revision=1 AND NOT EXISTS(SELECT 1 FROM ai_triage_routes r WHERE " + route + ")")
+            args.append(self.routing_context)
+        elif triage in ('auto', 'audit'):
             extra = ' AND d.audit_required=1' if filters['triage'] == 'audit' else ''
-            clauses.append('s.batch IS NULL AND EXISTS(SELECT 1 FROM ai_auto_decisions d WHERE ' + ACTIVE + extra + ')')
+            clauses.append(('s.batch IS NULL AND ' if triage == 'audit' else '') + 'EXISTS(SELECT 1 FROM ai_auto_decisions d WHERE ' + ACTIVE + extra + ')')
         return clauses, args
+
+    def queue_counts(self, filters):
+        result = {}
+        for triage in ('human', 'waiting', 'error', 'audit'):
+            selected = {**filters, 'triage': triage, 'status': 'all' if triage == 'audit' else 'pending'}
+            clauses, args = self.selection(selected)
+            result[triage] = self.db.execute('SELECT COUNT(*) ' + JOIN + ' WHERE ' + ' AND '.join(clauses), args).fetchone()[0]
+        return result
 
     def listing(self, filters, page):
         clauses, args = self.selection(filters)

@@ -39,6 +39,8 @@ def parser():
     a.add_argument("--provider",choices=["commons","openimages"],default="commons")
     a.add_argument("--categories",nargs="+")
     a.add_argument("--per-class",type=int,default=120)
+    a.add_argument("--class-cap",type=int,default=240,help="Cumulative cross-provider class cap, at most 750; photo budget remains 3 GiB")
+    a.add_argument("--max-new",type=int,help="Maximum new photos in this command, at most 2000")
     a.add_argument("--source-split",choices=["train","validation","public-test"],default="validation",help="Open Images public source subset; unrelated to project evaluation splits")
     a=s.add_parser("audit")
     a.add_argument("--manifest",type=__import__("pathlib").Path,default=ROOT/"data/manifests/public-candidates.csv")
@@ -121,7 +123,8 @@ def main():
             from .collect import collect_commons,collect_openimages
             if args.provider=="openimages" and not args.categories:
                 raise ValueError("Specify only missing --categories for Open Images fallback")
-            rows=collect_commons(args.categories,args.per_class) if args.provider=="commons" else collect_openimages(args.categories,args.per_class,args.source_split)
+            limits={'class_cap':args.class_cap,'max_new':args.max_new}
+            rows=collect_commons(args.categories,args.per_class,**limits) if args.provider=="commons" else collect_openimages(args.categories,args.per_class,args.source_split,**limits)
             value={"candidates":len(rows),"status":"requires_visual_review"}
         elif args.command=="audit":
             from .data import audit

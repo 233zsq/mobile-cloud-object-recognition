@@ -33,6 +33,7 @@ INSERT OR IGNORE INTO ai_triage_settings VALUES(1,0);
 CREATE TABLE IF NOT EXISTS ai_triage_jobs(
  id TEXT PRIMARY KEY,actor INTEGER NOT NULL REFERENCES users(id),state TEXT NOT NULL,
  apply_changes INTEGER NOT NULL,limit_count INTEGER NOT NULL,profiles TEXT NOT NULL,
+ audit_percent INTEGER NOT NULL DEFAULT 10,
  policy TEXT NOT NULL DEFAULT 'strict-crosscheck-v2',
  processed INTEGER NOT NULL DEFAULT 0,pid INTEGER,report TEXT NOT NULL DEFAULT '{}',
  error_code TEXT NOT NULL DEFAULT '',created_at TEXT NOT NULL,updated_at TEXT NOT NULL);
@@ -45,10 +46,16 @@ CREATE INDEX IF NOT EXISTS ai_auto_sample ON ai_auto_decisions(sample_id);
 CREATE TABLE IF NOT EXISTS ai_triage_seen(
  identity TEXT PRIMARY KEY,sample_id TEXT NOT NULL REFERENCES samples(id),policy TEXT NOT NULL,
  job_id TEXT NOT NULL REFERENCES ai_triage_jobs(id),created_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS ai_triage_routes(
+ sample_id TEXT PRIMARY KEY REFERENCES samples(id),revision INTEGER NOT NULL,photo_sha256 TEXT NOT NULL,
+ category INTEGER NOT NULL,context TEXT NOT NULL,job_id TEXT NOT NULL REFERENCES ai_triage_jobs(id),
+ state TEXT NOT NULL CHECK(state IN ('manual','error')),reason_code TEXT NOT NULL,created_at TEXT NOT NULL);
 '''
 
 
 def migrate(db):
+    if 'audit_percent' not in {row[1] for row in db.execute('PRAGMA table_info(ai_triage_jobs)')}:
+        db.execute("ALTER TABLE ai_triage_jobs ADD COLUMN audit_percent INTEGER NOT NULL DEFAULT 10")
     if 'policy' not in {row[1] for row in db.execute('PRAGMA table_info(ai_triage_jobs)')}:
         # Historical jobs retain their historical rules after a model switch.
         db.execute("ALTER TABLE ai_triage_jobs ADD COLUMN policy TEXT NOT NULL DEFAULT 'strict-crosscheck-v2'")
@@ -108,6 +115,13 @@ def policy_for(selected):
 
 def configured_profiles(config):
     return profiles(config.get('REVIEW_TRIAGE_PRIMARY_MODEL', FLASH_MODEL), config.get('REVIEW_TRIAGE_POLICY'))
+
+
+def routing_context(categories, selected):
+    """Invalidate a routing result when labels, prompts or model generations change."""
+    return ai.digest(json.dumps([categories, [{**p.__dict__, 'inference': ai.inference(p),
+        'alias_generation': ai.ALIAS_GENERATIONS.get(p.model)} for p in selected]],
+        sort_keys=True, ensure_ascii=False).encode())
 
 
 def candidate(result, category, policy=None):
@@ -301,6 +315,9 @@ def new_job(db, actor, limit, config, apply_changes=True):
     administrator(db, actor)
     selected = configured_profiles(config)
     policy = policy_for(selected)
+    audit_percent = config.get('REVIEW_AI_AUDIT_PERCENT', 5)
+    if type(audit_percent) is not int or not 1 <= audit_percent <= 100:
+        raise BadRequest('抽检比例必须为1到100的整数百分比')
     db.execute('BEGIN IMMEDIATE')
     try:
         recover_interrupted(db)
@@ -312,8 +329,8 @@ def new_job(db, actor, limit, config, apply_changes=True):
         if spent[2] + reservation > config['REVIEW_AI_BUDGET_NANO'] or spent[4] >= config['REVIEW_AI_MAX_CALLS']:
             raise Conflict('累计预算或调用次数已到上限，历史用量不会重置')
         identity, now = uuid.uuid4().hex, ai.stamp()
-        db.execute('INSERT INTO ai_triage_jobs(id,actor,state,apply_changes,limit_count,profiles,policy,created_at,updated_at) VALUES(?,?,"queued",?,?,?,?,?,?)',
-                   (identity, actor, int(apply_changes), limit, json.dumps([p.__dict__ for p in selected]), policy, now, now))
+        db.execute('INSERT INTO ai_triage_jobs(id,actor,state,apply_changes,limit_count,profiles,policy,audit_percent,created_at,updated_at) VALUES(?,?,"queued",?,?,?,?,?,?,?)',
+                   (identity, actor, int(apply_changes), limit, json.dumps([p.__dict__ for p in selected]), policy, audit_percent, now, now))
         log(db, actor, 'ai_triage_started', identity, {'limit': limit, 'apply_changes': bool(apply_changes), 'policy': policy})
         db.commit()
         return identity
@@ -335,13 +352,14 @@ def launch(app, identity):
 
 def audit_sample(db, job_id):
     # All automatic decisions require audit until the job finishes. Interrupted
-    # jobs keep that stricter default. Choose >=10%, at least one per outcome.
-    policy = db.execute('SELECT policy FROM ai_triage_jobs WHERE id=?', (job_id,)).fetchone()[0]
+    # jobs keep that stricter default. Historical jobs retain their pinned rate.
+    job = db.execute('SELECT policy,audit_percent FROM ai_triage_jobs WHERE id=?', (job_id,)).fetchone()
+    policy, fraction = job['policy'], job['audit_percent'] / 100
     for status in ('approved', 'rejected'):
         rows = db.execute('SELECT d.id,s.category FROM ai_auto_decisions d JOIN samples s ON s.id=d.sample_id WHERE d.job_id=? AND d.after_status=? ORDER BY d.id', (job_id, status)).fetchall()
         if not rows:
             continue
-        chosen = {row[0] for row in sorted(rows, key=lambda r: ai.digest((job_id + r[0]).encode()))[:max(1, math.ceil(len(rows) * .1))]}
+        chosen = {row[0] for row in sorted(rows, key=lambda r: ai.digest((job_id + r[0]).encode()))[:max(1, math.ceil(len(rows) * fraction))]}
         if status == 'approved' and policy not in (MAX_POLICY, CASCADE_POLICY):
             chosen.update(row['id'] for row in rows if row['category'] in FULL_APPROVAL_AUDIT_CATEGORIES)
         db.executemany('UPDATE ai_auto_decisions SET audit_required=? WHERE id=?', [(int(row[0] in chosen), row[0]) for row in rows])
@@ -354,7 +372,8 @@ def run_job(db, data, categories, config, identity, analyze=ai.analyze):
         db.rollback(); raise Conflict('任务不存在或已经运行')
     db.execute('UPDATE ai_triage_jobs SET state="running",pid=?,updated_at=? WHERE id=?', (os.getpid(), ai.stamp(), identity)); db.commit()
     policy = job['policy']
-    report = {'job_id': identity, 'policy': policy, 'apply_changes': bool(job['apply_changes']), 'samples': [], 'counts': {}, 'errors': {}, 'routing': {}}
+    report = {'job_id': identity, 'policy': policy, 'audit_percent': job['audit_percent'],
+              'apply_changes': bool(job['apply_changes']), 'samples': [], 'counts': {}, 'errors': {}, 'routing': {}}
     before_usage = ai.usage_totals(db)
     identities, selected_usage_before = [], (0, 0, 0, 0, 0)
     state, error_code = 'done', ''
@@ -383,7 +402,7 @@ def run_job(db, data, categories, config, identity, analyze=ai.analyze):
             if job['apply_changes'] and not enabled(db):
                 state, error_code = 'stopped', 'paused'; break
             checks, suggestions = [], []
-            outcome = 'manual'
+            outcome, fault = 'manual', ''
             for profile in chosen_profiles:
                 if policy == CASCADE_POLICY and profile.model == MAX_MODEL:
                     report['routing']['max_reviews'] = report['routing'].get('max_reviews', 0) + 1
@@ -412,13 +431,22 @@ def run_job(db, data, categories, config, identity, analyze=ai.analyze):
             if decide(suggestions, row['category'], policy):
                 outcome = (apply_decision(db, data, row, categories, job, checks) if job['apply_changes'] else
                            'would_' + decide(suggestions, row['category'], policy))
+            elif fault:
+                outcome = 'ai_error'
             report['samples'].append({'sample_id': row['id'], 'category_id': row['category'], 'outcome': outcome, 'checks': checks})
             report['counts'][outcome] = report['counts'].get(outcome, 0) + 1
             db.execute('BEGIN IMMEDIATE')
             try:
                 db.execute('UPDATE ai_triage_jobs SET processed=?,report=?,updated_at=? WHERE id=?',
                            (len(report['samples']), json.dumps(report, ensure_ascii=False), ai.stamp(), identity))
-                if job['apply_changes'] and state != 'stopped' and outcome in ('approved', 'rejected', 'manual'):
+                if job['apply_changes'] and outcome in ('manual', 'ai_error'):
+                    current = db.execute('SELECT * FROM samples WHERE id=?', (row['id'],)).fetchone()
+                    if (current and untouched(db, current) and all(current[k] == row[k] for k in ('revision', 'sha256', 'category', 'crop'))):
+                        db.execute('INSERT OR REPLACE INTO ai_triage_routes VALUES(?,?,?,?,?,?,?,?,?)',
+                            (row['id'], row['revision'], row['sha256'], row['category'], routing_context(categories, chosen_profiles),
+                             identity, 'error' if outcome == 'ai_error' else 'manual',
+                             fault or (suggestions[-1]['decision'] if suggestions else 'uncertain'), ai.stamp()))
+                if job['apply_changes'] and state != 'stopped' and outcome in ('approved', 'rejected', 'manual', 'ai_error'):
                     db.execute('INSERT OR IGNORE INTO ai_triage_seen VALUES(?,?,?,?,?)',
                                (selection_identity(row, categories, chosen_profiles), row['id'], policy, identity, ai.stamp()))
                 db.commit()

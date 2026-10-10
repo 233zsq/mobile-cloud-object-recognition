@@ -211,7 +211,7 @@ def test_public_import_stays_pending_preserves_source_and_supports_crop(app, tmp
     assert row['status'] == 'pending' and not row['object_id'] and row['source'] == 'wikimedia_commons'
     assert conn.execute("SELECT active FROM users WHERE username='@public-import'").fetchone()[0] == 0
     conn.close()
-    page = client.get('/?source=wikimedia_commons&category=0')
+    page = client.get('/?source=wikimedia_commons&category=0&triage=waiting')
     assert 'Commons 网图' in page.text and 'loading="lazy"' in page.text and 'size=thumb' in page.text
     assert row['id'] not in client.get('/?source=field').text
     path = '/samples/'+row['id']

@@ -263,7 +263,7 @@ def test_pending_batches_progress_without_recharging_cached_photos(app, monkeypa
     with connect(app) as db:
         assert db.execute('SELECT SUM(attempts) FROM ai_reviews').fetchone()[0] == 2
         assert db.execute('SELECT COUNT(*) FROM samples WHERE status="pending" AND revision=1').fetchone()[0] == 2
-    assert 'AI · 建议通过' in owner.get('/').text
+    assert 'AI · 建议通过' in owner.get('/?triage=waiting').text
 
 
 def test_plus_uses_its_own_prices_and_separate_cache(app, monkeypatch):
