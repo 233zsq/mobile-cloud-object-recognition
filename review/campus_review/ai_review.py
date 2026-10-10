@@ -37,7 +37,7 @@ LABELS = {'pass': '建议通过', 'reject': '建议拒绝', 'crop': '建议裁�
 FLAGS = {'occluded', 'multiple_subjects', 'too_small', 'blurred', 'out_of_scope', 'illustration'}
 # Beijing <=32K prices checked 2026-10-09. Nano-yuan avoids floating-point budget drift.
 INPUT_RATE, OUTPUT_RATE = MODEL_RATES[MODEL]
-RESERVATION = 32000 * INPUT_RATE + (500 + (MAX_THINKING_BUDGET if PROMPT_VERSION == 'campus-ai-review-v6' else 0)) * OUTPUT_RATE
+RESERVATION = 32000 * INPUT_RATE + (500 + (MAX_THINKING_BUDGET if PROMPT_VERSION == 'campus-ai-review-v6' and MODEL == 'qwen3.8-max-0902' else 0)) * OUTPUT_RATE
 SCHEMA = '''
 CREATE TABLE IF NOT EXISTS ai_reviews(
  cache_key TEXT PRIMARY KEY, sample_id TEXT NOT NULL REFERENCES samples(id),
@@ -62,7 +62,7 @@ class Profile:
 
     def __post_init__(self):
         if (self.model not in MODEL_RATES or self.prompt_version not in PROMPT_VERSIONS or
-                self.prompt_version == 'campus-ai-review-v6' and self.model != 'qwen3.8-max-0902'):
+                self.prompt_version == 'campus-ai-review-v6' and self.model not in ('qwen3.8-flash', 'qwen3.8-max-0902')):
             raise ValueError('Unsupported AI review model or prompt profile')
 
 
@@ -75,7 +75,7 @@ def digest(value):
 
 
 def inference(profile):
-    budget = MAX_THINKING_BUDGET if profile.prompt_version == 'campus-ai-review-v6' else 0
+    budget = MAX_THINKING_BUDGET if profile.prompt_version == 'campus-ai-review-v6' and profile.model == 'qwen3.8-max-0902' else 0
     return {'enable_thinking': bool(budget), 'thinking_budget': budget, 'max_tokens': 500 + budget}
 
 

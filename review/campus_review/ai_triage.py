@@ -21,6 +21,8 @@ from .assets import PUBLIC_SOURCES
 POLICY = 'strict-crosscheck-v2'
 MAX_POLICY = 'max-direct-v1'
 MAX_MODEL = 'qwen3.8-max-0902'
+CASCADE_POLICY = 'flash-max-cascade-v1'
+FLASH_MODEL = 'qwen3.8-flash'
 # No pilot references yet for chargers/keys. Do not freeze their automatic
 # approvals without reviewing every one, even when all models agree.
 FULL_APPROVAL_AUDIT_CATEGORIES = (7, 8)
@@ -80,7 +82,15 @@ def set_enabled(db, actor, value, policy=None):
         db.rollback(); raise
 
 
-def profiles(primary):
+def profiles(primary, policy=None):
+    if policy == CASCADE_POLICY:
+        if primary != FLASH_MODEL:
+            raise BadRequest('Flash优先策略需要选择Qwen3.8-Flash')
+        return [ai.Profile(FLASH_MODEL, 'campus-ai-review-v6'), ai.Profile(MAX_MODEL, 'campus-ai-review-v6')]
+    if policy not in (None, '', POLICY, MAX_POLICY):
+        raise BadRequest('未知的自动审核策略')
+    if policy == MAX_POLICY and primary != MAX_MODEL or policy == POLICY and primary == MAX_MODEL:
+        raise BadRequest('审核策略与模型不匹配')
     if primary == MAX_MODEL:
         return [ai.Profile(MAX_MODEL, 'campus-ai-review-v6')]
     if primary not in ('qwen3.8-flash', 'qwen3-vl-plus-2025-12-19'):
@@ -91,7 +101,13 @@ def profiles(primary):
 
 
 def policy_for(selected):
+    if selected == profiles(FLASH_MODEL, CASCADE_POLICY):
+        return CASCADE_POLICY
     return MAX_POLICY if selected == [ai.Profile(MAX_MODEL, 'campus-ai-review-v6')] else POLICY
+
+
+def configured_profiles(config):
+    return profiles(config.get('REVIEW_TRIAGE_PRIMARY_MODEL', FLASH_MODEL), config.get('REVIEW_TRIAGE_POLICY'))
 
 
 def candidate(result, category, policy=None):
@@ -99,7 +115,10 @@ def candidate(result, category, policy=None):
     if not result or result.get('bbox') is not None:
         return None
     decision, actual, flags = result.get('decision'), result.get('category_id'), result.get('flags')
-    if policy == MAX_POLICY:
+    if policy in (MAX_POLICY, CASCADE_POLICY):
+        if policy == CASCADE_POLICY and re.search(r'疑似|可能|用途不明|不确定|无法确认|无法确定',
+                                                  str(result.get('subject', '')) + ' ' + str(result.get('reason', ''))):
+            return None
         # Trust the validated primary decision, not consensus or keyword votes.
         # Valid in-scope photos carrying a different label still need relabelling.
         if decision == 'pass' and type(actual) is int and actual == category and flags == []:
@@ -121,7 +140,20 @@ def candidate(result, category, policy=None):
     return None
 
 
+def needs_max(result, category):
+    """Only unresolved judgments escalate; edits and wrong labels stay human."""
+    return (result.get('bbox') is None and result.get('decision') != 'crop' and
+            (result.get('category_id') is None or type(result.get('category_id')) is int and result['category_id'] == category) and
+            candidate(result, category, CASCADE_POLICY) is None)
+
+
 def decide(results, category, policy=None):
+    if policy == CASCADE_POLICY:
+        if len(results) == 1:
+            return candidate(results[0], category, policy)
+        if len(results) == 2 and needs_max(results[0], category):
+            return candidate(results[1], category, policy)
+        return None
     choices = [candidate(result, category, policy) for result in results]
     required = 1 if policy == MAX_POLICY else 3
     return choices[0] if len(choices) == required and choices[0] and len(set(choices)) == 1 else None
@@ -174,9 +206,11 @@ def apply_decision(db, data, snapshot, categories, job, checks):
             results.append(result)
             actual_checks.append({**check, 'suggestion': result})
         expected_profiles = json.loads(job['profiles'])
-        if [check['profile'] for check in checks] != expected_profiles:
-            db.rollback(); return 'evidence_changed'
         policy = job['policy']
+        used_profiles = [check['profile'] for check in checks]
+        if (used_profiles != (expected_profiles[:len(checks)] if policy == CASCADE_POLICY else expected_profiles) or
+                not checks):
+            db.rollback(); return 'evidence_changed'
         status = decide(results, row['category'], policy)
         if status is None:
             db.rollback(); return 'manual'
@@ -185,7 +219,8 @@ def apply_decision(db, data, snapshot, categories, job, checks):
                     'same_provider_errors_may_be_correlated': True}
         identity = uuid.uuid4().hex
         before = {'status': row['status'], 'reason': row['reason']}
-        reason = ('AI Max自动审核：' + results[-1]['reason'][:130] if policy == MAX_POLICY else
+        reason = ('AI ' + ('Flash' if len(checks) == 1 else 'Max复核') + '自动审核：' + results[-1]['reason'][:130] if policy == CASCADE_POLICY else
+                  'AI Max自动审核：' + results[-1]['reason'][:130] if policy == MAX_POLICY else
                   'AI严格分流通过：三项交叉核验一致。' if status == 'approved' else
                   'AI严格分流拒绝：' + results[-1]['reason'][:130])
         db.execute('UPDATE samples SET status=?,reason=?,revision=revision+1 WHERE id=? AND revision=?',
@@ -225,14 +260,15 @@ def undo(db, actor, sid, revision):
         db.rollback(); raise
 
 
-def summary(db, primary='qwen3.8-flash'):
+def summary(db, primary=FLASH_MODEL, policy=None):
     counts = dict(db.execute('SELECT d.after_status,COUNT(*) FROM ai_auto_decisions d JOIN samples s ON s.id=d.sample_id WHERE ' + ACTIVE + ' AND s.batch IS NULL GROUP BY d.after_status'))
     audits = db.execute('SELECT COUNT(*) FROM ai_auto_decisions d JOIN samples s ON s.id=d.sample_id WHERE ' + ACTIVE + ' AND d.audit_required=1 AND s.batch IS NULL').fetchone()[0]
-    jobs = [{**dict(row), 'counts': json.loads(row['report']).get('counts', {})}
+    jobs = [{**dict(row), 'counts': json.loads(row['report']).get('counts', {}),
+             'routing': json.loads(row['report']).get('routing', {})}
             for row in db.execute('SELECT * FROM ai_triage_jobs ORDER BY created_at DESC,rowid DESC LIMIT 5')]
     return {'enabled': enabled(db), 'counts': counts, 'audit_count': audits,
             'primary_model': primary, 'max_direct': primary == MAX_MODEL,
-            'policy': policy_for(profiles(primary)),
+            'cascade': policy == CASCADE_POLICY, 'policy': policy_for(profiles(primary, policy)),
             'jobs': jobs}
 
 
@@ -263,7 +299,7 @@ def new_job(db, actor, limit, config, apply_changes=True):
     if type(limit) is not int or not 1 <= limit <= 50:
         raise BadRequest('每批只能处理1到50张照片')
     administrator(db, actor)
-    selected = profiles(config.get('REVIEW_TRIAGE_PRIMARY_MODEL', ai.MODEL))
+    selected = configured_profiles(config)
     policy = policy_for(selected)
     db.execute('BEGIN IMMEDIATE')
     try:
@@ -271,7 +307,8 @@ def new_job(db, actor, limit, config, apply_changes=True):
         if apply_changes and not enabled(db):
             raise Conflict('自动审核已暂停，请先开启')
         spent = ai.usage_totals(db)
-        reservation = max(ai.reservation_for(p) for p in selected)
+        reservation = (ai.reservation_for(selected[0]) if policy == CASCADE_POLICY else
+                       max(ai.reservation_for(p) for p in selected))
         if spent[2] + reservation > config['REVIEW_AI_BUDGET_NANO'] or spent[4] >= config['REVIEW_AI_MAX_CALLS']:
             raise Conflict('累计预算或调用次数已到上限，历史用量不会重置')
         identity, now = uuid.uuid4().hex, ai.stamp()
@@ -305,7 +342,7 @@ def audit_sample(db, job_id):
         if not rows:
             continue
         chosen = {row[0] for row in sorted(rows, key=lambda r: ai.digest((job_id + r[0]).encode()))[:max(1, math.ceil(len(rows) * .1))]}
-        if status == 'approved' and policy != MAX_POLICY:
+        if status == 'approved' and policy not in (MAX_POLICY, CASCADE_POLICY):
             chosen.update(row['id'] for row in rows if row['category'] in FULL_APPROVAL_AUDIT_CATEGORIES)
         db.executemany('UPDATE ai_auto_decisions SET audit_required=? WHERE id=?', [(int(row[0] in chosen), row[0]) for row in rows])
 
@@ -317,7 +354,7 @@ def run_job(db, data, categories, config, identity, analyze=ai.analyze):
         db.rollback(); raise Conflict('任务不存在或已经运行')
     db.execute('UPDATE ai_triage_jobs SET state="running",pid=?,updated_at=? WHERE id=?', (os.getpid(), ai.stamp(), identity)); db.commit()
     policy = job['policy']
-    report = {'job_id': identity, 'policy': policy, 'apply_changes': bool(job['apply_changes']), 'samples': [], 'counts': {}, 'errors': {}}
+    report = {'job_id': identity, 'policy': policy, 'apply_changes': bool(job['apply_changes']), 'samples': [], 'counts': {}, 'errors': {}, 'routing': {}}
     before_usage = ai.usage_totals(db)
     identities, selected_usage_before = [], (0, 0, 0, 0, 0)
     state, error_code = 'done', ''
@@ -325,7 +362,8 @@ def run_job(db, data, categories, config, identity, analyze=ai.analyze):
         administrator(db, job['actor'])
         key = ai.read_key(config)
         chosen_profiles = [ai.Profile(**p) for p in json.loads(job['profiles'])]
-        if policy_for(chosen_profiles) != policy or chosen_profiles != profiles(chosen_profiles[0].model):
+        if (policy_for(chosen_profiles) != policy or
+                chosen_profiles != profiles(chosen_profiles[0].model, CASCADE_POLICY if policy == CASCADE_POLICY else None)):
             raise ai.ReviewError('job_policy_profile_mismatch')
         seen = {r[0] for r in db.execute('SELECT identity FROM ai_triage_seen')}
         rows = [dict(r) for r in db.execute('SELECT * FROM samples ORDER BY id').fetchall()
@@ -347,6 +385,8 @@ def run_job(db, data, categories, config, identity, analyze=ai.analyze):
             checks, suggestions = [], []
             outcome = 'manual'
             for profile in chosen_profiles:
+                if policy == CASCADE_POLICY and profile.model == MAX_MODEL:
+                    report['routing']['max_reviews'] = report['routing'].get('max_reviews', 0) + 1
                 status, result = analyze(db, data, row, categories, config, key, profile=profile)
                 cache_identity = ai.cache_key(row, categories, profile)
                 if status != 'done':
@@ -360,6 +400,12 @@ def run_job(db, data, categories, config, identity, analyze=ai.analyze):
                                'inference': ai.inference(profile),
                                'alias_cache_generation': ai.ALIAS_GENERATIONS.get(profile.model)})
                 suggestions.append(result)
+                if policy == CASCADE_POLICY:
+                    if len(suggestions) == 1 and needs_max(result, row['category']):
+                        continue
+                    if len(suggestions) == 1 and candidate(result, row['category'], policy):
+                        report['routing']['flash_direct'] = report['routing'].get('flash_direct', 0) + 1
+                    break
                 choice = candidate(result, row['category'], policy)
                 if choice is None or (len(suggestions) > 1 and choice != candidate(suggestions[0], row['category'], policy)):
                     break
@@ -432,6 +478,6 @@ def register(app, get_db, data, categories):
     @click.option('--actor', type=int, required=True)
     @click.option('--enabled', 'value', type=bool, required=True)
     def policy(actor, value):
-        active = policy_for(profiles(app.config['REVIEW_TRIAGE_PRIMARY_MODEL']))
+        active = policy_for(configured_profiles(app.config))
         set_enabled(get_db(), actor, value, active)
         click.echo(json.dumps({'enabled': value, 'policy': active}))

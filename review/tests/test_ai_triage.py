@@ -15,7 +15,7 @@ from campus_review import ai_review as ai, ai_triage as triage
 
 def prepare(app, owner):
     row = public_sample(app, owner)
-    app.config.update(REVIEW_TRIAGE_PRIMARY_MODEL='qwen3.8-flash', REVIEW_AI_BUDGET_NANO=30_000_000_000,
+    app.config.update(REVIEW_TRIAGE_PRIMARY_MODEL='qwen3.8-flash', REVIEW_TRIAGE_POLICY='', REVIEW_AI_BUDGET_NANO=30_000_000_000,
                       REVIEW_AI_MAX_CALLS=5000)
     with connect(app) as db:
         db.isolation_level = None
