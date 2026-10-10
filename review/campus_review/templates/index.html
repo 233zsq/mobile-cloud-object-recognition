@@ -14,9 +14,9 @@
   {% if g.user.role=='admin' %}
   <p>累计估算 {{'%.4f'|format(ai_usage.charged_or_reserved_yuan)}} / {{'%.0f'|format(ai_budget)}} 元 · {{ai_usage.attempts}} / {{ai_max_calls}} 次调用（保留历史用量）。</p>
   <div class="actions"><form method="post" action="{{url_for('triage_policy')}}"><input type="hidden" name="csrf" value="{{csrf}}"><input type="hidden" name="enabled" value="{{'false' if triage_summary.enabled else 'true'}}"><button class="button">{{'暂停分流' if triage_summary.enabled else '开启分流'}}</button></form>
-  <form class="inline" method="post" action="{{url_for('triage_job')}}"><input type="hidden" name="csrf" value="{{csrf}}"><label>本批张数<input type="number" name="limit" min="1" max="50" value="20" required></label><button class="button" {{'disabled' if not triage_summary.enabled}}>处理一批网图</button></form></div>
+  <form class="inline" method="post" action="{{url_for('triage_job')}}"><input type="hidden" name="csrf" value="{{csrf}}"><label>本批张数<input type="number" name="limit" min="1" max="50" value="{{50 if triage_summary.max_direct else 20}}" required></label><button class="button" {{'disabled' if not triage_summary.enabled}}>处理一批网图</button></form></div>
   {% endif %}
-  {% if triage_summary.jobs %}<details><summary>最近任务</summary>{% for job in triage_summary.jobs %}<p>{{{'queued':'等待启动','running':'处理中','done':'已完成','stopped':'已停止','error':'运行失败','interrupted':'任务中断'}.get(job.state,job.state)}} · 已处理 {{job.processed}} / {{job.limit_count}} 张{% if job.error_code %} · {{job.error_code}}{% endif %} · {{job.created_at}}</p>{% endfor %}</details>{% endif %}
+  {% if triage_summary.jobs %}<details><summary>最近任务</summary>{% for job in triage_summary.jobs %}<p>{{'预演 · ' if not job.apply_changes}}{{{'queued':'等待启动','running':'处理中','done':'已完成','stopped':'已停止','error':'运行失败','interrupted':'任务中断'}.get(job.state,job.state)}} · 已处理 {{job.processed}} / {{job.limit_count}} 张{% if job.counts %} · 通过 {{job.counts.get('approved',job.counts.get('would_approved',0))}} · 拒绝 {{job.counts.get('rejected',job.counts.get('would_rejected',0))}} · 人工 {{job.counts.get('manual',0)}}{% if job.counts.get('changed_or_claimed',0) %} · 已变更或被领取，跳过 {{job.counts.changed_or_claimed}}{% endif %}{% endif %}{% if job.error_code %} · {{job.error_code}}{% endif %} · {{job.created_at}}</p>{% endfor %}</details>{% endif %}
 </section>
 {% if ai_summary %}
 <section class="panel ai-summary">

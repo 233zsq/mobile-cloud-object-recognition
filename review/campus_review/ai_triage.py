@@ -228,10 +228,12 @@ def undo(db, actor, sid, revision):
 def summary(db, primary='qwen3.8-flash'):
     counts = dict(db.execute('SELECT d.after_status,COUNT(*) FROM ai_auto_decisions d JOIN samples s ON s.id=d.sample_id WHERE ' + ACTIVE + ' AND s.batch IS NULL GROUP BY d.after_status'))
     audits = db.execute('SELECT COUNT(*) FROM ai_auto_decisions d JOIN samples s ON s.id=d.sample_id WHERE ' + ACTIVE + ' AND d.audit_required=1 AND s.batch IS NULL').fetchone()[0]
+    jobs = [{**dict(row), 'counts': json.loads(row['report']).get('counts', {})}
+            for row in db.execute('SELECT * FROM ai_triage_jobs ORDER BY created_at DESC,rowid DESC LIMIT 5')]
     return {'enabled': enabled(db), 'counts': counts, 'audit_count': audits,
             'primary_model': primary, 'max_direct': primary == MAX_MODEL,
             'policy': policy_for(profiles(primary)),
-            'jobs': db.execute('SELECT * FROM ai_triage_jobs ORDER BY created_at DESC,rowid DESC LIMIT 5').fetchall()}
+            'jobs': jobs}
 
 
 def pending_approval_audits(db):

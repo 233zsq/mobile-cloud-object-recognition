@@ -125,7 +125,7 @@ REVIEW_AI_MODEL=qwen3-vl-plus-2025-12-19 REVIEW_AI_PROMPT_VERSION=campus-ai-revi
 
 ### Max直接审核
 
-设置 `REVIEW_TRIAGE_PRIMARY_MODEL=qwen3.8-max-0902` 可选择 `max-direct-v1`。Max/v6单独判断，明确通过或拒绝可自动处理；质量原因的明确拒绝也可处理，裁剪、标签冲突、不确定或接口异常留给人工，不再要求旧模型同意。仅处理未被人工修改、未冻结且未被领取的待审公开照片。
+设置 `REVIEW_TRIAGE_PRIMARY_MODEL=qwen3.8-max-0902` 可选择 `max-direct-v1`。Max/v6单独判断，明确通过或拒绝可自动处理；质量原因的明确拒绝也可处理，裁剪、标签冲突、不确定或接口异常留给人工，不再要求旧模型同意。仅处理未被人工修改、未冻结且未被领取的待审公开照片。云端选择 Max/v6；开发对照、已知误判与有界试运行见 [Max记录](experiments/2026-10-10-qwen38-max.md)。
 
 Max使用固定快照，v6开启思考并限制思考1024 Token、总输出1524 Token，推理Token一并计费及预留。北京输入/输出每百万Token标价12/36元。[模型说明](https://help.aliyun.com/zh/model-studio/qwen3-8-max)、[思考配置](https://help.aliyun.com/zh/model-studio/deep-thinking)。输入、输出及未知用量都纳入原有累计30元/5000次上限；不会因更换模型重置历史。
 
@@ -139,7 +139,7 @@ Max使用固定快照，v6开启思考并限制思考1024 Token、总输出1524 
 
 新增 `qwen3.8-flash`：支持图片和JSON输出，北京输入/输出每百万Token标价0.8/2.7元，非思考模式。[官方说明](https://help.aliyun.com/zh/model-studio/qwen3-8-flash)。当前官方只公布别名，本项目记录内部缓存代次 `review-evaluation-20261009-r1`，不能据此声称供应商权重已固定；供应商升级后应重新抽样评测并更换代次。模型与提示词通过不可变 `Profile` 独立传递，不改变其他任务的全局模型或价格。
 
-同图实测、适用范围与局限见 [Qwen3.8对照和分流记录](experiments/2026-10-09-qwen38-triage.md)。当前云端已切换3.8/v4作为辅助建议与第一步分流；历史Plus结果保留。报告的 `run_usage` 为所选输入缓存键在执行前后的账本增量，`ledger_window_usage` 单独记录全库窗口增量；有并行任务时二者可能不同，同一输入键的并发开销也不能当作独占归属。
+同图实测、适用范围与局限见 [Qwen3.8对照和分流记录](experiments/2026-10-09-qwen38-triage.md)。2026-10-09云端曾选择3.8/v4作为辅助建议与第一步分流；此配置及历史Plus结果保留。报告的 `run_usage` 为所选输入缓存键在执行前后的账本增量，`ledger_window_usage` 单独记录全库窗口增量；有并行任务时二者可能不同，同一输入键的并发开销也不能当作独占归属。
 
 严格策略 `strict-crosscheck-v2` 依次核验：`REVIEW_TRIAGE_PRIMARY_MODEL`（默认Qwen3.8）/v4、VL-Plus/v3、VL-Plus/v5。前一步不满足候选条件或出现分歧立即交人工，节省后续调用。只有三项均为同类、无问题、无需裁剪的通过，才自动通过；只有三项均明确为表外物或图解，才自动拒绝。遮挡、模糊、目标太小、其他十类标签、选框及不确定均留给人工。理由出现人物场景、局部或不确定等描述时也会拦截。交叉核验用于保守筛选，不把Plus或人工历史当标准答案；同一供应商模型可能产生共同偏差，无法保证零错误。
 
