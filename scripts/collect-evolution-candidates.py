@@ -26,7 +26,7 @@ if args.remote_fetch:
         # Only fixed dataset origins; no general-purpose public proxy or port.
         code = '''import sys, urllib.request, urllib.parse
 url, limit = sys.argv[1], int(sys.argv[2])
-if urllib.parse.urlsplit(url).scheme != 'https' or urllib.parse.urlsplit(url).hostname not in ('commons.wikimedia.org', 'upload.wikimedia.org', 'open-images-dataset.s3.amazonaws.com'):
+if urllib.parse.urlsplit(url).scheme != 'https' or urllib.parse.urlsplit(url).hostname not in ('commons.wikimedia.org', 'upload.wikimedia.org', 'thumb.wikimedia.org', 'open-images-dataset.s3.amazonaws.com'):
     raise ValueError('Unsupported collection origin')
 with urllib.request.urlopen(urllib.request.Request(url, headers={'User-Agent': 'CampusRecognitionCourse/0.1 (educational image classification; attribution retained)'}), timeout=30) as r:
     if int(r.headers.get('Content-Length', '0')) > limit: raise ValueError('Response exceeds byte limit')
