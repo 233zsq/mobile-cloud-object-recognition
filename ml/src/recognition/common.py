@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import subprocess
+import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -31,12 +32,24 @@ def read_json(path):
     return json.loads(Path(path).read_text(encoding="utf-8-sig"))
 
 
+def replace_file(temporary, destination):
+    """Keep atomic writes, allowing a Windows reader to release its handle."""
+    for attempt in range(7):
+        try:
+            temporary.replace(destination)
+            return
+        except PermissionError as error:
+            if getattr(error, "winerror", None) not in (5, 32, 33) or attempt == 6:
+                raise
+            time.sleep(0.05 * 2 ** attempt)
+
+
 def write_json(path, value):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_name(path.name + ".tmp")
     tmp.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    tmp.replace(path)
+    replace_file(tmp, path)
 
 
 def read_csv(path):
@@ -53,7 +66,7 @@ def write_csv(path, rows, fields=FIELDS):
         writer.writeheader()
         for row in rows:
             writer.writerow({k: row.get(k, "") for k in fields})
-    tmp.replace(path)
+    replace_file(tmp, path)
 
 
 def image_path(value):
