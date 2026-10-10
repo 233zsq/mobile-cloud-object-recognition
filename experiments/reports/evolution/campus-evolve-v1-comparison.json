@@ -1,0 +1,1136 @@
+{
+  "purpose": "evolution_comparison",
+  "status": "pending_human_approval",
+  "created_at": "2026-10-10T15:39:37+08:00",
+  "baseline": {
+    "status": "frozen",
+    "requested_status": "formal",
+    "model_version": "campus-gpu-v1",
+    "model_file": "model.tflite",
+    "sha256": "a58ca2be234d0d7e7db6bdec3853b3e077df6a88321da4f6bd7a8a5d5be51d13",
+    "labels_file": "labels.txt",
+    "labels_sha256": "3148fcb53e5859041bf7f6af5acbfb952a9d3fbd52a4fd334525b7d3af6a1064",
+    "category_version": "campus-10-v2",
+    "categories": [
+      {
+        "id": 0,
+        "label_key": "cup",
+        "display_name": "水杯",
+        "definition": "饮水杯，排除酒瓶和饮料包装"
+      },
+      {
+        "id": 1,
+        "label_key": "umbrella",
+        "display_name": "雨伞"
+      },
+      {
+        "id": 2,
+        "label_key": "book",
+        "display_name": "书本",
+        "definition": "实体书，排除扫描页和纯封面图"
+      },
+      {
+        "id": 3,
+        "label_key": "pencil_case",
+        "display_name": "笔袋",
+        "definition": "软质笔袋及普通硬壳文具盒"
+      },
+      {
+        "id": 4,
+        "label_key": "mouse",
+        "display_name": "鼠标",
+        "definition": "计算机鼠标"
+      },
+      {
+        "id": 5,
+        "label_key": "keyboard",
+        "display_name": "键盘",
+        "definition": "仅独立外接计算机键盘，排除笔记本内置键盘、笔记本整机和乐器键盘"
+      },
+      {
+        "id": 6,
+        "label_key": "earphones",
+        "display_name": "耳机",
+        "definition": "入耳或头戴式耳机，排除拆下的元件"
+      },
+      {
+        "id": 7,
+        "label_key": "charger",
+        "display_name": "充电器",
+        "definition": "手机、平板或电脑电源适配器，排除充电桩、车用电池充电器和独立线材"
+      },
+      {
+        "id": 8,
+        "label_key": "key",
+        "display_name": "钥匙",
+        "definition": "门锁或车钥匙，排除键盘按键"
+      },
+      {
+        "id": 9,
+        "label_key": "backpack",
+        "display_name": "背包"
+      }
+    ],
+    "data_version": "campus-public-expanded-v1",
+    "experiment_id": "expanded-gpu-20261008-fine_tune-2",
+    "code_commit": "222ff37e777ea4cc076f644c23fd09c4ec3ab113",
+    "code_snapshot_sha256": "1d77a1f2b326f9c84623ad1ec0efe89ad9292e6e79a6405ff4a95829585c600f",
+    "input": {
+      "version": "rgb-letterbox-v1",
+      "orientation": "EXIF transpose",
+      "color_order": "RGB",
+      "shape": [
+        1,
+        224,
+        224,
+        3
+      ],
+      "dtype": "float32",
+      "pixel_range": [
+        0,
+        255
+      ],
+      "crop": "none",
+      "resize": "bilinear half_pixel_centers; antialias=false; round half up",
+      "padding": "center; RGB 128; odd remainder right/bottom",
+      "normalization": "inside model: x / 127.5 - 1",
+      "byte_order": "little-endian"
+    },
+    "output": {
+      "shape": [
+        1,
+        10
+      ],
+      "dtype": "float32",
+      "interpretation": "softmax"
+    },
+    "low_confidence_threshold": 0.5,
+    "threshold_status": "validation_selected",
+    "created_at": "2026-10-08T22:18:13+08:00",
+    "model_bytes": 8939040,
+    "acceptance": {
+      "size_passed": true,
+      "independent_field_accuracy": "pending",
+      "android_latency": "pending",
+      "android_consistency": "pending",
+      "actual_cloud_consistency": "pending"
+    },
+    "export_environment": {
+      "python": "3.12.3",
+      "tensorflow": "2.21.0",
+      "keras": "3.12.1",
+      "gpu": [
+        "/physical_device:GPU:0"
+      ],
+      "platform": "Linux-6.18.40.1-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+      "tensor_float_32_enabled": false,
+      "dependencies_sha256": "a2214d6b767d1564066923cdff29acecb4b341039a2d6c551a691675b6e49683"
+    },
+    "checkpoint_sha256": "1fed567bf8378c1f48d57eff8a16eecc92f7aa0a0fd296a959b4bbaabf87c6e0",
+    "final_test_status": "pending_field_photos"
+  },
+  "candidate": {
+    "status": "frozen",
+    "requested_status": "formal",
+    "model_version": "campus-evolve-v1",
+    "model_file": "model.tflite",
+    "sha256": "8a5d7759e0d752ff545cb3f46421519db4c8f66961a45a5104d78d071e0159d4",
+    "labels_file": "labels.txt",
+    "labels_sha256": "3148fcb53e5859041bf7f6af5acbfb952a9d3fbd52a4fd334525b7d3af6a1064",
+    "category_version": "campus-10-v4",
+    "categories": [
+      {
+        "id": 0,
+        "label_key": "cup",
+        "display_name": "水杯",
+        "definition": "饮水杯，排除酒瓶和饮料包装"
+      },
+      {
+        "id": 1,
+        "label_key": "umbrella",
+        "display_name": "伞",
+        "definition": "雨伞、手持遮阳伞以及庭院或沙滩遮阳伞；伞须是清楚可辨的主要主体或可裁出完整主体，排除帐篷、遮阳棚、降落伞和图解"
+      },
+      {
+        "id": 2,
+        "label_key": "book",
+        "display_name": "书本",
+        "definition": "实体书，排除扫描页和纯封面图"
+      },
+      {
+        "id": 3,
+        "label_key": "pencil_case",
+        "display_name": "笔袋",
+        "definition": "软质笔袋及普通硬壳文具盒"
+      },
+      {
+        "id": 4,
+        "label_key": "mouse",
+        "display_name": "鼠标",
+        "definition": "计算机鼠标"
+      },
+      {
+        "id": 5,
+        "label_key": "keyboard",
+        "display_name": "键盘",
+        "definition": "计算机键盘，包含独立外接键盘和笔记本内置键盘；键盘须是清楚可辨的主要主体或可裁出完整主体，排除仅作背景、严重遮挡及乐器键盘"
+      },
+      {
+        "id": 6,
+        "label_key": "earphones",
+        "display_name": "耳机",
+        "definition": "入耳或头戴式耳机，排除拆下的元件"
+      },
+      {
+        "id": 7,
+        "label_key": "charger",
+        "display_name": "充电器",
+        "definition": "手机、平板或电脑电源适配器，排除充电桩、车用电池充电器和独立线材"
+      },
+      {
+        "id": 8,
+        "label_key": "key",
+        "display_name": "钥匙",
+        "definition": "门锁或车钥匙，排除键盘按键"
+      },
+      {
+        "id": 9,
+        "label_key": "backpack",
+        "display_name": "背包"
+      }
+    ],
+    "data_version": "campus-evolve-data-v1",
+    "experiment_id": "campus-evolve-v1-seed42",
+    "code_commit": "20f148689bd46b94d6f9eaac532faac94424e080",
+    "code_snapshot_sha256": "4c929eee3d270229f994e7eb0304f658487301fe1555ebcc2d0234f703b65993",
+    "input": {
+      "version": "rgb-letterbox-v1",
+      "orientation": "EXIF transpose",
+      "color_order": "RGB",
+      "shape": [
+        1,
+        224,
+        224,
+        3
+      ],
+      "dtype": "float32",
+      "pixel_range": [
+        0,
+        255
+      ],
+      "crop": "none",
+      "resize": "bilinear half_pixel_centers; antialias=false; round half up",
+      "padding": "center; RGB 128; odd remainder right/bottom",
+      "normalization": "inside model: x / 127.5 - 1",
+      "byte_order": "little-endian"
+    },
+    "output": {
+      "shape": [
+        1,
+        10
+      ],
+      "dtype": "float32",
+      "interpretation": "softmax"
+    },
+    "low_confidence_threshold": 0.5,
+    "threshold_status": "validation_selected",
+    "created_at": "2026-10-10T15:37:17+08:00",
+    "model_bytes": 8939040,
+    "acceptance": {
+      "size_passed": true,
+      "independent_field_accuracy": "pending",
+      "android_latency": "pending",
+      "android_consistency": "pending",
+      "actual_cloud_consistency": "pending"
+    },
+    "export_environment": {
+      "python": "3.12.3",
+      "tensorflow": "2.21.0",
+      "keras": "3.12.1",
+      "gpu": [
+        "/physical_device:GPU:0"
+      ],
+      "platform": "Linux-6.18.40.1-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+      "tensor_float_32_enabled": false,
+      "dependencies_sha256": "a2214d6b767d1564066923cdff29acecb4b341039a2d6c551a691675b6e49683"
+    },
+    "checkpoint_sha256": "ca5989db8ee1ebf2d32071161d8d0d607b91e7044a9e40e97b10a34d65ef5c0b",
+    "parent_lineage": {
+      "model_version": "campus-gpu-v1",
+      "model_sha256": "a58ca2be234d0d7e7db6bdec3853b3e077df6a88321da4f6bd7a8a5d5be51d13",
+      "metadata_sha256": "27fa51999fb9a83ef728b170f29aa106fc2fe3337850654588152c28fd0c5071",
+      "checkpoint": "experiments/checkpoints/expanded-gpu-20261008-fine_tune-2/best.keras",
+      "checkpoint_sha256": "1fed567bf8378c1f48d57eff8a16eecc92f7aa0a0fd296a959b4bbaabf87c6e0",
+      "category_transition": {
+        "from": "campus-10-v2",
+        "to": "campus-10-v4",
+        "change": "keyboard_and_umbrella_scope_expanded",
+        "changes": [
+          "keyboard_includes_laptop_built_in",
+          "umbrella_includes_sunshades"
+        ]
+      }
+    },
+    "deployment_approval": "pending_human_approval",
+    "final_test_status": "pending_field_photos"
+  },
+  "data_metadata_sha256": "c1f85b7363805ca117c3ea40c1a41b037ed98ca6d56c9eb389b1b1ab8d20e198",
+  "test_images_read": false,
+  "subsets": {
+    "original_public_validation": {
+      "count": 218,
+      "present_category_ids": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "baseline": {
+        "accuracy": 0.9036697247706422,
+        "macro_f1": 0.8993386925702364,
+        "loss": 0.29629749059677124,
+        "classification_report": {
+          "cup": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 24.0
+          },
+          "umbrella": {
+            "precision": 1.0,
+            "recall": 0.7142857142857143,
+            "f1-score": 0.8333333333333334,
+            "support": 7.0
+          },
+          "book": {
+            "precision": 1.0,
+            "recall": 0.8666666666666667,
+            "f1-score": 0.9285714285714286,
+            "support": 15.0
+          },
+          "pencil_case": {
+            "precision": 0.8064516129032258,
+            "recall": 0.9615384615384616,
+            "f1-score": 0.8771929824561403,
+            "support": 26.0
+          },
+          "mouse": {
+            "precision": 0.8888888888888888,
+            "recall": 0.7741935483870968,
+            "f1-score": 0.8275862068965517,
+            "support": 31.0
+          },
+          "keyboard": {
+            "precision": 1.0,
+            "recall": 0.9375,
+            "f1-score": 0.967741935483871,
+            "support": 16.0
+          },
+          "earphones": {
+            "precision": 0.7857142857142857,
+            "recall": 0.9428571428571428,
+            "f1-score": 0.8571428571428571,
+            "support": 35.0
+          },
+          "charger": {
+            "precision": 0.8,
+            "recall": 0.8,
+            "f1-score": 0.8,
+            "support": 10.0
+          },
+          "key": {
+            "precision": 0.9583333333333334,
+            "recall": 0.8846153846153846,
+            "f1-score": 0.92,
+            "support": 26.0
+          },
+          "backpack": {
+            "precision": 1.0,
+            "recall": 0.9642857142857143,
+            "f1-score": 0.9818181818181818,
+            "support": 28.0
+          },
+          "accuracy": 0.9036697247706422,
+          "macro avg": {
+            "precision": 0.9239388120839734,
+            "recall": 0.8845942632636181,
+            "f1-score": 0.8993386925702364,
+            "support": 218.0
+          },
+          "weighted avg": {
+            "precision": 0.9125686429252573,
+            "recall": 0.9036697247706422,
+            "f1-score": 0.9042150219183878,
+            "support": 218.0
+          }
+        },
+        "confusion_matrix": [
+          [
+            24,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            5,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            13,
+            1,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            25,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            2,
+            24,
+            0,
+            3,
+            1,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            1,
+            15,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            1,
+            1,
+            0,
+            33,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            2,
+            8,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            3,
+            0,
+            23,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            27
+          ]
+        ],
+        "sample_count": 218
+      },
+      "candidate": {
+        "accuracy": 0.926605504587156,
+        "macro_f1": 0.9173968914238106,
+        "loss": 0.21675433218479156,
+        "classification_report": {
+          "cup": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1-score": 1.0,
+            "support": 24.0
+          },
+          "umbrella": {
+            "precision": 0.8571428571428571,
+            "recall": 0.8571428571428571,
+            "f1-score": 0.8571428571428571,
+            "support": 7.0
+          },
+          "book": {
+            "precision": 0.8333333333333334,
+            "recall": 1.0,
+            "f1-score": 0.9090909090909091,
+            "support": 15.0
+          },
+          "pencil_case": {
+            "precision": 0.9230769230769231,
+            "recall": 0.9230769230769231,
+            "f1-score": 0.9230769230769231,
+            "support": 26.0
+          },
+          "mouse": {
+            "precision": 0.9642857142857143,
+            "recall": 0.8709677419354839,
+            "f1-score": 0.9152542372881356,
+            "support": 31.0
+          },
+          "keyboard": {
+            "precision": 0.9411764705882353,
+            "recall": 1.0,
+            "f1-score": 0.9696969696969697,
+            "support": 16.0
+          },
+          "earphones": {
+            "precision": 0.8461538461538461,
+            "recall": 0.9428571428571428,
+            "f1-score": 0.8918918918918919,
+            "support": 35.0
+          },
+          "charger": {
+            "precision": 1.0,
+            "recall": 0.7,
+            "f1-score": 0.8235294117647058,
+            "support": 10.0
+          },
+          "key": {
+            "precision": 0.9583333333333334,
+            "recall": 0.8846153846153846,
+            "f1-score": 0.92,
+            "support": 26.0
+          },
+          "backpack": {
+            "precision": 0.9642857142857143,
+            "recall": 0.9642857142857143,
+            "f1-score": 0.9642857142857143,
+            "support": 28.0
+          },
+          "accuracy": 0.926605504587156,
+          "macro avg": {
+            "precision": 0.9287788192199956,
+            "recall": 0.9142945763913506,
+            "f1-score": 0.9173968914238106,
+            "support": 218.0
+          },
+          "weighted avg": {
+            "precision": 0.9311180364877072,
+            "recall": 0.926605504587156,
+            "f1-score": 0.9261280130335351,
+            "support": 218.0
+          }
+        },
+        "confusion_matrix": [
+          [
+            24,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            6,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            15,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            1,
+            24,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            1,
+            1,
+            27,
+            0,
+            1,
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            16,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            33,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            2,
+            7,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            3,
+            0,
+            23,
+            0
+          ],
+          [
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            27
+          ]
+        ],
+        "sample_count": 218
+      }
+    },
+    "new_public_development_validation": {
+      "count": 211,
+      "present_category_ids": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "baseline": {
+        "accuracy": 0.8388625592417062,
+        "macro_f1": 0.8322233242917656,
+        "loss": 0.5467197895050049,
+        "classification_report": {
+          "cup": {
+            "precision": 0.9,
+            "recall": 0.9,
+            "f1-score": 0.9,
+            "support": 10.0
+          },
+          "umbrella": {
+            "precision": 0.8695652173913043,
+            "recall": 0.8695652173913043,
+            "f1-score": 0.8695652173913043,
+            "support": 23.0
+          },
+          "book": {
+            "precision": 0.9130434782608695,
+            "recall": 0.7241379310344828,
+            "f1-score": 0.8076923076923077,
+            "support": 29.0
+          },
+          "pencil_case": {
+            "precision": 0.6190476190476191,
+            "recall": 1.0,
+            "f1-score": 0.7647058823529411,
+            "support": 13.0
+          },
+          "mouse": {
+            "precision": 0.9285714285714286,
+            "recall": 0.6842105263157895,
+            "f1-score": 0.7878787878787878,
+            "support": 19.0
+          },
+          "keyboard": {
+            "precision": 0.9705882352941176,
+            "recall": 0.8918918918918919,
+            "f1-score": 0.9295774647887324,
+            "support": 37.0
+          },
+          "earphones": {
+            "precision": 0.7272727272727273,
+            "recall": 0.8888888888888888,
+            "f1-score": 0.8,
+            "support": 18.0
+          },
+          "charger": {
+            "precision": 0.8235294117647058,
+            "recall": 0.6363636363636364,
+            "f1-score": 0.717948717948718,
+            "support": 22.0
+          },
+          "key": {
+            "precision": 0.8,
+            "recall": 0.9411764705882353,
+            "f1-score": 0.8648648648648649,
+            "support": 17.0
+          },
+          "backpack": {
+            "precision": 0.8148148148148148,
+            "recall": 0.9565217391304348,
+            "f1-score": 0.88,
+            "support": 23.0
+          },
+          "accuracy": 0.8388625592417062,
+          "macro avg": {
+            "precision": 0.8366432932417587,
+            "recall": 0.8492756301604665,
+            "f1-score": 0.8322233242917656,
+            "support": 211.0
+          },
+          "weighted avg": {
+            "precision": 0.8560653964758156,
+            "recall": 0.8388625592417062,
+            "f1-score": 0.83822697183943,
+            "support": 211.0
+          }
+        },
+        "confusion_matrix": [
+          [
+            9,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            20,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            3
+          ],
+          [
+            1,
+            1,
+            21,
+            6,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            13,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            13,
+            0,
+            2,
+            2,
+            1,
+            1
+          ],
+          [
+            0,
+            1,
+            0,
+            1,
+            1,
+            33,
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            16,
+            0,
+            1,
+            1
+          ],
+          [
+            0,
+            0,
+            1,
+            1,
+            0,
+            0,
+            4,
+            14,
+            2,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            16,
+            0
+          ],
+          [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            22
+          ]
+        ],
+        "sample_count": 211
+      },
+      "candidate": {
+        "accuracy": 0.8862559241706162,
+        "macro_f1": 0.8802769673119888,
+        "loss": 0.33233365416526794,
+        "classification_report": {
+          "cup": {
+            "precision": 0.9090909090909091,
+            "recall": 1.0,
+            "f1-score": 0.9523809523809523,
+            "support": 10.0
+          },
+          "umbrella": {
+            "precision": 0.7666666666666667,
+            "recall": 1.0,
+            "f1-score": 0.8679245283018868,
+            "support": 23.0
+          },
+          "book": {
+            "precision": 0.9032258064516129,
+            "recall": 0.9655172413793104,
+            "f1-score": 0.9333333333333333,
+            "support": 29.0
+          },
+          "pencil_case": {
+            "precision": 0.9230769230769231,
+            "recall": 0.9230769230769231,
+            "f1-score": 0.9230769230769231,
+            "support": 13.0
+          },
+          "mouse": {
+            "precision": 0.8421052631578947,
+            "recall": 0.8421052631578947,
+            "f1-score": 0.8421052631578947,
+            "support": 19.0
+          },
+          "keyboard": {
+            "precision": 0.9722222222222222,
+            "recall": 0.9459459459459459,
+            "f1-score": 0.958904109589041,
+            "support": 37.0
+          },
+          "earphones": {
+            "precision": 0.875,
+            "recall": 0.7777777777777778,
+            "f1-score": 0.8235294117647058,
+            "support": 18.0
+          },
+          "charger": {
+            "precision": 0.9444444444444444,
+            "recall": 0.7727272727272727,
+            "f1-score": 0.85,
+            "support": 22.0
+          },
+          "key": {
+            "precision": 0.8125,
+            "recall": 0.7647058823529411,
+            "f1-score": 0.7878787878787878,
+            "support": 17.0
+          },
+          "backpack": {
+            "precision": 0.9047619047619048,
+            "recall": 0.8260869565217391,
+            "f1-score": 0.8636363636363636,
+            "support": 23.0
+          },
+          "accuracy": 0.8862559241706162,
+          "macro avg": {
+            "precision": 0.8853094139872578,
+            "recall": 0.8817943262939805,
+            "f1-score": 0.8802769673119888,
+            "support": 211.0
+          },
+          "weighted avg": {
+            "precision": 0.8911839555491138,
+            "recall": 0.8862559241706162,
+            "f1-score": 0.8853710785097374,
+            "support": 211.0
+          }
+        },
+        "confusion_matrix": [
+          [
+            10,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            23,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            28,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            1,
+            12,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            1,
+            0,
+            16,
+            0,
+            0,
+            0,
+            1,
+            1
+          ],
+          [
+            0,
+            1,
+            0,
+            0,
+            0,
+            35,
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            3,
+            0,
+            14,
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            1,
+            1,
+            0,
+            0,
+            2,
+            17,
+            1,
+            0
+          ],
+          [
+            0,
+            2,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            13,
+            1
+          ],
+          [
+            0,
+            4,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            19
+          ]
+        ],
+        "sample_count": 211
+      }
+    }
+  },
+  "warnings": [
+    "Keyboard scope now includes laptop built-in keyboards; historical baseline scope and results remain v2.",
+    "field_development_validation: no samples; field improvement has not been established"
+  ],
+  "category_transition": {
+    "from": "campus-10-v2",
+    "to": "campus-10-v4",
+    "change": "keyboard_and_umbrella_scope_expanded",
+    "changes": [
+      "keyboard_includes_laptop_built_in",
+      "umbrella_includes_sunshades"
+    ]
+  }
+}

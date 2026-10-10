@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "architecture": "MobileNetV2",
+  "pretrained_weights": "imagenet",
+  "alpha": 1.0,
+  "input_shape": [
+    224,
+    224,
+    3
+  ],
+  "num_classes": 10,
+  "learning_rate": 0.0001,
+  "dropout": 0.4,
+  "batch_size": 32,
+  "max_epochs": 20,
+  "patience": 3,
+  "fine_tune_scope": "last_1",
+  "seed": 42,
+  "data_version": "campus-evolve-data-v1",
+  "category_version": "campus-10-v4",
+  "stop_hour": 23,
+  "augmentation": true,
+  "smoke": false,
+  "training_mode": "parent_finetune",
+  "parent_release": "campus-gpu-v1",
+  "parent_metadata_sha256": "27fa51999fb9a83ef728b170f29aa106fc2fe3337850654588152c28fd0c5071",
+  "parent_checkpoint": "experiments/checkpoints/expanded-gpu-20261008-fine_tune-2/best.keras"
+}

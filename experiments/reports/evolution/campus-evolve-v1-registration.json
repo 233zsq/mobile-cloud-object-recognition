@@ -1,0 +1,21 @@
+{
+  "date": "2026-10-10",
+  "candidate": "campus-evolve-v1",
+  "status": "pending",
+  "model_sha256": "8a5d7759e0d752ff545cb3f46421519db4c8f66961a45a5104d78d071e0159d4",
+  "report_sha256": "e305cc0efecae6876d53169a65be699970371a4503603f789900ce293cb2153e",
+  "web_url": "https://49.232.195.47:8443/candidates/campus-evolve-v1",
+  "authenticated_browser_verified": true,
+  "database_integrity": "ok",
+  "database_backup": "review-before-evolve-candidate-20261010T074203Z.sqlite3",
+  "existing_backend_health": {
+    "model_loaded": true,
+    "model_status": "ready",
+    "model_version": "campus-gpu-v1",
+    "status": "ok",
+    "version": "0.1.0+5a0ca2e"
+  },
+  "android_model_replaced": false,
+  "cloud_model_replaced": false,
+  "approval_submitted_by_agent": false
+}

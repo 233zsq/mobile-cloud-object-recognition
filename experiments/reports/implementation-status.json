@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-08T22:26:36+08:00",
+  "updated_at": "2026-10-10T15:46:18+08:00",
   "branch": "feat/ml-gpu-release",
   "category_version": "campus-10-v2",
   "keyboard_scope": "independent external computer keyboards only",
@@ -16,7 +16,8 @@
     "verify",
     "benchmark",
     "smoke",
-    "reproduce"
+    "reproduce",
+    "evolve"
   ],
   "environment": {
     "native_windows_cpu": "validated",
@@ -192,5 +193,33 @@
       }
     }
   },
-  "training_code_commit": "222ff37e777ea4cc076f644c23fd09c4ec3ab113"
+  "training_code_commit": "222ff37e777ea4cc076f644c23fd09c4ec3ab113",
+  "evolution": {
+    "branch": "feat/ml-evolution",
+    "baseline": "campus-gpu-v1",
+    "baseline_unchanged": true,
+    "candidate": "campus-evolve-v1",
+    "technical_status": "frozen",
+    "deployment_approval": "pending_human_approval",
+    "model_sha256": "8a5d7759e0d752ff545cb3f46421519db4c8f66961a45a5104d78d071e0159d4",
+    "category_version": "campus-10-v4",
+    "data_version": "campus-evolve-data-v1",
+    "batch_id": "001",
+    "new_original_photos": 820,
+    "train_count": 1268,
+    "validation_count": 429,
+    "validation_accuracy": 0.9067599067599068,
+    "validation_macro_f1": 0.9047794596174541,
+    "seed43_macro_f1_difference": 0.00594508257940507,
+    "conversion_max_score_difference": 7.152557373046875e-06,
+    "conversion_top1_mismatches": 0,
+    "independent_cpu_runtime": "verified, no TensorFlow installed or imported",
+    "independent_field_evaluation": "pending fresh team supplied photos",
+    "android_and_actual_cloud_candidate_acceptance": "pending",
+    "notable_regression": "new public key F1 0.8649 -> 0.7879, support 17",
+    "report": "docs/campus-evolve-v1-experiments.md",
+    "comparison": "experiments/reports/evolution/campus-evolve-v1-comparison.json",
+    "handover_sha256": "07586156736b2be06d06fd93e80af778c656024b125bc98e443892a17af6452b",
+    "handover_crc_and_frozen_artifact_hashes_passed": true
+  }
 }

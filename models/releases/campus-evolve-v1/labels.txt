@@ -1,0 +1,10 @@
+cup
+umbrella
+book
+pencil_case
+mouse
+keyboard
+earphones
+charger
+key
+backpack

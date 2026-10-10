@@ -67,4 +67,6 @@ python -m recognition evolve accept-approval --release models/releases/campus-ev
 
 网页账号、邀请、审核并发修订、图片边界、冻结哈希、下载和人工审批已在Windows及实际Ubuntu验证；旧训练回归检查与新增父模型梯度/复核检查通过。合成网络及图片只用于测试工具链，不作为物品识别成绩。
 
-待新增真实照片、真实新系列训练及验证、人工发布审批。独立实拍测试和Android接入继续单独完成。`campus-gpu-v1`及其历史实验材料不随新系列状态改写。
+2026年10月10日，批次`001`的820张公开照片完成审核并纳入`campus-evolve-data-v1`，连同原数据共训练1,268张、验证429张。`campus-evolve-v1`完成GPU微调、种子43复核、FP32导出和独立LiteRT核验，候选已登记审核网页，待管理员审批。完整结果、同图比较和类别退步项见 [首批训练报告](campus-evolve-v1-experiments.md)。
+
+独立实拍测试、人工发布审批及Android/云端新模型接入继续单独完成。`campus-gpu-v1`及其历史实验材料不随新系列状态改写。
