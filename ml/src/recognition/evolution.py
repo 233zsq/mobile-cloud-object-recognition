@@ -107,13 +107,9 @@ def import_batch(archive, version, base_version='campus-public-expanded-v1', par
                   parent_checkpoint=f"experiments/checkpoints/{parent['experiment_id']}/best.keras",
                   data_version=version, dropout=.4, learning_rate=.0001, fine_tune_scope='last_1')
     check_isolation(train, val)
-    heldout = []
+    from .data import heldout_test_rows
+    heldout = heldout_test_rows()
     # Read only frozen test manifest identities, never the test images.
-    for manifest in (ROOT / 'data/splits').glob('*/test.csv'):
-        metadata = read_json(manifest.parent / 'dataset.json')
-        if metadata.get('status') != 'frozen' or digest(manifest) != metadata['files']['test']['sha256']:
-            raise ValueError('Held-out test manifest changed')
-        heldout.extend(read_csv(manifest))
     destination.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='import-', dir=destination.parent) as temp:
         staging = Path(temp)

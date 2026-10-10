@@ -106,6 +106,20 @@ def parser():
     a.add_argument('--release',required=True,type=__import__('pathlib').Path)
     a.add_argument('--receipt',required=True,type=__import__('pathlib').Path)
     a.add_argument('--comparison',required=True,type=__import__('pathlib').Path)
+    a=s.add_parser('testset',help='Held-out COCO plus field test, never a training queue')
+    e=a.add_subparsers(dest='action',required=True)
+    a=e.add_parser('prepare-coco')
+    a.add_argument('--version',required=True)
+    a.add_argument('--annotations',type=__import__('pathlib').Path)
+    a.add_argument('--seed',type=int,default=42)
+    a.add_argument('--replace-reservation')
+    a.add_argument('--reviewed-manifest',type=__import__('pathlib').Path)
+    a=e.add_parser('freeze-mixed')
+    a.add_argument('--version',required=True)
+    a.add_argument('--reservation',required=True)
+    a.add_argument('--reviewed-manifest',required=True,type=__import__('pathlib').Path)
+    a.add_argument('--field-manifest',required=True,type=__import__('pathlib').Path)
+    a.add_argument('--training-version',required=True)
     return p
 
 
@@ -169,6 +183,13 @@ def main():
         elif args.command=="smoke":
             from .smoke import smoke
             value=smoke(args.id,args.epochs)
+        elif args.command=='testset':
+            from .coco_test import prepare,freeze
+            if args.action=='prepare-coco':
+                value=prepare(args.version,seed=args.seed,annotation_file=args.annotations,
+                              replace_reservation=args.replace_reservation,reviewed_manifest=args.reviewed_manifest)
+            else:
+                value=freeze(args.version,args.reservation,args.reviewed_manifest,args.field_manifest,args.training_version)
         elif args.command=='evolve':
             from .evolution import import_batch,compare,accept_approval
             if args.action=='import-batch':

@@ -218,11 +218,11 @@ def tested_image_hashes(record):
         hashes=[row.get('image_sha256') for row in read_csv(path)]
     if not isinstance(hashes,list) or not hashes or any(not isinstance(value,str) or not value for value in hashes):
         raise ValueError('Historical test photo SHA-256 identities are missing or invalid')
-    return set(hashes)
+    return set(hashes) | set(record.get('parent_image_sha256s',[]))
 
 
 def check_test_model_binding(version,manifest_sha256,model_sha256,rows):
-    incoming={row['image_sha256'] for row in rows}
+    incoming={row['image_sha256'] for row in rows} | {row['parent_image_sha256'] for row in rows if row.get('parent_image_sha256')}
     for path in (ROOT/'experiments/reports/evaluations').glob('*/*-test.json'):
         previous=read_json(path)
         if previous.get('split')!='test' or previous.get('model_sha256')==model_sha256:
@@ -271,7 +271,8 @@ def validate_cached_evaluation(result,metadata,version,split,rows,manifest_sha25
     predictions=result.get('predictions',[])
     if len(predictions)!=len(rows) or any(p.get('sample_id')!=r['sample_id'] or p.get('true_id')!=int(r['category_id']) or p.get('predicted_id') not in range(10) or not np.isfinite(p.get('confidence',np.nan)) or not 0<=p['confidence']<=1 for p,r in zip(predictions,rows)):
         raise ValueError('Existing evaluation sample identity/predictions differ')
-    if split=='test' and tested_image_hashes(result)!={r['image_sha256'] for r in rows}:
+    expected_hashes={r['image_sha256'] for r in rows} | {r['parent_image_sha256'] for r in rows if r.get('parent_image_sha256')}
+    if split=='test' and tested_image_hashes(result)!=expected_hashes:
         raise ValueError('Existing evaluation photo identity differs')
 
 
@@ -346,6 +347,7 @@ def evaluate(release,split="validation",test_version=None,confirm_model_hash=Non
     if split=="test" and (m["status"]!="frozen" or confirm_model_hash!=m["sha256"]):
         raise ValueError("Final test requires frozen model and explicit --confirm-model-hash")
     rows,data=load_split(version,split,allow_test=split=="test")
+    mixed_test=split=='test' and data.get('purpose')=='mixed_coco_field_test'
     out=ROOT/"experiments/reports/evaluations"/safe_name(m["model_version"])/f"{version}-{split}.json"
     completion=out.with_name(out.stem+'-completion.json')
     journal_path=out.with_name(out.stem+'-handover.json')
@@ -354,7 +356,12 @@ def evaluate(release,split="validation",test_version=None,confirm_model_hash=Non
         validate_cached_evaluation(result,m,version,split,rows,data['files'][split]['sha256'])
     if split=="test":
         check_test_model_binding(version,data['files']['test']['sha256'],m['sha256'],rows)
-        if any(r.get("source_dataset") not in ("field","self_captured") or not r.get("object_id") for r in rows) or any(sum(int(r["category_id"])==i for r in rows)<20 for i in range(10)):
+        if mixed_test:
+            from .coco_test import validate_mixed_rows
+            validate_mixed_rows(rows)
+            if m.get('category_version') != data['category_version']:
+                raise ValueError('Mixed test and frozen model category scope differs')
+        elif any(r.get("source_dataset") not in ("field","self_captured") or not r.get("object_id") for r in rows) or any(sum(int(r["category_id"])==i for r in rows)<20 for i in range(10)):
             raise ValueError("Final test requires at least twenty independently captured photos per class")
         train,_=load_split(m["data_version"],"train")
         val,_=load_split(m["data_version"],"validation")
@@ -379,12 +386,23 @@ def evaluate(release,split="validation",test_version=None,confirm_model_hash=Non
         result['error_sample_ids']=[p['sample_id'] for p in result['predictions'] if p['true_id']!=p['predicted_id']]
         if split=="test":
             result['image_sha256s']=sorted(row['image_sha256'] for row in rows)
+            result['parent_image_sha256s']=sorted({row['parent_image_sha256'] for row in rows if row.get('parent_image_sha256')})
             result["acceptance"]={"accuracy_passed":result["metrics"]["accuracy"]>=.85,"macro_f1_passed":result["metrics"]["macro_f1"]>=.8}
+            if mixed_test:
+                result['test_kind']='mixed_coco_field_test'
+                result['independent_phone_acceptance']=False
+                result['acceptance']={'mixed_accuracy_passed':result['metrics']['accuracy']>=.85,
+                                      'mixed_macro_f1_passed':result['metrics']['macro_f1']>=.8}
+                result['results_by_source']={}
+                for source in sorted({r['source_dataset'] for r in rows}):
+                    indices=[i for i,r in enumerate(rows) if r['source_dataset']==source]
+                    result['results_by_source'][source]={'count':len(indices),
+                        'accuracy':float(np.mean(scores[indices].argmax(axis=1)==y[indices]))}
         # First predictions and metrics are immutable, including during recovery.
         write_json(out,result)
     if journal is None:
         render_evaluation(out,result,rows,runner.labels)
-    if split=='test':
+    if split=='test' and not mixed_test:
         annex_evaluation(release,out,result,m,journal_path)
         verify(release)
     artifacts=[out.with_suffix('.png')]

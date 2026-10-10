@@ -178,6 +178,7 @@ def freeze_split(manifest, version, seed=42, test_manifest=None):
     if directory.exists():
         raise ValueError("Data version exists; create a new immutable version")
     approved=[r for r in read_csv(manifest) if r["review_status"] == "approved"]
+    check_isolation(approved, heldout_test_rows())
     if len({r["image_sha256"] for r in approved})!=len(approved):
         raise ValueError("Exact duplicates must be removed by audit before freezing")
     if any(r.get("source_dataset")=="synthetic_smoke" for r in approved):
@@ -282,12 +283,30 @@ def load_split(version,name,allow_test=False):
     if name not in metadata["files"] or digest(path)!=metadata["files"][name]["sha256"]:
         raise ValueError("Missing or changed frozen manifest")
     rows=read_csv(path)
+    if name in ('train', 'validation'):
+        check_isolation(rows, heldout_test_rows())
     for row in rows:
         if row["split_name"]!=name or row["data_version"]!=version or row["review_status"]!="approved":
             raise ValueError("Invalid frozen split row")
         if digest(image_path(row["image_path"]))!=row["image_sha256"]:
             raise ValueError("Frozen image bytes changed")
     return rows,metadata
+
+
+def heldout_test_rows():
+    """Read protected identities only; training never opens held-out images."""
+    rows=[]
+    for manifest in (ROOT/'data/test-reservations').glob('*/samples.csv'):
+        metadata=read_json(manifest.parent/'reservation.json')
+        if not metadata.get('training_prohibited') or digest(manifest)!=metadata.get('manifest_sha256'):
+            raise ValueError('Reserved test identities changed')
+        rows.extend(read_csv(manifest))
+    for manifest in (ROOT/'data/splits').glob('*/test.csv'):
+        metadata=read_json(manifest.parent/'dataset.json')
+        if metadata.get('status')!='frozen' or digest(manifest)!=metadata['files']['test']['sha256']:
+            raise ValueError('Held-out test manifest changed')
+        rows.extend(read_csv(manifest))
+    return rows
 
 
 def freeze_field_test(manifest,version,training_version):
