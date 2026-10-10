@@ -170,3 +170,10 @@ python3 review/deploy/manage.py ai-triage-policy --actor <管理员ID> --enabled
 2026-10-10扩容：网页默认进入“人工疑难”，另列“等待AI”“AI处理失败”和“AI待抽检”；新照片不再直接混入人工任务。疑难/失败记录绑定照片哈希、修订、类别、提示词、模型缓存代次和推理设置，配置或照片变化后失效。自动决定及冻结历史仍可查看。人工领取、改标签、撤回、冻结规则继续有效。
 
 增量采集使用 `scripts/collect-evolution-candidates.py --root <数据根目录> --state <本轮JSON> --stop-after 500`；检查首批后用同一state续至2000。可选 `--remote-fetch tencent` 仅从已有SSH服务器获取白名单官方API/图片，不开放代理端口。若来源不足、预算或调用上限触发，保留具体缺口，不以重复照片补数。打包时传入 `prepare_public.py --manifest <本轮CSV> --exclude <网站已审核身份CSV>`，避免已拒绝照片再次送审。独立实拍测试不进入此流程。
+
+
+已导入的单轮ZIP可用有限批处理入口继续审核（不创建定时任务）：
+```bash
+python3 review/deploy/manage.py ai-triage-round --actor <管理员ID> --archive <本轮候选ZIP> --max-photos 500 --progress /home/ubuntu/apps/campus-review/shared/<唯一轮次>.json
+```
+它仅处理该ZIP对应且仍未经人工修改的照片，每批最多50张；历史缓存、人工占用、暂停、费用及5000次调用限制继续有效。到达上限、任务失败或本轮候选已处理完即停止，不循环重试失败或疑难项。进度文件保留每批ID、照片范围摘要、结果数量及累计费用，可查看网页“最近任务”了解进度。采集默认只保留主要主体候选；扩容允许官方框覆盖至少10%的未截断、非图解照片进入候选，Qwen判定需要裁剪时仍转人工，不直接用于训练。

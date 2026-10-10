@@ -13,6 +13,9 @@ from pathlib import Path
 from datetime import datetime
 
 import click
+import csv
+import io
+import zipfile
 from werkzeug.exceptions import BadRequest, Conflict, Forbidden
 
 from . import ai_review as ai
@@ -365,7 +368,11 @@ def audit_sample(db, job_id):
         db.executemany('UPDATE ai_auto_decisions SET audit_required=? WHERE id=?', [(int(row[0] in chosen), row[0]) for row in rows])
 
 
-def run_job(db, data, categories, config, identity, analyze=ai.analyze):
+def run_job(db, data, categories, config, identity, analyze=ai.analyze, *, sample_ids=None):
+    if sample_ids is not None:
+        if not isinstance(sample_ids, (list, tuple, set)) or not 1 <= len(sample_ids) <= 2000 or any(not isinstance(s, str) for s in sample_ids):
+            raise ValueError('A bounded sample scope is required')
+        sample_ids = set(sample_ids)
     db.execute('BEGIN IMMEDIATE')
     job = db.execute('SELECT * FROM ai_triage_jobs WHERE id=?', (identity,)).fetchone()
     if not job or job['state'] != 'queued':
@@ -374,6 +381,8 @@ def run_job(db, data, categories, config, identity, analyze=ai.analyze):
     policy = job['policy']
     report = {'job_id': identity, 'policy': policy, 'audit_percent': job['audit_percent'],
               'apply_changes': bool(job['apply_changes']), 'samples': [], 'counts': {}, 'errors': {}, 'routing': {}}
+    if sample_ids is not None:
+        report['sample_scope_sha256'] = ai.digest(json.dumps(sorted(sample_ids)).encode())
     before_usage = ai.usage_totals(db)
     identities, selected_usage_before = [], (0, 0, 0, 0, 0)
     state, error_code = 'done', ''
@@ -386,7 +395,7 @@ def run_job(db, data, categories, config, identity, analyze=ai.analyze):
             raise ai.ReviewError('job_policy_profile_mismatch')
         seen = {r[0] for r in db.execute('SELECT identity FROM ai_triage_seen')}
         rows = [dict(r) for r in db.execute('SELECT * FROM samples ORDER BY id').fetchall()
-                if untouched(db, r) and selection_identity(r, categories, chosen_profiles) not in seen]
+                if (sample_ids is None or r['id'] in sample_ids) and untouched(db, r) and selection_identity(r, categories, chosen_profiles) not in seen]
         random.Random(42).shuffle(rows)
         groups = {}
         for row in rows:
@@ -481,6 +490,66 @@ def run_job(db, data, categories, config, identity, analyze=ai.analyze):
 
 
 def register(app, get_db, data, categories):
+    @app.cli.command('ai-triage-round')
+    @click.option('--actor', type=int, required=True)
+    @click.option('--archive', type=click.Path(exists=True, path_type=Path), required=True)
+    @click.option('--max-photos', type=click.IntRange(1, 2000), default=500)
+    @click.option('--progress', type=click.Path(path_type=Path), required=True)
+    def triage_round(actor, archive, max_photos, progress):
+        """One finite, explicitly scoped round; each job remains <=50 photos."""
+        db = get_db()
+        administrator(db, actor)
+        if progress.exists() or not progress.resolve().is_relative_to(data.resolve()):
+            raise click.ClickException('Use a new progress file inside the private review data directory')
+        with zipfile.ZipFile(archive) as package:
+            if package.getinfo('samples.csv').file_size > 8 * 1024**2 or package.getinfo('queue.json').file_size > 2 * 1024**2:
+                raise click.ClickException('Oversize public queue manifest')
+            receipt=json.loads(package.read('queue.json'))
+            raw=package.read('samples.csv')
+            if receipt.get('purpose') != 'public_review_queue' or ai.digest(raw) != receipt['files']['samples.csv']:
+                raise click.ClickException('Public queue identity differs')
+            rows=list(csv.DictReader(io.StringIO(raw.decode('utf-8-sig'))))
+        if not 1 <= len(rows) <= 2000 or len(rows) != receipt['count']:
+            raise click.ClickException('Round needs 1..2000 candidate photos')
+        scope=[]
+        for row in rows:
+            current=db.execute('SELECT id,category,source_meta FROM samples WHERE sha256=?', (row['image_sha256'],)).fetchone()
+            if current and str(current['category']) == row['category_id'] and json.loads(current['source_meta']).get('sample_id') == row['sample_id']:
+                scope.append(current['id'])
+        if not scope:
+            raise click.ClickException('Import this public queue before starting its round')
+        result={'state':'running','photo_limit':max_photos,'scope_count':len(scope),'processed':0,'counts':{},'jobs':[],
+                'started_at':ai.stamp(),'sample_scope_sha256':ai.digest(json.dumps(sorted(scope)).encode())}
+        def save():
+            result['updated_at']=ai.stamp()
+            temporary=progress.with_suffix('.new')
+            descriptor=os.open(temporary,os.O_WRONLY|os.O_CREAT|os.O_TRUNC,0o600)
+            with os.fdopen(descriptor,'w') as stream:
+                json.dump(result,stream,ensure_ascii=False,indent=2); stream.flush(); os.fsync(stream.fileno())
+            temporary.replace(progress)
+        save()
+        try:
+            while result['processed'] < min(max_photos,len(scope)):
+                identity=new_job(db,actor,min(50,max_photos-result['processed']),app.config,True)
+                report=run_job(db,data,categories,app.config,identity,sample_ids=scope)
+                result['jobs'].append(identity)
+                result['processed']+=len(report['samples'])
+                for key,value in report['counts'].items(): result['counts'][key]=result['counts'].get(key,0)+value
+                save()
+                if report['state'] != 'done':
+                    result.update(state='stopped',error_code=report['error_code']); break
+                if not report['samples']:
+                    result['state']='scope_exhausted'; break
+            else:
+                result['state']='done'
+        except Exception as error:
+            result.update(state='stopped',error_code=type(error).__name__)
+        finally:
+            result['usage']=ai.usage_report(ai.usage_totals(db)); save()
+        click.echo(json.dumps(result,ensure_ascii=False))
+        if result['state']=='stopped':
+            raise click.ClickException('round_stopped_'+result['error_code'])
+
     @app.cli.command('ai-triage-worker')
     @click.option('--job', required=True)
     def worker(job):
