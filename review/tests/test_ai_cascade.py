@@ -61,6 +61,33 @@ def test_cascade_is_fresh_install_default_and_ui_explains_routing(app):
     assert 'value="50"' in page
 
 
+@pytest.mark.parametrize('subject', [
+    '整面书架中密集排列的大量实体书本', '书店内陈列的实体书籍',
+    'A person reading a paperback book while sitting in a blue chair.',
+])
+def test_book_scene_passes_escalate_and_cannot_auto_pass_even_with_max(subject):
+    result=json.loads(answer(category_id=2,subject=subject))
+    assert triage.needs_max(result,2)
+    assert triage.decide([result,result],2,triage.CASCADE_POLICY) is None
+    # A clear Max rejection can still resolve the scene without human work.
+    rejected=json.loads(answer(decision='reject',category_id=2,flags=['multiple_subjects']))
+    assert triage.decide([result,rejected],2,triage.CASCADE_POLICY)=='rejected'
+    closeup=json.loads(answer(category_id=2,subject='一本打开的实体装订书'))
+    assert triage.decide([result,closeup],2,triage.CASCADE_POLICY)=='approved'
+
+
+def test_routing_rule_changes_invalidate_routes_without_invalidating_paid_cache(monkeypatch):
+    row={'revision':1,'sha256':'a'*64,'category':2,'crop':None}
+    selected=triage.profiles(triage.FLASH_MODEL,triage.CASCADE_POLICY)
+    context=triage.routing_context(categories(),selected)
+    identity=triage.selection_identity(row,categories(),selected)
+    cache=ai.cache_key(row,categories(),selected[0])
+    monkeypatch.setattr(triage,'ROUTING_RULES_VERSION','future-rules')
+    assert triage.routing_context(categories(),selected)!=context
+    assert triage.selection_identity(row,categories(),selected)!=identity
+    assert ai.cache_key(row,categories(),selected[0])==cache
+
+
 def test_flash_v6_uses_same_prompt_without_max_thinking_or_prices(app, monkeypatch):
     owner = admin(app); row, uid = cascade(app, owner, monkeypatch)
     flash, maximum = triage.configured_profiles(app.config)

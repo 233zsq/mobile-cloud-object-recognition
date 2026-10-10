@@ -26,6 +26,7 @@ MAX_POLICY = 'max-direct-v1'
 MAX_MODEL = 'qwen3.8-max-0902'
 CASCADE_POLICY = 'flash-max-cascade-v1'
 FLASH_MODEL = 'qwen3.8-flash'
+ROUTING_RULES_VERSION = 'campus-ai-routing-v2'
 # No pilot references yet for chargers/keys. Do not freeze their automatic
 # approvals without reviewing every one, even when all models agree.
 FULL_APPROVAL_AUDIT_CATEGORIES = (7, 8)
@@ -122,7 +123,7 @@ def configured_profiles(config):
 
 def routing_context(categories, selected):
     """Invalidate a routing result when labels, prompts or model generations change."""
-    return ai.digest(json.dumps([categories, [{**p.__dict__, 'inference': ai.inference(p),
+    return ai.digest(json.dumps([ROUTING_RULES_VERSION, categories, [{**p.__dict__, 'inference': ai.inference(p),
         'alias_generation': ai.ALIAS_GENERATIONS.get(p.model)} for p in selected]],
         sort_keys=True, ensure_ascii=False).encode())
 
@@ -133,6 +134,15 @@ def candidate(result, category, policy=None):
         return None
     decision, actual, flags = result.get('decision'), result.get('category_id'), result.get('flags')
     if policy in (MAX_POLICY, CASCADE_POLICY):
+        # The expansion pilot exposed shelf/shop scenes being called clear
+        # books. Escalate these contradictory passes, then keep unresolved Max
+        # passes human; never turn a text heuristic into an automatic rejection.
+        words = str(result.get('subject', '')) + ' ' + str(result.get('reason', ''))
+        if decision == 'pass' and category == 2 and (
+                re.search(r'书架|书店|书库|图书馆|大量|密集|成排|堆叠|堆满|bookshelf|bookcase|bookshop|bookstore|library', words, re.I) or
+                re.search(r'^(?:一位|一个|A |An |The )?(?:人物|女人|男人|女子|男子|女孩|男孩|person\b|woman\b|man\b|girl\b|boy\b)|阅读的(?:女子|男子|人物)',
+                          str(result.get('subject', '')), re.I)):
+            return None
         if policy == CASCADE_POLICY and re.search(r'疑似|可能|用途不明|不确定|无法确认|无法确定',
                                                   str(result.get('subject', '')) + ' ' + str(result.get('reason', ''))):
             return None
@@ -177,7 +187,7 @@ def decide(results, category, policy=None):
 
 
 def selection_identity(row, categories, selected):
-    return ai.digest(json.dumps([policy_for(selected), row['revision'], [ai.cache_key(row, categories, p) for p in selected]]).encode())
+    return ai.digest(json.dumps([ROUTING_RULES_VERSION, policy_for(selected), row['revision'], [ai.cache_key(row, categories, p) for p in selected]]).encode())
 
 
 def untouched(db, row):
@@ -231,7 +241,7 @@ def apply_decision(db, data, snapshot, categories, job, checks):
         status = decide(results, row['category'], policy)
         if status is None:
             db.rollback(); return 'manual'
-        evidence = {'policy': policy, 'category_version': categories['category_version'],
+        evidence = {'policy': policy, 'routing_rules_version': ROUTING_RULES_VERSION, 'category_version': categories['category_version'],
                     'photo_sha256': row['sha256'], 'category_id': row['category'], 'crop': None, 'checks': actual_checks,
                     'same_provider_errors_may_be_correlated': True}
         identity = uuid.uuid4().hex
@@ -379,7 +389,7 @@ def run_job(db, data, categories, config, identity, analyze=ai.analyze, *, sampl
         db.rollback(); raise Conflict('任务不存在或已经运行')
     db.execute('UPDATE ai_triage_jobs SET state="running",pid=?,updated_at=? WHERE id=?', (os.getpid(), ai.stamp(), identity)); db.commit()
     policy = job['policy']
-    report = {'job_id': identity, 'policy': policy, 'audit_percent': job['audit_percent'],
+    report = {'job_id': identity, 'policy': policy, 'routing_rules_version': ROUTING_RULES_VERSION, 'audit_percent': job['audit_percent'],
               'apply_changes': bool(job['apply_changes']), 'samples': [], 'counts': {}, 'errors': {}, 'routing': {}}
     if sample_ids is not None:
         report['sample_scope_sha256'] = ai.digest(json.dumps(sorted(sample_ids)).encode())
