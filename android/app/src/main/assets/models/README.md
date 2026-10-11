@@ -1,14 +1,17 @@
 # 模型放置位置
 
-正式模型包由训练负责人按 `docs/model-contract.md` 交接。**当前正式发布包为
-`models/releases/campus-gpu-v1/`**（冻结契约 rgb-letterbox-v1）。领取后把以下三个文件
+正式模型包由训练负责人按 `docs/model-contract.md` 交接。**当前选定发布包为
+`models/releases/campus-evolve-v2/`**（冻结契约 rgb-letterbox-v1，类别 campus-10-v4）。领取后把以下三个文件
 复制到本目录：
 
 - `model.tflite` —— 从交付归档/组内共享存储领取（8,939,040 字节，SHA-256 见 metadata）
-- `labels.txt` —— 可直接从 `models/releases/campus-gpu-v1/labels.txt` 复制
-- `metadata.json` —— 可直接从 `models/releases/campus-gpu-v1/metadata.json` 复制
+- `labels.txt` —— 可直接从 `models/releases/campus-evolve-v2/labels.txt` 复制
+- `metadata.json` —— 可直接从 `models/releases/campus-evolve-v2/metadata.json` 复制
 
 三者必须来自同一发布包，App 会强制校验 SHA-256；混用旧包文件会加载失败。
+同时将 `shared/category-versions/campus-10-v4.json` 复制为上一级 `categories.json`。
+获批附录 `approval.json` 随本地交付保留，含账号信息，不提交 Git。
+模型 SHA-256：`7e2387600303333f714533aac1a0c1e4260425b06154dd7fa4ed920d01bef691`。
 
 ## App 的校验规则（inference/ModelValidator.kt）
 
@@ -17,7 +20,7 @@
 - metadata.json 必须含 `model_version`；`sha256` 与 `labels_sha256` 填写即强制校验。
 - `input.pixel_range` 必须为 `[0,255]`；归一化约定必须可解析。
 - metadata 声明的 `input/output.shape` 必须与实际张量一致（支持数组与字符串两种写法）。
-- 低置信阈值取 `low_confidence_threshold`（campus-gpu-v1 为 0.50），缺省 0.50。
+- 低置信阈值取 `low_confidence_threshold`（campus-evolve-v2 为 0.50），缺省 0.50。
 
 校验失败时 App 停止识别并显示具体原因，不输出伪造分类结果（用例 T04）。
 
@@ -51,4 +54,14 @@ python scripts/make_placeholder_model.py
 「直接喂参考张量」与「从图片走本机预处理」两种模式下回传结果，供
 `scripts/make-handover-report.py` 与 `python -m recognition verify` 核对
 （Top-1 一致、分数差 ≤0.001；图片模式另需输入像素差 ≤0.001）。模板见
-`shared/device-results/`。该项依赖真机执行，当前状态：待执行。
+`shared/device-results/`。将发布包 `examples/` 复制到
+`app/src/debug/assets/models/examples/`（仅 debug 打包）。执行
+`./gradlew connectedDebugAndroidTest` 可运行 `ModelHandoverTest`，核对 20 张样例的两种输入，
+再预热 20 次、测量 100 次；报告在 App 外部私有目录 `consistency/<run_id>/`。
+模拟器结果只验证接入；真机性能与独立实拍准确率仍待验收。
+
+`CloudHandoverTest` 另检查已配置 HTTPS 主机的健康、认证及20张同图推理，不写入识别记录。
+它使用 App 私有设置中的令牌；若无已授权HTTPS配置则跳过，跳过不算验收通过。
+需要首次导入配置时，只能在明确授权后写入 App 私有 `files/handover-server-config.json`
+（`base_url` / `token`）；测试读取后删除该临时文件，成功验证才保存为 App 设置。
+令牌不得进入资产、测试参数、Git、截图或日志。

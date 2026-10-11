@@ -1,5 +1,13 @@
 # campus-gpu-v1 云端 CPU 推理
 
+> 以下保留首次部署记录。2026-10-11 当前服务已切换为获批的 `campus-evolve-v2`，
+> 类别 `campus-10-v4`，模型 SHA-256
+> `7e2387600303333f714533aac1a0c1e4260425b06154dd7fa4ed920d01bef691`。
+> 后续模型切换使用 `deploy/scripts/activate_model.py`，要求明确的包路径和模型哈希，
+> 检查文件、审批与运行时锁，备份现有环境/单元，只更新模型配置并等待健康检查；失败自动恢复。
+> `provision.py inference` 保留原基准配置，不能用于重新激活 v2。
+> 当前包、证据、环境复用和回退方式见 `docs/campus-evolve-v2-deployment.md`。
+
 Flask/Gunicorn 保留 Python 3.14 环境，通过 `/run/mobile-cloud-inference/model.sock` 调用独立 Python 3.12 CPU 进程。
 模型包来自组内交付目录，权重、样例照片、参考张量和运行环境不提交 Git。
 模型 SHA-256 固定为 `a58ca2be234d0d7e7db6bdec3853b3e077df6a88321da4f6bd7a8a5d5be51d13`，类别版本为 `campus-10-v2`。

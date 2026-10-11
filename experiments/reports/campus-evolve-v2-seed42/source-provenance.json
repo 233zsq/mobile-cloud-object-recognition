@@ -1,0 +1,24 @@
+{
+  "experiment_id": "campus-evolve-v2-seed42",
+  "verified_code_commit": "135b0eb9f701fcece2075e2a7920d6090cc118ce",
+  "training_recorded_code_commit": "unavailable",
+  "resolution": "Windows Git revision verified byte-for-byte against saved GPU training source snapshot; Linux Git cannot resolve the Windows absolute worktree path",
+  "code_snapshot_sha256": "ca89942005ed516fb5457b89dc1faf223b6063ff56ee106b86a0152990133387",
+  "source_file_sha256": {
+    "__init__.py": "59f9105939389bc839c97fd60f3da5b29a3390082c6ce946e163ca53008c2072",
+    "__main__.py": "59e600ae1d30bed923fccd6fbb1bd0ddc88f2d909e8af1414326f142607b58bd",
+    "coco_test.py": "a5999e7376c9ecf03fb50e92d04bf2c0a8b4ebd6a1434b3c3baf0b70b649a639",
+    "collect.py": "d60f1218776eff30359fab4da1d0ad0b6c929549feba3c34ed24c202987551d9",
+    "common.py": "9946764e926b33c974a316427c36f477460aafe77b6aafdd4fbcd92f1b8e5db3",
+    "data.py": "b4ea9adb324ae6183e07e7667110657fe669823076211b55c5557008d40a94d5",
+    "evolution.py": "6679143aff0cfc623835013e86227d27073c4c8edd9f2ccc46decd9ffd475ca6",
+    "inference.py": "e9958dfd04bbe88efa72e0282485744149cc8cf9ea560e3216e592fa3f9a479f",
+    "preprocessing.py": "8051f3b5d13df9ad2ac55718838d4edc6b94cdf6d3f744677281a5bff61e5a13",
+    "product.py": "a4aeae82ef0a0ce456a7de5f4c3ee6ce9489b23f95e206328b382df7b0d4af46",
+    "release.py": "dc167f01264236dda956eed77d755a1f9c92e42e765e0e6d567ff3facbda75e5",
+    "smoke.py": "9cf40182dc42239210c9884cdb1ba2dbab6b57627e42a24153e3174299f1467e",
+    "training.py": "d31c468dcca5613511d092349e11ba7a075766087d679ab27c8e7d25d5fd28e2"
+  },
+  "model_checkpoint_sha256": "d568c2ec536ac5a4cbfdf7780af9562a16679444a1fa6871bcbeea9d3bcdf20e",
+  "training_result_modified": false
+}

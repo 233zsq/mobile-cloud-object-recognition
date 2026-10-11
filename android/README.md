@@ -20,6 +20,11 @@ cd android
 
 安装：`adb install -r app/build/outputs/apk/debug/app-debug.apk` 或直接传 APK 安装。
 
+Windows 中文工作区的 AGP 路径检查已显式放行；若 JVM 测试报 `ClassNotFoundException`，
+使用未占用的临时英文盘符运行同一工作区，例如 `subst R: "D:\项目路径\仓库"` 后执行
+`R:\android\gradlew.bat -p R:\android :app:assembleDebug :app:testDebugUnitTest`。
+用完执行 `subst R: /D` 取消映射，无须移动源码。2026-10-11 已用 JBR 21.0.10 完成 91 项单元检查。
+
 ## 目录与职责
 
 Kotlin 源码按 Android 约定放在 `java/` 目录下（`.kt` 文件），包名为 `com.mobilecloud.recognition`。
@@ -32,7 +37,7 @@ Kotlin 源码按 Android 约定放在 `java/` 目录下（`.kt` 文件），包�
 | `app/src/main/java/com/mobilecloud/recognition/sync/` | 接口访问、上传 Worker、补传与纠错修订号 |
 | `app/src/main/java/com/mobilecloud/recognition/ui/` | 采集、记录、设置三屏（Compose） |
 | `app/src/main/assets/models/` | 正式模型、标签与 metadata 打包位置（见目录内 README） |
-| `app/src/main/assets/categories.json` | 类别 ID/标签键/中文名（草案；冻结后替换） |
+| `app/src/main/assets/categories.json` | campus-10-v4 类别 ID/标签键/中文名，与 v2 模型同步 |
 
 ## 已实现功能（对应项目分工清单）
 
@@ -53,11 +58,13 @@ Kotlin 源码按 Android 约定放在 `java/` 目录下（`.kt` 文件），包�
 
 ## 模型文件
 
-模型二进制被根 `.gitignore` 忽略。正式发布包为 `models/releases/campus-gpu-v1/`：
+模型二进制被根 `.gitignore` 忽略。当前选定发布包为 `models/releases/campus-evolve-v2/`：
 `labels.txt` 与 `metadata.json` 可直接复制，`model.tflite` 从交付归档/组内共享存储领取，
 三者必须同包（App 强制校验 SHA-256）。输入契约 `rgb-letterbox-v1` 由
 `util/PreprocessMath.kt` 与 `inference/TfliteClassifier.kt` 实现，细节见
 `app/src/main/assets/models/README.md`。
+审批附录随本地交付包保留。Android 类别文件取 `shared/category-versions/campus-10-v4.json`，
+旧基准及其 v2 类别文件保留。部署证据与待验收项见 `docs/campus-evolve-v2-deployment.md`。
 
 占位模型（链路验证用，不得用于准确率结论，输入输出与契约一致）：
 

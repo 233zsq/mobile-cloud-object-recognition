@@ -1,0 +1,37 @@
+{
+  "model_version": "campus-evolve-v2",
+  "model_sha256": "7e2387600303333f714533aac1a0c1e4260425b06154dd7fa4ed920d01bef691",
+  "device": "HUAWEI ALN-AL00 / Android 12 SDK 32",
+  "fingerprint": "HUAWEI/Allen/Allen:12/V417IR/1747:user/release-keys",
+  "threads": 4,
+  "runtime": "LiteRT java org.tensorflow.lite 1.4.1 / threads=4",
+  "run_id": "android-ALN-AL00-20261011-225231",
+  "warmup": 20,
+  "measured": 100,
+  "unit": "ms",
+  "includes_network": false,
+  "preprocessing": {
+    "p50": 7,
+    "p95": 8,
+    "min": 4,
+    "max": 10
+  },
+  "inference": {
+    "p50": 9,
+    "p95": 10,
+    "min": 8,
+    "max": 12
+  },
+  "decode_preprocess_and_inference": {
+    "p50": 18.495850500000003,
+    "p95": 28.529744,
+    "min": 13.825664,
+    "max": 33.433613
+  },
+  "measurement_notes": [
+    "Classifier stage timings use millisecond resolution.",
+    "Total includes image decode and EXIF; measured with elapsedRealtimeNanos.",
+    "Emulator results do not satisfy physical-phone performance acceptance."
+  ],
+  "execution_context": "MuMu emulator on this Windows PC; reported HUAWEI model is emulated"
+}

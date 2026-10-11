@@ -1,0 +1,11 @@
+{
+  "version": "campus-evolve-v2",
+  "model_sha256": "7e2387600303333f714533aac1a0c1e4260425b06154dd7fa4ed920d01bef691",
+  "report_sha256": "bc08380ef00db731244129326859ec88e184dfb0792d26d6fe7eabc6a7c4b164",
+  "checkpoint_sha256": "d568c2ec536ac5a4cbfdf7780af9562a16679444a1fa6871bcbeea9d3bcdf20e",
+  "user_instruction": "先保留v2吧，然后上云和安卓",
+  "authorization_source": "explicit project owner instruction in this chat",
+  "recorded_by": "Codex via ubuntu SSH, delegated registration",
+  "web_user_click_performed": false,
+  "approval_receipt_sha256": "0ac31840e95cbd7103dede2a9f9995a10fe41cb5645f3e77f573424ac4619fa4"
+}

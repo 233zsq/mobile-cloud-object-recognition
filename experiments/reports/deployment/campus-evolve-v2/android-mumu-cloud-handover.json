@@ -1,0 +1,113 @@
+{
+  "scope": "MuMu_emulator",
+  "device": "HUAWEI ALN-AL00; Android 12",
+  "base_url": "https:\/\/49.232.195.47",
+  "model_version": "campus-evolve-v2",
+  "model_sha256": "7e2387600303333f714533aac1a0c1e4260425b06154dd7fa4ed920d01bef691",
+  "tls_verified": true,
+  "authenticated": true,
+  "records_written": 0,
+  "samples": [
+    {
+      "sample_id": "oi-30d38acdacfe06d0",
+      "max_score_difference": 0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-101801303",
+      "max_score_difference": 0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-142628717",
+      "max_score_difference": 0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-170447402",
+      "max_score_difference": 0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-19912806",
+      "max_score_difference": 0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-2987257",
+      "max_score_difference": 0,
+      "passed": true
+    },
+    {
+      "sample_id": "oi-6b784b107eaa3126",
+      "max_score_difference": 0,
+      "passed": true
+    },
+    {
+      "sample_id": "oi-10dd651ae86b43b3",
+      "max_score_difference": 0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-176030688",
+      "max_score_difference": 0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-176030689",
+      "max_score_difference": 0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-109930862",
+      "max_score_difference": 0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-144261318",
+      "max_score_difference": 0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-14723373",
+      "max_score_difference": 0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-72283140",
+      "max_score_difference": 0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-192911358",
+      "max_score_difference": 0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-13640856",
+      "max_score_difference": 0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-79672988",
+      "max_score_difference": 0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-71474663",
+      "max_score_difference": 0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-7151563",
+      "max_score_difference": 0,
+      "passed": true
+    },
+    {
+      "sample_id": "oi-2fdfbd153b29517b",
+      "max_score_difference": 0,
+      "passed": true
+    }
+  ],
+  "passed": true
+}

@@ -1,0 +1,163 @@
+{
+  "at_utc": "2026-10-11T14:40:30.596542+00:00",
+  "scope": "Actual Tencent HTTPS API from deployment host",
+  "url": "https://49.232.195.47/api",
+  "tls_certificate_verified": true,
+  "hostname_verified": true,
+  "proxy_disabled": true,
+  "model_version": "campus-evolve-v2",
+  "model_sha256": "7e2387600303333f714533aac1a0c1e4260425b06154dd7fa4ed920d01bef691",
+  "health": {
+    "model_loaded": true,
+    "model_status": "ready",
+    "model_version": "campus-evolve-v2",
+    "status": "ok",
+    "version": "0.1.0+5a0ca2e"
+  },
+  "samples": [
+    {
+      "sample_id": "oi-30d38acdacfe06d0",
+      "max_score_difference": 0.0,
+      "predicted_id": 0,
+      "server_ms": 97.90709399385378,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-101801303",
+      "max_score_difference": 0.0,
+      "predicted_id": 0,
+      "server_ms": 36.470083985477686,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-142628717",
+      "max_score_difference": 0.0,
+      "predicted_id": 1,
+      "server_ms": 21.254026039969176,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-170447402",
+      "max_score_difference": 0.0,
+      "predicted_id": 1,
+      "server_ms": 23.780588002409786,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-19912806",
+      "max_score_difference": 0.0,
+      "predicted_id": 2,
+      "server_ms": 66.19673903333023,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-2987257",
+      "max_score_difference": 0.0,
+      "predicted_id": 2,
+      "server_ms": 43.151086021680385,
+      "passed": true
+    },
+    {
+      "sample_id": "oi-6b784b107eaa3126",
+      "max_score_difference": 0.0,
+      "predicted_id": 3,
+      "server_ms": 32.6668790075928,
+      "passed": true
+    },
+    {
+      "sample_id": "oi-10dd651ae86b43b3",
+      "max_score_difference": 0.0,
+      "predicted_id": 3,
+      "server_ms": 48.45554695930332,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-176030688",
+      "max_score_difference": 0.0,
+      "predicted_id": 4,
+      "server_ms": 41.63784900447354,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-176030689",
+      "max_score_difference": 0.0,
+      "predicted_id": 8,
+      "server_ms": 38.62049599410966,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-109930862",
+      "max_score_difference": 0.0,
+      "predicted_id": 5,
+      "server_ms": 30.76649399008602,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-144261318",
+      "max_score_difference": 0.0,
+      "predicted_id": 5,
+      "server_ms": 39.603315002750605,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-14723373",
+      "max_score_difference": 0.0,
+      "predicted_id": 6,
+      "server_ms": 28.983477968722582,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-72283140",
+      "max_score_difference": 0.0,
+      "predicted_id": 6,
+      "server_ms": 44.83424697536975,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-192911358",
+      "max_score_difference": 0.0,
+      "predicted_id": 6,
+      "server_ms": 23.672466981224716,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-13640856",
+      "max_score_difference": 0.0,
+      "predicted_id": 5,
+      "server_ms": 26.55888901790604,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-79672988",
+      "max_score_difference": 0.0,
+      "predicted_id": 8,
+      "server_ms": 44.2048929980956,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-71474663",
+      "max_score_difference": 0.0,
+      "predicted_id": 8,
+      "server_ms": 20.223026047460735,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-7151563",
+      "max_score_difference": 0.0,
+      "predicted_id": 9,
+      "server_ms": 40.532162005547434,
+      "passed": true
+    },
+    {
+      "sample_id": "oi-2fdfbd153b29517b",
+      "max_score_difference": 0.0,
+      "predicted_id": 9,
+      "server_ms": 37.321801006328315,
+      "passed": true
+    }
+  ],
+  "model_version_mismatch_status": 409,
+  "unauthorized_status": 401,
+  "records_written": 0,
+  "passed": true
+}
