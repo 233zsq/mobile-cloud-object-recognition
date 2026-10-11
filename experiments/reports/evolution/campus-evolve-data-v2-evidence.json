@@ -1,0 +1,135 @@
+{
+  "at": "2026-10-11T11:22:28+08:00",
+  "status": "ready_for_training",
+  "data_version": "campus-evolve-data-v2",
+  "category_version": "campus-10-v4",
+  "parent_release": "campus-evolve-v1",
+  "parent_approval_sha256": "3fa9c24e4bcdc7bb1443470d9e4c3f547de2ea826a17a0f39f337ca52d86177a",
+  "parent_model_sha256": "8a5d7759e0d752ff545cb3f46421519db4c8f66961a45a5104d78d071e0159d4",
+  "parent_checkpoint_sha256": "ca5989db8ee1ebf2d32071161d8d0d607b91e7044a9e40e97b10a34d65ef5c0b",
+  "source_batches": [
+    {
+      "batch_id": "002",
+      "count": 225,
+      "archive_sha256": "a76f8ec63b55b6d1f60e71f5204277c8d01e79894067bb0460ec76a45a7543ba",
+      "manifest_sha256": "3a9afa455458ec15c0366f93a2167c363544a23df78b8ccba1b8f37539596f86"
+    },
+    {
+      "batch_id": "003",
+      "count": 494,
+      "archive_sha256": "b728dc9e3d854c6c5c6281bdbce66ab4dbefc4ebb30220f824852af0c3da1d6f",
+      "manifest_sha256": "ae91f30d4a7fc8bab6c9cab95854a5dbe600871821e31cc2d65896e5ed4eaac4"
+    }
+  ],
+  "combined_archive_sha256": "cd3d3f1daa67bffba7866b989bde19c61941c03bd8a3f307fcbd74e141244784",
+  "dataset_metadata_sha256": "490ede277d995479b62af2cecabfb326e071391022f143f51a5c779d55b78dcc",
+  "base_photos_preserved": 1697,
+  "baseline_assignments_preserved": true,
+  "new_original_photos": 719,
+  "new_cropped_photos": 88,
+  "new_sources": {
+    "wikimedia_commons": 607,
+    "open_images": 112
+  },
+  "total_original_photos": 2416,
+  "train_count": 1807,
+  "validation_count": 609,
+  "new_train_count": 539,
+  "new_validation_count": 180,
+  "connected_train_groups": 1719,
+  "connected_validation_groups": 570,
+  "photos_by_class": {
+    "0": {
+      "train": 175,
+      "validation": 58,
+      "new_train": 71,
+      "new_validation": 24
+    },
+    "1": {
+      "train": 115,
+      "validation": 38,
+      "new_train": 23,
+      "new_validation": 8
+    },
+    "2": {
+      "train": 197,
+      "validation": 66,
+      "new_train": 66,
+      "new_validation": 22
+    },
+    "3": {
+      "train": 118,
+      "validation": 41,
+      "new_train": 3,
+      "new_validation": 2
+    },
+    "4": {
+      "train": 197,
+      "validation": 66,
+      "new_train": 50,
+      "new_validation": 16
+    },
+    "5": {
+      "train": 185,
+      "validation": 67,
+      "new_train": 44,
+      "new_validation": 14
+    },
+    "6": {
+      "train": 255,
+      "validation": 86,
+      "new_train": 99,
+      "new_validation": 33
+    },
+    "7": {
+      "train": 180,
+      "validation": 60,
+      "new_train": 84,
+      "new_validation": 28
+    },
+    "8": {
+      "train": 164,
+      "validation": 54,
+      "new_train": 33,
+      "new_validation": 11
+    },
+    "9": {
+      "train": 221,
+      "validation": 73,
+      "new_train": 66,
+      "new_validation": 22
+    }
+  },
+  "pending_human_reviews": 0,
+  "pending_ai_audits": 0,
+  "decoded_and_verified_new_originals": 719,
+  "test_images_read": false,
+  "test_predictions_made": false,
+  "training_started": false,
+  "new_original_network_download_bytes": 0,
+  "known_limits": [
+    "pencil_case has only 5 new originals; no claim of a large increase in diversity.",
+    "Public real-world object identities are often unknown; source and near-duplicate groups are used.",
+    "COCO held-out photos remain reserved and are not used for model or threshold selection.",
+    "Human review and AI audit do not establish a measured global label error rate."
+  ],
+  "runtime_readiness": {
+    "status": "ready_for_training",
+    "python": "3.12.3",
+    "tensorflow": "2.21.0",
+    "keras": "3.12.1",
+    "gpu": [
+      "/physical_device:GPU:0"
+    ],
+    "bn_layers_frozen": 52,
+    "output_shape": [
+      1,
+      10
+    ],
+    "output_dtype": "float32",
+    "training_started": false,
+    "test_images_read": false,
+    "prediction_input": "synthetic zeros only"
+  },
+  "preparation_code_commit": "749868e"
+}
