@@ -1,0 +1,85 @@
+{
+  "purpose": "product_photo_review_result",
+  "category": "pencil_case",
+  "source_dataset": "web_product",
+  "rights_status": "unverified; usability review does not grant permission",
+  "round": {
+    "state": "done",
+    "photo_limit": 57,
+    "scope_count": 57,
+    "processed": 57,
+    "counts": {
+      "approved": 57
+    },
+    "started_at": "2026-10-11T04:06:10+00:00",
+    "sample_scope_sha256": "be081720ecd855edd13dc8a86140581ef16f3301b2d24c472f8411b9719283ea",
+    "updated_at": "2026-10-11T04:09:59+00:00"
+  },
+  "status_counts": {
+    "approved": 57
+  },
+  "queues_at_completion": {
+    "human": 0,
+    "waiting": 0,
+    "error": 0,
+    "audit": 4
+  },
+  "batch_usage": {
+    "input_tokens": 76626,
+    "output_tokens": 8392,
+    "charged_or_reserved_yuan": 0.3364543,
+    "request_body_bytes": 3870520,
+    "attempts": 64
+  },
+  "total_usage": {
+    "input_tokens": 3862385,
+    "output_tokens": 532402,
+    "charged_or_reserved_yuan": 21.9755891,
+    "request_body_bytes": 172154995,
+    "attempts": 3380
+  },
+  "budget_yuan": 64.6814493,
+  "call_limit": 5000,
+  "per_job_limits": [
+    50,
+    7
+  ],
+  "unfrozen_product_count": 57,
+  "attribution_preserved": true,
+  "queue_sha256": "dbb4f9e5bf244aa39c8e1040ed6da645dbb11ef2e57e3d7ded9f4c20bd0fce99",
+  "source_archive_sha256": "fe0aead8ca8fabc493505fd8d45557a3bb8cb51160b6c36c13dbb0d0b9480291",
+  "deployed_code_commit": "3f1f5b9b3bfd7ea614976a1a7e40322ffae9e73e",
+  "checks": {
+    "integrity": "ok",
+    "existing_ids_preserved": true,
+    "assignments_preserved": true,
+    "configuration_tls_budgets_and_service_unchanged": true,
+    "review_tests_passed": 144,
+    "review_health": "ok",
+    "backend_health": "ok"
+  },
+  "https": {
+    "at": "2026-10-11T04:08:28.817327+00:00",
+    "url": "https://49.232.195.47:8443",
+    "tls_certificate_validation": true,
+    "checks": {
+      "health": true,
+      "login_page": true,
+      "secure_session_cookie": true,
+      "security_headers": true,
+      "unauthenticated_redirect": true,
+      "csrf_rejected": true
+    },
+    "passed": true,
+    "probe_photos_uploaded": 0,
+    "probe_accounts_created": 0
+  },
+  "frozen_data_v2_unchanged": {
+    "dataset.json": "490ede277d995479b62af2cecabfb326e071391022f143f51a5c779d55b78dcc",
+    "train.csv": "9f5814177a1b3d7e62431ab3de9ae2dae8e340360779ac1ea27a13c59e04b239",
+    "validation.csv": "54ff3df454d9a7e72965696bdf7bdbcc2bd0ef96232290ce54fe4882cc322e01"
+  },
+  "training_started": false,
+  "model_published": false,
+  "human_accuracy_measured": false
+}
