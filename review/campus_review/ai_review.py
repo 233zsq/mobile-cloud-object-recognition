@@ -369,9 +369,9 @@ def analyze(connection, data, row, categories, config, key, api=None, profile=No
 
 
 def select_rows(connection, mode, limit, category=None, categories=None, retry_errors=False):
-    where = 'source IN ("wikimedia_commons","open_images") AND '
+    where = 'source IN (' + ','.join('?' for _ in PUBLIC_SOURCES) + ') AND '
     where += 'status IN ("approved","rejected")' if mode == 'pilot' else 'status="pending" AND batch IS NULL'
-    args = []
+    args = list(PUBLIC_SOURCES)
     if category is not None:
         where += ' AND category=?'
         args.append(category)

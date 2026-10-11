@@ -6,7 +6,7 @@ from urllib.parse import urlsplit
 
 from PIL import Image, ImageOps
 
-PUBLIC_SOURCES = ('wikimedia_commons', 'open_images')
+PUBLIC_SOURCES = ('wikimedia_commons', 'open_images', 'web_product')
 SOURCE_FIELDS = ('source_dataset', 'source_id', 'source_url', 'original_url', 'download_url',
                  'author', 'license', 'license_url', 'downloaded_at', 'source_version',
                  'previous_review_reason')

@@ -32,6 +32,7 @@ INDEX_BUDGET = int(1.2 * 1024**3)
 INDEX_CHUNK_BYTES = 1024**2
 PHOTO_BUDGET = 3 * 1024**3
 MAX_CLASS_CAP = 750
+PHOTO_PROVIDERS = ('commons', 'openimages', 'web_product')
 
 
 def validate_limits(per_class, class_cap, max_new):
@@ -44,7 +45,7 @@ def validate_limits(per_class, class_cap, max_new):
 
 
 def known_photo_hashes():
-    return {r['image_sha256'] for name in ('public-candidates.csv', 'openimages-candidates.csv', 'public-reviewed.csv')
+    return {r['image_sha256'] for name in ('public-candidates.csv', 'openimages-candidates.csv', 'public-reviewed.csv', 'web-product-candidates.csv')
             if (path := ROOT / 'data/manifests' / name).exists() for r in read_csv(path) if r.get('image_sha256')}
 
 
@@ -77,8 +78,8 @@ def quota_lock():
 def store_download(path,blob,key,*,class_cap=240):
     validate_limits(1, class_cap, None)
     with quota_lock():
-        count=sum(1 for provider in ("commons","openimages") for p in (ROOT/"data/raw"/provider/key).glob("*") if p.is_file())
-        total=sum(p.stat().st_size for provider in ("commons","openimages") for p in (ROOT/"data/raw"/provider).rglob("*") if p.is_file())
+        count=sum(1 for provider in PHOTO_PROVIDERS for p in (ROOT/"data/raw"/provider/key).glob("*") if p.is_file())
+        total=sum(p.stat().st_size for provider in PHOTO_PROVIDERS for p in (ROOT/"data/raw"/provider).rglob("*") if p.is_file())
         previous=path.stat().st_size if path.exists() else 0
         if (count>=class_cap and not path.exists()) or total-previous+len(blob)>PHOTO_BUDGET:
             raise ValueError(f"Global public-photo quota reached ({class_cap} per class / 3 GiB)")

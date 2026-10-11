@@ -149,8 +149,8 @@ def import_batch(archive, version, base_version='campus-public-expanded-v1', par
         for row in rows:
             path = PurePosixPath(row['image_path'])
             source = row.get('source_dataset')
-            public = source in ('wikimedia_commons', 'open_images')
-            if len(path.parts) != 2 or path.parts[0] != 'images' or source not in ('field', 'wikimedia_commons', 'open_images') or row['review_status'] != 'approved' or (not public and not row['object_id']) or not row['session_id'] or not row['group_id'] or int(row['category_id']) not in range(10):
+            public = source in ('wikimedia_commons', 'open_images', 'web_product')
+            if len(path.parts) != 2 or path.parts[0] != 'images' or source not in ('field', 'wikimedia_commons', 'open_images', 'web_product') or row['review_status'] != 'approved' or (not public and not row['object_id']) or not row['session_id'] or not row['group_id'] or int(row['category_id']) not in range(10):
                 raise ValueError('Approved photo identity/label missing')
             if public and not all(row.get(k) for k in ('source_id', 'source_url', 'original_url', 'license', 'source_sample_id')):
                 raise ValueError('Public source attribution missing')
@@ -236,6 +236,9 @@ def import_batch(archive, version, base_version='campus-public-expanded-v1', par
                 'source_archive_sha256': archive_identity, 'batch_id': receipt['batch_id'],
                 'new_train_count': len(new_train), 'new_validation_count': len(new_val),
                 'parent_release': parent_release, 'final_test_status': 'pending_fresh_field_photos', 'files': {}}
+    if any(r.get('source_dataset')=='web_product' for r in rows):
+        metadata['product_photo_rights_status']='unverified; image usability review does not grant permission'
+        metadata['new_product_photo_count']=sum(r.get('source_dataset')=='web_product' for r in rows)
     if transition:
         metadata['category_transition'] = transition
     for name, selected in (('train', all_train), ('validation', all_val)):
@@ -279,12 +282,15 @@ def compare(release, baseline='campus-gpu-v1'):
     legacy_ids = {r['sample_id'] for r in legacy}
     subsets = {'original_public_validation': [r for r in rows if r['sample_id'] in legacy_ids],
                'new_public_development_validation': [r for r in rows if r['sample_id'] not in legacy_ids and r.get('source_dataset') in ('wikimedia_commons', 'open_images')],
+               'product_development_validation': [r for r in rows if r.get('source_dataset')=='web_product'],
                'field_development_validation': [r for r in rows if r.get('source_dataset') in ('field', 'self_captured')]}
     if {r['sample_id'] for r in subsets['original_public_validation']} != legacy_ids:
         raise ValueError('Original baseline validation membership changed')
     report = {'purpose': 'evolution_comparison', 'status': 'pending_human_approval', 'created_at': now(),
               'baseline': old.metadata, 'candidate': candidate.metadata, 'data_metadata_sha256': digest(ROOT / 'data/splits' / data['data_version'] / 'dataset.json'),
               'test_images_read': False, 'subsets': {}, 'warnings': []}
+    if subsets['product_development_validation']:
+        report['warnings'].append('Product photographs have unverified rights; usability review is not licensing approval. Product validation is reported separately.')
     transition = category_transition(old.metadata['category_version'], candidate.metadata['category_version'])
     if transition:
         report['category_transition'] = transition

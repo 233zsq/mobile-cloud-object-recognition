@@ -204,7 +204,8 @@ def create_app(config=None):
     def globals_():
         return {'categories': cat['categories'], 'csrf': session.get('csrf'),
                 'baseline': baseline, 'base_metrics': base_metrics,
-                'source_labels': {'field': '成员实拍', 'wikimedia_commons': 'Commons 网图', 'open_images': 'Open Images 网图'}}
+                'source_labels': {'field': '成员实拍', 'wikimedia_commons': 'Commons 网图', 'open_images': 'Open Images 网图',
+                                  'web_product': '商品网图（授权未核实）'}}
 
     def workflow():
         return Workflow(db(), g.user, app.config['REVIEW_LEASE_SECONDS'],

@@ -18,9 +18,9 @@ def test_small_commons_original_gets_a_supported_scaled_thumbnail(monkeypatch):
     assert [c['iiurlwidth'] for c in calls if 'iiurlwidth' in c]==[960,500]
 
 
-def test_download_quota_counts_both_providers(tmp_path,monkeypatch):
+def test_download_quota_counts_all_providers(tmp_path,monkeypatch):
     monkeypatch.setattr(collect,"ROOT",tmp_path)
-    for provider,n in (("commons",120),("openimages",120)):
+    for provider,n in (("commons",80),("openimages",80),("web_product",80)):
         directory=tmp_path/"data/raw"/provider/"pencil_case"
         directory.mkdir(parents=True)
         for i in range(n):

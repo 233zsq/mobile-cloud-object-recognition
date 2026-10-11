@@ -181,12 +181,16 @@ def test_concurrent_reviewers_cannot_overwrite_each_other(app):
         assert sorted(job.result().status_code for job in jobs)==[302,409]
 
 
-def public_archive(app, path, category_version='campus-10-v2'):
+def public_archive(app, path, category_version='campus-10-v2', source='wikimedia_commons'):
     content = photo().getvalue()
     row = {'sample_id': 'commons-test', 'image_path': 'images/test.jpg',
            'image_sha256': hashlib.sha256(content).hexdigest(), 'category_id': '0', 'group_id': 'web-group',
            'source_dataset': 'wikimedia_commons', 'source_id': 'test', 'source_url': 'https://commons.wikimedia.org/wiki/File:Test.jpg',
            'original_url': 'https://upload.wikimedia.org/test.jpg', 'license': 'CC BY-SA 4.0', 'author': 'Test author'}
+    if source == 'web_product':
+        row.update(source_dataset=source, source_url='https://detail.1688.com/offer/123.html',
+                   original_url='https://cbu01.alicdn.com/test.jpg', author='',
+                   license='unverified (product photo; permission not established)')
     stream = io.StringIO(newline=''); writer = csv.DictWriter(stream, fieldnames=list(row))
     writer.writeheader(); writer.writerow(row); payload = stream.getvalue().encode()
     from campus_review import ROOT
@@ -199,8 +203,10 @@ def public_archive(app, path, category_version='campus-10-v2'):
     return content
 
 
-def test_public_import_stays_pending_preserves_source_and_supports_crop(app, tmp_path):
-    client = admin(app); archive = tmp_path/'public.zip'; original = public_archive(app, archive)
+@pytest.mark.parametrize('source', ['wikimedia_commons', 'web_product'])
+def test_public_import_stays_pending_preserves_source_and_supports_crop(app, tmp_path, source):
+    client = admin(app); archive = tmp_path/'public.zip'; original = public_archive(app, archive, source=source)
+    expected_license = 'CC BY-SA 4.0' if source == 'wikimedia_commons' else 'unverified (product photo; permission not established)'
     runner = app.test_cli_runner()
     result = runner.invoke(args=['import-public', str(archive)])
     assert result.exit_code == 0, result.output
@@ -208,14 +214,15 @@ def test_public_import_stays_pending_preserves_source_and_supports_crop(app, tmp
     assert '"skipped_existing": 1' in runner.invoke(args=['import-public', str(archive)]).output
     conn = sqlite3.connect(tmp_path/'review.sqlite3'); conn.row_factory = sqlite3.Row
     row = conn.execute('SELECT * FROM samples').fetchone()
-    assert row['status'] == 'pending' and not row['object_id'] and row['source'] == 'wikimedia_commons'
+    assert row['status'] == 'pending' and not row['object_id'] and row['source'] == source
     assert conn.execute("SELECT active FROM users WHERE username='@public-import'").fetchone()[0] == 0
     conn.close()
-    page = client.get('/?source=wikimedia_commons&category=0&triage=waiting')
-    assert 'Commons 网图' in page.text and 'loading="lazy"' in page.text and 'size=thumb' in page.text
+    page = client.get('/?source='+source+'&category=0&triage=waiting')
+    assert ('Commons 网图' if source == 'wikimedia_commons' else '商品网图（授权未核实）') in page.text
+    assert 'loading="lazy"' in page.text and 'size=thumb' in page.text
     assert row['id'] not in client.get('/?source=field').text
     path = '/samples/'+row['id']
-    assert 'CC BY-SA 4.0' in client.get(path).text
+    assert expected_license in client.get(path).text
     body = {'csrf': csrf(client, path), 'revision': '1', 'category': '0', 'status': 'approved', 'object_id': '',
             'lease': lease(client, path),
             'session_id': 'public-collection', 'group_id': 'web-group', 'reason': 'clear crop', 'crop': '[0,0,8000,8000]'}
@@ -226,8 +233,9 @@ def test_public_import_stays_pending_preserves_source_and_supports_crop(app, tmp
     with zipfile.ZipFile(io.BytesIO(client.get('/batches/public-crop.zip').data)) as package:
         selected = list(csv.DictReader(io.StringIO(package.read('samples.csv').decode())))[0]
         assert selected['crop_box'] == '[0, 0, 160, 160]'
-        assert selected['source_dataset'] == 'wikimedia_commons' and selected['source_sample_id'] == 'commons-test'
-        assert selected['license'] == 'CC BY-SA 4.0' and selected['original_url'].startswith('https://upload.')
+        assert selected['source_dataset'] == source and selected['source_sample_id'] == 'commons-test'
+        assert selected['license'] == expected_license
+        assert selected['original_url'].startswith('https://upload.' if source == 'wikimedia_commons' else 'https://cbu01.alicdn.com/')
         assert package.read(selected['image_path']) == original
 
 

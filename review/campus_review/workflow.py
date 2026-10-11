@@ -5,6 +5,7 @@ from contextlib import contextmanager
 
 from werkzeug.exceptions import BadRequest, Conflict, Forbidden, NotFound
 from .ai_triage import ACTIVE
+from .assets import PUBLIC_SOURCES
 
 SCHEMA = '''
 CREATE TABLE IF NOT EXISTS category_assignments(
@@ -44,7 +45,7 @@ class Workflow:
         value = {key: params.get(key, default) for key, default in (
             ('status', 'pending'), ('source', 'all'), ('category', ''), ('scope', default_scope), ('triage', 'human' if 'status' not in params else 'all'))}
         if (value['status'] not in ('pending', 'approved', 'rejected', 'all') or
-                value['source'] not in ('all', 'field', 'wikimedia_commons', 'open_images') or
+                value['source'] not in ('all', 'field', *PUBLIC_SOURCES) or
                 value['category'] not in ('', *map(str, range(10))) or
                 value['scope'] not in ('mine', 'all', 'unassigned') or value['triage'] not in ('all', 'auto', 'audit', 'human', 'waiting', 'error')):
             raise BadRequest('未知筛选条件')

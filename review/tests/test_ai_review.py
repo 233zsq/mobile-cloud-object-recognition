@@ -34,6 +34,21 @@ def fake_api(key, text, photo):
     return answer(), [300, 80], len(photo) + 1500
 
 
+def test_product_source_enters_ai_queue_and_can_be_analyzed(app):
+    owner = admin(app)
+    row = public_sample(app, owner)
+    with connect(app) as db:
+        db.isolation_level = None
+        db.execute('UPDATE samples SET source="web_product" WHERE id=?', (row['id'],))
+        row = dict(db.execute('SELECT * FROM samples WHERE id=?', (row['id'],)).fetchone())
+        selected = ai_review.select_rows(db, 'pending', 10, category=0, categories=categories())
+        assert [r['id'] for r in selected] == [row['id']]
+        from campus_review.ai_triage import untouched
+        assert untouched(db, row)
+        assert ai_review.analyze(db, Path(app.config['DATA_DIR']), row, categories(), {},
+                                 'test-private-key-1234', fake_api)[0] == 'done'
+
+
 def test_ai_cache_tracks_crop_label_model_prompt_and_preserves_human_decisions(app):
     owner = admin(app)
     row = public_sample(app, owner)

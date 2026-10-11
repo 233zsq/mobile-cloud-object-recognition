@@ -180,9 +180,13 @@ def public_row(row):
             'original_url': 'https://upload.wikimedia.org/test.jpg', 'license': 'CC BY 4.0'}
 
 
-def test_public_crop_keeps_original_lineage_and_actual_pixels(workspace):
+@pytest.mark.parametrize('source', ['wikimedia_commons', 'web_product'])
+def test_public_crop_keeps_original_lineage_and_actual_pixels(workspace, source):
     root, row, archive = workspace
     new = public_row(row('public-crop'))
+    if source == 'web_product':
+        new.update(source_dataset=source, source_url='https://detail.1688.com/offer/123.html',
+                   original_url='https://cbu01.alicdn.com/test.jpg', license='unverified product photo')
     original = root/new['image_path']
     Image.fromarray(np.random.default_rng(947).integers(0, 256, (256, 256, 3), np.uint8)).save(original)
     new['image_sha256'] = common.digest(original)
@@ -191,7 +195,10 @@ def test_public_crop_keeps_original_lineage_and_actual_pixels(workspace):
     assert result['new_train_count'] == 1
     selected = common.read_csv(root/'data/splits/public-crop/train.csv')[-1]
     assert selected['image_sha256'] != selected['parent_image_sha256'] == common.digest(original)
-    assert '/derived/' in selected['image_path'] and selected['license'] == 'CC BY 4.0'
+    assert '/derived/' in selected['image_path'] and selected['license'] == new['license']
+    if source == 'web_product':
+        assert result['new_product_photo_count'] == 1
+        assert result['product_photo_rights_status'].startswith('unverified')
     with Image.open(root/selected['image_path']) as im:
         assert im.size == (192, 192)
     assert (root/'data/raw/evolution/public-crop/images'/original.name).read_bytes() == original.read_bytes()

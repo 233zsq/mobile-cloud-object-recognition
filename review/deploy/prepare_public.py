@@ -31,6 +31,8 @@ for manifest in (root / 'data/splits').glob('*/*.csv'):
             used_ids.add(row['sample_id']); used_hashes.add(row['image_sha256'])
 rows, paths, seen = [], {}, set()
 manifests = [args.manifest] if args.manifest else [root / 'data/manifests' / name for name in ('public-reviewed.csv', 'public-candidates.csv', 'openimages-candidates.csv')]
+if not args.manifest and (product_manifest := root / 'data/manifests/web-product-candidates.csv').exists():
+    manifests.append(product_manifest)
 for manifest in manifests:
     with manifest.open(encoding='utf-8-sig', newline='') as stream:
         for row in csv.DictReader(stream):
