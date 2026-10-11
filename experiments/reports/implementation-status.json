@@ -77,10 +77,11 @@
   "acceptance": {
     "independent_field_accuracy_and_f1": "pending",
     "android_preprocess_and_inference_p95": "pending physical phone",
-    "android_consistency": "pending emulator connection; physical phone pending",
+    "android_consistency": "passed on MuMu emulator: 20 reference tensors and 20 image chains; physical phone pending",
     "actual_cloud_consistency_and_latency": "passed: 20 reference + image chains, warmup20/measure100",
     "external_backup": "pending destination",
-    "cloud_https_inference": "passed: 20 same-image requests, TLS, 409 mismatch and 401 unauthorized"
+    "cloud_https_inference": "passed: 20 same-image requests, TLS, 409 mismatch and 401 unauthorized",
+    "android_authenticated_https": "passed on MuMu: 20 actual same-image API calls; no records written"
   },
   "accuracy_caveat": "All current accuracy/F1 values use public validation photos, never independent field acceptance.",
   "tests": {
@@ -95,7 +96,7 @@
     "v2_deployment": {
       "package_guard_tests": 7,
       "android_unit_tests": 91,
-      "android_instrumentation_build": "passed; execution pending emulator"
+      "android_instrumentation": "ModelHandoverTest and CloudHandoverTest passed on MuMu"
     }
   },
   "trained_code_snapshot_sha256": "ca89942005ed516fb5457b89dc1faf223b6063ff56ee106b86a0152990133387",

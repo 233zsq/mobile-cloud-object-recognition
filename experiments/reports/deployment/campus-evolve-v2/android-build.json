@@ -25,8 +25,9 @@
     "compile_sdk": 37,
     "windows_non_ascii_workaround": "Temporary subst drive R: points to the same checkout; no source copy."
   },
-  "device_installation": "pending emulator connection",
+  "device_installation": "installed and verified on MuMu Android12 SDK32 at 127.0.0.1:16384",
   "physical_phone_acceptance": "pending",
   "cloud_tls_certificate_matches_android": true,
-  "cloud_tls_certificate_der_sha256": "737ddb0a98473e94e208b1d6c75ba65a6a9dd70fcf6eb542ad63e233b76802d6"
+  "cloud_tls_certificate_der_sha256": "737ddb0a98473e94e208b1d6c75ba65a6a9dd70fcf6eb542ad63e233b76802d6",
+  "authenticated_https": "passed; token configured only on user-authorized MuMu"
 }

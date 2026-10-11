@@ -59,3 +59,9 @@ python scripts/make_placeholder_model.py
 `./gradlew connectedDebugAndroidTest` 可运行 `ModelHandoverTest`，核对 20 张样例的两种输入，
 再预热 20 次、测量 100 次；报告在 App 外部私有目录 `consistency/<run_id>/`。
 模拟器结果只验证接入；真机性能与独立实拍准确率仍待验收。
+
+`CloudHandoverTest` 另检查已配置 HTTPS 主机的健康、认证及20张同图推理，不写入识别记录。
+它使用 App 私有设置中的令牌；若无已授权HTTPS配置则跳过，跳过不算验收通过。
+需要首次导入配置时，只能在明确授权后写入 App 私有 `files/handover-server-config.json`
+（`base_url` / `token`）；测试读取后删除该临时文件，成功验证才保存为 App 设置。
+令牌不得进入资产、测试参数、Git、截图或日志。
