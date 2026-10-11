@@ -1,0 +1,190 @@
+{
+  "scope": "ACTUAL TENCENT CLOUD CPU; V2 PREACTIVATION",
+  "at_utc": "2026-10-11T14:29:12+00:00",
+  "cpu": "Intel(R) Xeon(R) Gold 6148 CPU @ 2.40GHz",
+  "os": "Linux-7.0.0-14-generic-x86_64-with-glibc2.43",
+  "runtime": {
+    "ai-edge-litert": "2.2.0",
+    "numpy": "2.1.3",
+    "Pillow": "12.3.0",
+    "python": "3.12.15",
+    "threads": 1
+  },
+  "package_integrity": {
+    "passed": true,
+    "checked_files": 62,
+    "model_version": "campus-evolve-v2",
+    "model_sha256": "7e2387600303333f714533aac1a0c1e4260425b06154dd7fa4ed920d01bef691"
+  },
+  "tensorflow_imported": false,
+  "comparisons": [
+    {
+      "sample_id": "oi-30d38acdacfe06d0",
+      "max_tensor_score_difference": 0.0,
+      "max_image_score_difference": 0.0,
+      "max_input_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-101801303",
+      "max_tensor_score_difference": 0.0,
+      "max_image_score_difference": 0.0,
+      "max_input_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-142628717",
+      "max_tensor_score_difference": 0.0,
+      "max_image_score_difference": 0.0,
+      "max_input_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-170447402",
+      "max_tensor_score_difference": 0.0,
+      "max_image_score_difference": 0.0,
+      "max_input_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-19912806",
+      "max_tensor_score_difference": 0.0,
+      "max_image_score_difference": 0.0,
+      "max_input_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-2987257",
+      "max_tensor_score_difference": 0.0,
+      "max_image_score_difference": 0.0,
+      "max_input_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "oi-6b784b107eaa3126",
+      "max_tensor_score_difference": 0.0,
+      "max_image_score_difference": 0.0,
+      "max_input_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "oi-10dd651ae86b43b3",
+      "max_tensor_score_difference": 0.0,
+      "max_image_score_difference": 0.0,
+      "max_input_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-176030688",
+      "max_tensor_score_difference": 0.0,
+      "max_image_score_difference": 0.0,
+      "max_input_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-176030689",
+      "max_tensor_score_difference": 0.0,
+      "max_image_score_difference": 0.0,
+      "max_input_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-109930862",
+      "max_tensor_score_difference": 0.0,
+      "max_image_score_difference": 0.0,
+      "max_input_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-144261318",
+      "max_tensor_score_difference": 0.0,
+      "max_image_score_difference": 0.0,
+      "max_input_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-14723373",
+      "max_tensor_score_difference": 0.0,
+      "max_image_score_difference": 0.0,
+      "max_input_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-72283140",
+      "max_tensor_score_difference": 0.0,
+      "max_image_score_difference": 0.0,
+      "max_input_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-192911358",
+      "max_tensor_score_difference": 0.0,
+      "max_image_score_difference": 0.0,
+      "max_input_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-13640856",
+      "max_tensor_score_difference": 0.0,
+      "max_image_score_difference": 0.0,
+      "max_input_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-79672988",
+      "max_tensor_score_difference": 0.0,
+      "max_image_score_difference": 0.0,
+      "max_input_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-71474663",
+      "max_tensor_score_difference": 0.0,
+      "max_image_score_difference": 0.0,
+      "max_input_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-7151563",
+      "max_tensor_score_difference": 0.0,
+      "max_image_score_difference": 0.0,
+      "max_input_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "oi-2fdfbd153b29517b",
+      "max_tensor_score_difference": 0.0,
+      "max_image_score_difference": 0.0,
+      "max_input_difference": 0.0,
+      "passed": true
+    }
+  ],
+  "benchmark": {
+    "warmup": 20,
+    "measured": 100,
+    "unit": "ms",
+    "includes_network": false,
+    "preprocess_ms": {
+      "min": 6.734886963386089,
+      "mean": 16.747465631342493,
+      "median": 13.261646497994661,
+      "p95": 40.13319197110832,
+      "max": 49.867597001139075
+    },
+    "inference_ms": {
+      "min": 9.905366983730346,
+      "mean": 11.294146419968456,
+      "median": 10.478487994987518,
+      "p95": 15.05514100426808,
+      "max": 20.56010701926425
+    },
+    "model_call_ms": {
+      "min": 17.006925016175956,
+      "mean": 28.047087111044675,
+      "median": 25.336109509225935,
+      "p95": 50.21191498963162,
+      "max": 61.91428599413484
+    }
+  },
+  "passed": true
+}

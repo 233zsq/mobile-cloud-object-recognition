@@ -1,0 +1,32 @@
+{
+  "model_version": "campus-evolve-v2",
+  "model_sha256": "7e2387600303333f714533aac1a0c1e4260425b06154dd7fa4ed920d01bef691",
+  "apk_file": "campus-evolve-v2-android-debug.apk",
+  "apk_bytes": 56697301,
+  "apk_sha256": "c54178e520d8da44c0b74c9ca79672780b436f05a41d15c5a1133bd1c067e1b7",
+  "assets": {
+    "model.tflite": "7e2387600303333f714533aac1a0c1e4260425b06154dd7fa4ed920d01bef691",
+    "labels.txt": "3148fcb53e5859041bf7f6af5acbfb952a9d3fbd52a4fd334525b7d3af6a1064",
+    "metadata.json": "61b6f399706aff25f355b04c954512453bdb37882d10754938a167526fc67866"
+  },
+  "category_asset_sha256": "8ec72dd73036014c597deb9da17273f63cead49ced874cd3e3f7f5f893aaea0b",
+  "category_version": "campus-10-v4",
+  "debug_only_examples": 20,
+  "unit_tests": {
+    "tests": 91,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "build_environment": {
+    "java": "Android Studio JBR 21.0.10",
+    "gradle": "9.4.1",
+    "agp": "9.2.1",
+    "compile_sdk": 37,
+    "windows_non_ascii_workaround": "Temporary subst drive R: points to the same checkout; no source copy."
+  },
+  "device_installation": "pending emulator connection",
+  "physical_phone_acceptance": "pending",
+  "cloud_tls_certificate_matches_android": true,
+  "cloud_tls_certificate_der_sha256": "737ddb0a98473e94e208b1d6c75ba65a6a9dd70fcf6eb542ad63e233b76802d6"
+}

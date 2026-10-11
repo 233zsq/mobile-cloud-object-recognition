@@ -44,7 +44,7 @@ class CategoryCatalog(val file: CategoryFile) {
   "status": "draft",
   "categories": [
     {"id": 0, "label_key": "cup", "display_name": "水杯"},
-    {"id": 1, "label_key": "umbrella", "display_name": "雨伞"},
+    {"id": 1, "label_key": "umbrella", "display_name": "伞"},
     {"id": 2, "label_key": "book", "display_name": "书本"},
     {"id": 3, "label_key": "pencil_case", "display_name": "笔袋"},
     {"id": 4, "label_key": "mouse", "display_name": "鼠标"},

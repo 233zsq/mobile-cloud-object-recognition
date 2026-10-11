@@ -1,0 +1,22 @@
+{
+  "model_version": "campus-evolve-v2",
+  "model_sha256": "7e2387600303333f714533aac1a0c1e4260425b06154dd7fa4ed920d01bef691",
+  "previous_model": "campus-gpu-v1",
+  "rollback_directory": "/home/gongyi/apps/mobile-cloud-backend/shared/model-rollbacks/20261011T143013Z-campus-evolve-v2",
+  "backend_source": "/home/gongyi/apps/mobile-cloud-backend/releases/5a0ca2e-ca52897d",
+  "health": {
+    "model_loaded": true,
+    "model_status": "ready",
+    "model_version": "campus-evolve-v2",
+    "status": "ok",
+    "version": "0.1.0+5a0ca2e"
+  },
+  "credentials_preserved": true,
+  "nginx_tls_and_ports_changed": false,
+  "package_integrity": {
+    "passed": true,
+    "checked_files": 62,
+    "model_version": "campus-evolve-v2",
+    "model_sha256": "7e2387600303333f714533aac1a0c1e4260425b06154dd7fa4ed920d01bef691"
+  }
+}
