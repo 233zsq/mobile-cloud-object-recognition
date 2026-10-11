@@ -110,7 +110,7 @@ sudo systemctl start mobile-cloud-backend-backup.service
 sudo journalctl -u mobile-cloud-backend-backup.service -n 20 --no-pager
 ```
 
-已把备份恢复到随机验证库，核对类别和记录后仅删除验证库。正式恢复前需暂停写入、保留当前备份并先做隔离恢复；不能直接清空正式库。备份当前保存在同一服务器，后续需补异机副本。
+已把备份恢复到随机验证库，核对类别和记录后仅删除验证库。正式恢复前需暂停写入、保留当前备份并先做隔离恢复；不能直接清空正式库。2026-10-12已新增本机异机副本，完成四表恢复及哈希核验，见[本次验收](../docs/cloud-records-dashboard-20261012.md)。异机副本需定期更新，服务器七天保留计划不变。
 
 ## 验收
 
