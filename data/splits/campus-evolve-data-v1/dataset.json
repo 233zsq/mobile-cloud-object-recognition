@@ -1,0 +1,60 @@
+{
+  "status": "frozen",
+  "purpose": "evolution_development",
+  "data_version": "campus-evolve-data-v1",
+  "category_version": "campus-10-v4",
+  "categories_sha256": "8ec72dd73036014c597deb9da17273f63cead49ced874cd3e3f7f5f893aaea0b",
+  "created_at": "2026-10-10T15:28:24+08:00",
+  "seed": 42,
+  "base_data_version": "campus-public-expanded-v1",
+  "base_metadata_sha256": "d49b776fc1bf33e162353d35357d8bb5d54effbf3c2b9dddf2928fed12d4689a",
+  "source_archive_sha256": "6e6cc928d45ca0d36cf59537b9850c265b955a2f768289016c09ae9724b31837",
+  "batch_id": "001",
+  "new_train_count": 609,
+  "new_validation_count": 211,
+  "parent_release": "campus-gpu-v1",
+  "final_test_status": "pending_fresh_field_photos",
+  "files": {
+    "train": {
+      "count": 1268,
+      "sha256": "fcc1e0cf14d7b366187bd92cfde692d8d32606312a409a167fd8c8b3da04840a",
+      "counts": {
+        "0": 104,
+        "1": 92,
+        "2": 131,
+        "3": 115,
+        "4": 147,
+        "5": 141,
+        "6": 156,
+        "7": 96,
+        "8": 131,
+        "9": 155
+      }
+    },
+    "validation": {
+      "count": 429,
+      "sha256": "f0d883275523043a890078355ce55c78b8571b43437cc3f36c16236ba7fb7692",
+      "counts": {
+        "0": 34,
+        "1": 30,
+        "2": 44,
+        "3": 39,
+        "4": 50,
+        "5": 53,
+        "6": 53,
+        "7": 32,
+        "8": 43,
+        "9": 51
+      }
+    }
+  },
+  "category_transition": {
+    "from": "campus-10-v2",
+    "to": "campus-10-v4",
+    "change": "keyboard_and_umbrella_scope_expanded",
+    "changes": [
+      "keyboard_includes_laptop_built_in",
+      "umbrella_includes_sunshades"
+    ]
+  }
+}

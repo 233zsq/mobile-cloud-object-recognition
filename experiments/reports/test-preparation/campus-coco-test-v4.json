@@ -1,0 +1,37 @@
+{
+  "at": "2026-10-10T22:58:35+08:00",
+  "purpose": "test_data_preparation_only",
+  "reservation": "campus-coco-test-v4",
+  "status": "pending_80_field_photos",
+  "coco_count": 120,
+  "distinct_source_images": 120,
+  "by_class": {
+    "0": 20,
+    "1": 20,
+    "2": 20,
+    "4": 20,
+    "5": 20,
+    "9": 20
+  },
+  "source_and_crop_hashes_checked": 240,
+  "visual_review": "Codex assisted; no model predictions",
+  "rejected_and_replaced_candidates": 22,
+  "model_test_executed": false,
+  "full_mixed_test_frozen": false,
+  "isolation_checked_against": [
+    "campus-public-expanded-v1/train",
+    "campus-public-expanded-v1/validation",
+    "campus-evolve-data-v1/train",
+    "campus-evolve-data-v1/validation"
+  ],
+  "regression_tests": {
+    "non_training_passed": 123,
+    "training_integration_deselected": 6,
+    "optional_cpu_training_run": "interrupted; not claimed as passed"
+  },
+  "limitations": [
+    "COCO ground-truth crops evaluate classification, not detection or full-phone preprocessing.",
+    "Six public classes and four field classes have different source distributions.",
+    "Full ten-class independent phone acceptance remains pending."
+  ]
+}

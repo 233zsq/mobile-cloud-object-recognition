@@ -1,0 +1,8 @@
+{
+  "at": "2026-10-10T15:39:02+08:00",
+  "report_sha256": "efae224b229e82d0f3418f335694a1ca1f06aba2e7eac9e842f18fe252966d5f",
+  "artifacts": {
+    "campus-evolve-data-v1-validation.png": "64ca9fc0e24d7ed713c75f67224cb079358cd4f70ed98f7dd7c22250efa7d1ce",
+    "campus-evolve-data-v1-validation-errors.png": "108c1d2c2d53a7f20e9c32324658de25a3e7259259f49d81c6c9ade29ecc29e2"
+  }
+}

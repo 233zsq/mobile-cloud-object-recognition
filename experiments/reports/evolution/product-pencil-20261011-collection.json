@@ -1,0 +1,20 @@
+{
+  "purpose": "product_photo_candidates",
+  "category": "pencil_case",
+  "discovery": "Bing Images, user-selected results",
+  "started_at": "2026-10-11T11:57:59+08:00",
+  "rights_status": "unverified (product photo; permission not established)",
+  "max_new": 60,
+  "download_bytes": 13806202,
+  "downloaded": 57,
+  "skipped": [],
+  "failures": [
+    {
+      "url": "https://cbu01.alicdn.com/img/ibank/O1CN01XwRMAJ1RpmrkLIHSZ_!!2211294592161-0-cib.jpg,https://cbu01.alicdn.com/img/ibank/O1CN015EWZLY1RpmrvWpGys_!!2211294592161-0-cib.jpg,https://cbu01.alicdn.com/img/ibank/O1CN01piRJAG1RpmruG4cUp_!!2211294592161-0-cib.jpg,https://cbu01.alicdn.com/img/ibank/O1CN015pQ9F91RpmrpxnuHw_!!2211294592161-0-cib.jpg,https://cbu01.alicdn.com/img/ibank/O1CN01q0fdKj1RpmroCS3j6_!!2211294592161-0-cib.jpg",
+      "reason": "ValueError: Expected a single HTTPS public source URL"
+    }
+  ],
+  "finished_at": "2026-10-11T11:58:39+08:00",
+  "candidate_count": 57,
+  "stopped_after_consecutive_failures": false
+}

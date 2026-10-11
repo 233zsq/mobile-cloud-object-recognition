@@ -1,0 +1,145 @@
+{
+  "status": "frozen",
+  "requested_status": "formal",
+  "model_version": "campus-evolve-v1",
+  "model_file": "model.tflite",
+  "sha256": "8a5d7759e0d752ff545cb3f46421519db4c8f66961a45a5104d78d071e0159d4",
+  "labels_file": "labels.txt",
+  "labels_sha256": "3148fcb53e5859041bf7f6af5acbfb952a9d3fbd52a4fd334525b7d3af6a1064",
+  "category_version": "campus-10-v4",
+  "categories": [
+    {
+      "id": 0,
+      "label_key": "cup",
+      "display_name": "水杯",
+      "definition": "饮水杯，排除酒瓶和饮料包装"
+    },
+    {
+      "id": 1,
+      "label_key": "umbrella",
+      "display_name": "伞",
+      "definition": "雨伞、手持遮阳伞以及庭院或沙滩遮阳伞；伞须是清楚可辨的主要主体或可裁出完整主体，排除帐篷、遮阳棚、降落伞和图解"
+    },
+    {
+      "id": 2,
+      "label_key": "book",
+      "display_name": "书本",
+      "definition": "实体书，排除扫描页和纯封面图"
+    },
+    {
+      "id": 3,
+      "label_key": "pencil_case",
+      "display_name": "笔袋",
+      "definition": "软质笔袋及普通硬壳文具盒"
+    },
+    {
+      "id": 4,
+      "label_key": "mouse",
+      "display_name": "鼠标",
+      "definition": "计算机鼠标"
+    },
+    {
+      "id": 5,
+      "label_key": "keyboard",
+      "display_name": "键盘",
+      "definition": "计算机键盘，包含独立外接键盘和笔记本内置键盘；键盘须是清楚可辨的主要主体或可裁出完整主体，排除仅作背景、严重遮挡及乐器键盘"
+    },
+    {
+      "id": 6,
+      "label_key": "earphones",
+      "display_name": "耳机",
+      "definition": "入耳或头戴式耳机，排除拆下的元件"
+    },
+    {
+      "id": 7,
+      "label_key": "charger",
+      "display_name": "充电器",
+      "definition": "手机、平板或电脑电源适配器，排除充电桩、车用电池充电器和独立线材"
+    },
+    {
+      "id": 8,
+      "label_key": "key",
+      "display_name": "钥匙",
+      "definition": "门锁或车钥匙，排除键盘按键"
+    },
+    {
+      "id": 9,
+      "label_key": "backpack",
+      "display_name": "背包"
+    }
+  ],
+  "data_version": "campus-evolve-data-v1",
+  "experiment_id": "campus-evolve-v1-seed42",
+  "code_commit": "20f148689bd46b94d6f9eaac532faac94424e080",
+  "code_snapshot_sha256": "4c929eee3d270229f994e7eb0304f658487301fe1555ebcc2d0234f703b65993",
+  "input": {
+    "version": "rgb-letterbox-v1",
+    "orientation": "EXIF transpose",
+    "color_order": "RGB",
+    "shape": [
+      1,
+      224,
+      224,
+      3
+    ],
+    "dtype": "float32",
+    "pixel_range": [
+      0,
+      255
+    ],
+    "crop": "none",
+    "resize": "bilinear half_pixel_centers; antialias=false; round half up",
+    "padding": "center; RGB 128; odd remainder right/bottom",
+    "normalization": "inside model: x / 127.5 - 1",
+    "byte_order": "little-endian"
+  },
+  "output": {
+    "shape": [
+      1,
+      10
+    ],
+    "dtype": "float32",
+    "interpretation": "softmax"
+  },
+  "low_confidence_threshold": 0.5,
+  "threshold_status": "validation_selected",
+  "created_at": "2026-10-10T15:37:17+08:00",
+  "model_bytes": 8939040,
+  "acceptance": {
+    "size_passed": true,
+    "independent_field_accuracy": "pending",
+    "android_latency": "pending",
+    "android_consistency": "pending",
+    "actual_cloud_consistency": "pending"
+  },
+  "export_environment": {
+    "python": "3.12.3",
+    "tensorflow": "2.21.0",
+    "keras": "3.12.1",
+    "gpu": [
+      "/physical_device:GPU:0"
+    ],
+    "platform": "Linux-6.18.40.1-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+    "tensor_float_32_enabled": false,
+    "dependencies_sha256": "a2214d6b767d1564066923cdff29acecb4b341039a2d6c551a691675b6e49683"
+  },
+  "checkpoint_sha256": "ca5989db8ee1ebf2d32071161d8d0d607b91e7044a9e40e97b10a34d65ef5c0b",
+  "parent_lineage": {
+    "model_version": "campus-gpu-v1",
+    "model_sha256": "a58ca2be234d0d7e7db6bdec3853b3e077df6a88321da4f6bd7a8a5d5be51d13",
+    "metadata_sha256": "27fa51999fb9a83ef728b170f29aa106fc2fe3337850654588152c28fd0c5071",
+    "checkpoint": "experiments/checkpoints/expanded-gpu-20261008-fine_tune-2/best.keras",
+    "checkpoint_sha256": "1fed567bf8378c1f48d57eff8a16eecc92f7aa0a0fd296a959b4bbaabf87c6e0",
+    "category_transition": {
+      "from": "campus-10-v2",
+      "to": "campus-10-v4",
+      "change": "keyboard_and_umbrella_scope_expanded",
+      "changes": [
+        "keyboard_includes_laptop_built_in",
+        "umbrella_includes_sunshades"
+      ]
+    }
+  },
+  "deployment_approval": "pending_human_approval",
+  "final_test_status": "pending_field_photos"
+}

@@ -1,12 +1,14 @@
 # 模型交接约定
 
+新系列 `campus-evolve-*` 沿用本输入、输出及标签约定。`frozen` 表示技术包已冻结；若元数据含 `deployment_approval=pending_human_approval`，接入前还须取得与模型SHA-256匹配的 `approval.json`（status=approved）。该批准附录不改原模型或已冻结元数据，流程见 [ml-evolution.md](ml-evolution.md)。原 `campus-gpu-v1` 保持固定基准。
+
 由模型训练负责人提供，Android开发负责人接入手机，数据与云端负责人部署云端CPU推理，组长验证。
 当前GPU发布包为 `models/releases/campus-gpu-v1/`，模型、阈值和输入合同已冻结。公开验证准确率90.37%、宏F1=0.8993；独立实拍及Android/真实云端验收仍待完成，完整实验见 `ml-gpu-experiments.md`。历史CPU试验包保持原状态，较早合成fixture只作工具链验证。
 完整可执行接入、预处理和测试说明见 `ml-handover.md`。
 
 ## 类别与输出
 
-类别ID已冻结为0至9，当前类别版本 `campus-10-v2`，以 `shared/categories.json` 为准。键盘仅包含独立外接计算机键盘，排除笔记本内置键盘和笔记本整机。旧版类别文件保存在 `shared/category-versions/`，旧试验包继续使用其原版本。
+类别ID固定为0至9。基准 `campus-gpu-v1` 保留 `campus-10-v2`（`shared/categories.json`），其键盘口径为独立外接键盘。2026年10月9日的v3将键盘扩大到笔记本内置；当前审核台与新系列使用 `campus-10-v4`（`shared/category-versions/campus-10-v4.json`），继承v3键盘口径，并将“雨伞”改为“伞”，包含雨伞、手持遮阳伞及庭院或沙滩遮阳伞，排除帐篷、遮阳棚和降落伞。目标须清楚可辨且为主要主体，或能裁出完整主体；仅作背景、严重遮挡及乐器键盘不接收。伞仍为ID=1、标签键 `umbrella`，十类ID与输出顺序相同。允许v2→v3、v2→v4及v3→v4的已确认范围扩大；类别变更记录随数据、父模型关系和比较报告保存。旧模型、旧类别文件与历史成绩仍按其原版本解释，不能据此声称已验证新增遮阳伞场景。
 `shared/categories.example.json` 保留为历史草案示例。
 
 `labels.txt` 每行是一个 `label_key`，第 0 行对应输出索引 0；数据库类别 ID、Android 预测映射与模型输出索引一致，中文显示名称来自相同版本的类别清单。模型包保存类别版本与标签文件 SHA-256。

@@ -1,0 +1,16 @@
+{
+  "at": "2026-10-09T08:11:13.191105+00:00",
+  "url": "https://49.232.195.47:8443",
+  "tls_certificate_validation": true,
+  "checks": {
+    "health": true,
+    "login_page": true,
+    "secure_session_cookie": true,
+    "security_headers": true,
+    "unauthenticated_redirect": true,
+    "csrf_rejected": true
+  },
+  "passed": true,
+  "new_photos_uploaded": 0,
+  "accounts_created": 0
+}
