@@ -1,0 +1,132 @@
+{
+  "at": "2026-10-11T17:15:05+08:00",
+  "status": "ready_for_training",
+  "data_version": "campus-evolve-data-v3",
+  "category_version": "campus-10-v4",
+  "base_data_version": "campus-evolve-data-v2",
+  "parent_release": "campus-evolve-v1",
+  "parent_lineage": {
+    "model_version": "campus-evolve-v1",
+    "model_sha256": "8a5d7759e0d752ff545cb3f46421519db4c8f66961a45a5104d78d071e0159d4",
+    "metadata_sha256": "3136f829e9aa9394db576386ac749e50b1b993a5baf406924a2ea831789c9204",
+    "checkpoint": "experiments/checkpoints/campus-evolve-v1-seed42/best.keras",
+    "checkpoint_sha256": "ca5989db8ee1ebf2d32071161d8d0d607b91e7044a9e40e97b10a34d65ef5c0b"
+  },
+  "source_batches": [
+    {
+      "batch_id": "004",
+      "count": 57,
+      "archive_sha256": "e44af3cf5716d8a6908a7ff62741bf921a9efa77ceeb409e319fb43c3eda33eb",
+      "manifest_sha256": "1e2f72b73d6d19bdbe1e43b26f0b4910ec687754239893cd13e99c9376c74edd"
+    }
+  ],
+  "local_archive_sha256": "2ee42b440c73f2f5f4dd17b0abbd0043a68843c39b867379a10fa32b8fe3dc69",
+  "local_archive_bytes": 13882562,
+  "dataset_metadata_sha256": "3f78788ce3bbdc318ea385ba49c8c024c7fa313a008329d6fb4ced32863cafd3",
+  "base_photos_preserved": 2416,
+  "baseline_assignments_preserved": true,
+  "base_manifests_and_approved_parent_unchanged": true,
+  "new_original_photos": 57,
+  "new_cropped_photos": 0,
+  "new_connected_groups": 57,
+  "total_original_photos": 2473,
+  "train_count": 1850,
+  "validation_count": 623,
+  "new_train_count": 43,
+  "new_validation_count": 14,
+  "photos_by_class": {
+    "0": {
+      "train": 175,
+      "validation": 58,
+      "new_train": 0,
+      "new_validation": 0
+    },
+    "1": {
+      "train": 115,
+      "validation": 38,
+      "new_train": 0,
+      "new_validation": 0
+    },
+    "2": {
+      "train": 197,
+      "validation": 66,
+      "new_train": 0,
+      "new_validation": 0
+    },
+    "3": {
+      "train": 161,
+      "validation": 55,
+      "new_train": 43,
+      "new_validation": 14
+    },
+    "4": {
+      "train": 197,
+      "validation": 66,
+      "new_train": 0,
+      "new_validation": 0
+    },
+    "5": {
+      "train": 185,
+      "validation": 67,
+      "new_train": 0,
+      "new_validation": 0
+    },
+    "6": {
+      "train": 255,
+      "validation": 86,
+      "new_train": 0,
+      "new_validation": 0
+    },
+    "7": {
+      "train": 180,
+      "validation": 60,
+      "new_train": 0,
+      "new_validation": 0
+    },
+    "8": {
+      "train": 164,
+      "validation": 54,
+      "new_train": 0,
+      "new_validation": 0
+    },
+    "9": {
+      "train": 221,
+      "validation": 73,
+      "new_train": 0,
+      "new_validation": 0
+    }
+  },
+  "pending_human_reviews": 0,
+  "pending_ai_audits": 0,
+  "decoded_and_verified_new_originals": 57,
+  "protected_manifest_rows": 480,
+  "test_images_read": false,
+  "test_predictions_made": false,
+  "training_started": false,
+  "new_original_network_download_bytes": 0,
+  "product_photo_rights_status": "unverified; image usability review does not grant permission",
+  "known_limits": [
+    "Public development validation is not independent phone field accuracy.",
+    "Product image usability approval does not establish copyright permission.",
+    "Physical identities of product photos are often unknown; source and perceptual groups are used.",
+    "Compare v2 and v3 on the same retained 609 validation samples; full validation membership differs.",
+    "New model publication requires human approval."
+  ],
+  "runtime_readiness": {
+    "status": "ready",
+    "tensorflow": "2.21.0",
+    "keras": "3.12.1",
+    "python": "3.12.3",
+    "gpu": [
+      "/physical_device:GPU:0"
+    ],
+    "bn_layers_frozen": 52,
+    "output_shape": [
+      1,
+      10
+    ],
+    "config_sha256": "15721b8f6166f1c50df159b555dd07102477075f2edfda65c9a3bf30247ef880",
+    "data_metadata_sha256": "3f78788ce3bbdc318ea385ba49c8c024c7fa313a008329d6fb4ced32863cafd3",
+    "test_images_read": false
+  }
+}
