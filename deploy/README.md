@@ -2,7 +2,28 @@
 
 2026-10-08 已在 `49.232.195.47` 部署 Flask、Gunicorn、MySQL 和 Nginx。服务器内及公网 HTTPS 验收通过，HTTP 自动跳转 HTTPS；真实入库、去重、冲突处理及服务重启验证完成。
 
-## 当前实例
+## 2026-10-12 后端与统计页
+
+当前模型为campus-evolve-v2，类别campus-10-v4；health返回实际模型和当前后端提交版本。已增加修订号纠错、分页记录、统计和类别接口，Flask与Nginx均校验非空API_TOKEN。根路径提供Web统计页，页面输入现有口令后每5秒刷新，口令只在页面内存。443证书保持原样，8443照片审核站点使用独立可信IP证书。
+
+本次不新增依赖或改变数据库结构。用固定提交生成发布归档，通过SHA-256核对后，按以下流程部署；staging.json记录旧发布、待激活发布和Nginx哈希，激活时使用这些值。
+
+```bash
+# 将归档与deploy_dashboard.py上传到shared后，以gongyi执行。
+python3 /实际工具路径/deploy_dashboard.py stage \
+  --archive /home/gongyi/apps/mobile-cloud-backend/shared/实际归档.tar \
+  --sha256 <归档SHA256> --revision <完整Git提交>
+# 暂存先运行隔离MySQL/SQLite回归及模型就绪检查。
+sudo -n python3 /暂存发布/deploy/scripts/deploy_dashboard.py activate \
+  --release /暂存发布 --expected-current /staging.json中的旧发布 \
+  --expected-nginx-sha256 <staging.json中的Nginx哈希>
+```
+
+只切换后端发布和增加根路径/静态资源代理，不执行db-init，不更换模型/凭据/证书，不改审核站点。共享ACME续期锁保证80验证期间不改Nginx；配置与暂存时不同则拒绝覆盖。失败恢复旧发布及原Nginx配置；成功回退信息在shared/dashboard-rollback-*，验收在shared/dashboard-<提交前缀>。不要用provision.py inference重新启用旧模型。
+
+手动回退时，管理员使用本次rollback目录中的previous-release.txt和nginx.conf，在相同ACME锁保护下恢复current链接及Nginx，检查nginx -t，重启后端并reload Nginx。保留数据库和当前模型配置，再核对health、记录及审核站点。
+
+## 首次实例配置（2026-10-08历史记录）
 
 | 项目 | 实际配置 |
 | --- | --- |
@@ -27,7 +48,7 @@
 
 SHA-256 指纹：`73:7D:DB:0A:98:47:3E:94:E2:08:B1:D6:C7:5B:A6:5A:6A:9D:D7:0F:CF:6E:B5:42:AD:63:E2:33:B7:68:02:D6`。
 
-`GET /api/health` 不要求令牌。其余 `/api/` 请求由 Nginx 校验 `Authorization: Bearer <API_TOKEN>`，令牌区分大小写；缺失或错误返回 401。真实令牌在服务器配置的 `API_TOKEN` 字段，渲染后的 Nginx map 为 root 所有、0600。应用自身鉴权仍未实现，直接访问回环 Gunicorn 时没有代理层校验。
+`GET /api/health` 不要求令牌。其余 `/api/` 请求由 Nginx 校验 `Authorization: Bearer <API_TOKEN>`，令牌区分大小写；缺失或错误返回 401。真实令牌在服务器配置的 `API_TOKEN` 字段，渲染后的 Nginx map 为 root 所有、0600。当前Flask也执行相同校验，直接访问回环Gunicorn不能绕过非空口令。
 
 从仓库根目录验证（Windows）：
 
@@ -77,7 +98,7 @@ backend/.venv/bin/python deploy/scripts/verify_server.py http
 
 初始化期间应用账号临时拥有该库的 DDL 权限，结束后仅保留 SELECT、INSERT、UPDATE。脚本保留已有密码、表和种子，不升级旧表；结构升级需要独立版本化迁移。`application` 生成发布的 `.release.env` 版本信息并原子更新 current；systemd 读取当前发布版本，优先于共享配置的 APP_VERSION。`nginx` 保留已有证书，不自动续期。
 
-后续发布异常时可将 current 原子切回已验证的旧发布并重启后端。本次为首次发布，尚无更早版本可回退；不通过删除数据库回退服务。
+后续发布异常时可将 current 原子切回已验证的旧发布并重启后端。已有历史发布可回退；不通过删除数据库回退服务。
 
 ## 备份与恢复
 

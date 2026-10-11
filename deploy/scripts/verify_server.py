@@ -42,7 +42,7 @@ def tests(data):
     account = f"'{username}'@'127.0.0.1'"
     sql(f"CREATE USER {account} IDENTIFIED BY '{password}';\n"
         f"GRANT ALL PRIVILEGES ON `test\\_recognition\\_%`.* TO {account};")
-    report = BASE / 'shared/pytest-server.xml'
+    report = OUTPUT.with_name(OUTPUT.stem + '-pytest.xml')
     env = dict(os.environ)
     env['TEST_MYSQL_ADMIN_URL'] = URL.create('mysql+pymysql', username=username, password=password,
                                             host='127.0.0.1', query={'charset': 'utf8mb4'}).render_as_string(hide_password=False)
