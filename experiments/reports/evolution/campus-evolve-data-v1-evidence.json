@@ -1,0 +1,91 @@
+{
+  "at": "2026-10-10T15:30:58+08:00",
+  "data_version": "campus-evolve-data-v1",
+  "category_version": "campus-10-v4",
+  "batch_id": "001",
+  "reviewed_candidates": 1409,
+  "approved": 820,
+  "rejected": 589,
+  "source_archive_sha256": "6e6cc928d45ca0d36cf59537b9850c265b955a2f768289016c09ae9724b31837",
+  "dataset_metadata_sha256": "c1f85b7363805ca117c3ea40c1a41b037ed98ca6d56c9eb389b1b1ab8d20e198",
+  "baseline_photos": 877,
+  "baseline_assignments_preserved": true,
+  "new_train_count": 609,
+  "new_validation_count": 211,
+  "new_original_photos": 820,
+  "new_cropped_photos": 356,
+  "active_automatic_approvals_at_freeze": 179,
+  "photos_by_class": {
+    "0": {
+      "train": 104,
+      "validation": 34,
+      "new_train": 31,
+      "new_validation": 10
+    },
+    "1": {
+      "train": 92,
+      "validation": 30,
+      "new_train": 69,
+      "new_validation": 23
+    },
+    "2": {
+      "train": 131,
+      "validation": 44,
+      "new_train": 87,
+      "new_validation": 29
+    },
+    "3": {
+      "train": 115,
+      "validation": 39,
+      "new_train": 38,
+      "new_validation": 13
+    },
+    "4": {
+      "train": 147,
+      "validation": 50,
+      "new_train": 54,
+      "new_validation": 19
+    },
+    "5": {
+      "train": 141,
+      "validation": 53,
+      "new_train": 93,
+      "new_validation": 37
+    },
+    "6": {
+      "train": 156,
+      "validation": 53,
+      "new_train": 50,
+      "new_validation": 18
+    },
+    "7": {
+      "train": 96,
+      "validation": 32,
+      "new_train": 65,
+      "new_validation": 22
+    },
+    "8": {
+      "train": 131,
+      "validation": 43,
+      "new_train": 53,
+      "new_validation": 17
+    },
+    "9": {
+      "train": 155,
+      "validation": 51,
+      "new_train": 69,
+      "new_validation": 23
+    }
+  },
+  "new_sources": {
+    "wikimedia_commons": 602,
+    "open_images": 218
+  },
+  "independent_field_photos": 0,
+  "test_images_read": false,
+  "pending_approval_audits_before_import": 0,
+  "regressions": {
+    "evolution_tests_passed": 26,
+    "runtime": "WSL Ubuntu 24.04 Python 3.12 TensorFlow 2.21"
+  }
+}

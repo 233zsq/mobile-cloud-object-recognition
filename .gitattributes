@@ -13,6 +13,7 @@
 # Frozen ML identities hash exact bytes. Preserve native line endings on checkout.
 data/manifests/*.csv -text
 data/splits/** -text
+data/test-reservations/** -text
 ml/configs/**/*.json -text
 ml/*.lock -text
 shared/categories.json -text

@@ -1,0 +1,51 @@
+{
+  "status": "frozen",
+  "purpose": "evolution_development",
+  "data_version": "campus-evolve-data-v2",
+  "category_version": "campus-10-v4",
+  "categories_sha256": "8ec72dd73036014c597deb9da17273f63cead49ced874cd3e3f7f5f893aaea0b",
+  "created_at": "2026-10-11T11:22:18+08:00",
+  "seed": 42,
+  "base_data_version": "campus-evolve-data-v1",
+  "base_metadata_sha256": "c1f85b7363805ca117c3ea40c1a41b037ed98ca6d56c9eb389b1b1ab8d20e198",
+  "source_archive_sha256": "cd3d3f1daa67bffba7866b989bde19c61941c03bd8a3f307fcbd74e141244784",
+  "batch_id": "002-003-combined",
+  "new_train_count": 539,
+  "new_validation_count": 180,
+  "parent_release": "campus-evolve-v1",
+  "final_test_status": "pending_fresh_field_photos",
+  "files": {
+    "train": {
+      "count": 1807,
+      "sha256": "9f5814177a1b3d7e62431ab3de9ae2dae8e340360779ac1ea27a13c59e04b239",
+      "counts": {
+        "0": 175,
+        "1": 115,
+        "2": 197,
+        "3": 118,
+        "4": 197,
+        "5": 185,
+        "6": 255,
+        "7": 180,
+        "8": 164,
+        "9": 221
+      }
+    },
+    "validation": {
+      "count": 609,
+      "sha256": "54ff3df454d9a7e72965696bdf7bdbcc2bd0ef96232290ce54fe4882cc322e01",
+      "counts": {
+        "0": 58,
+        "1": 38,
+        "2": 66,
+        "3": 41,
+        "4": 66,
+        "5": 67,
+        "6": 86,
+        "7": 60,
+        "8": 54,
+        "9": 73
+      }
+    }
+  }
+}

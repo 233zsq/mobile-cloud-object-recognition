@@ -1,0 +1,56 @@
+{
+  "purpose": "mixed_coco_field_test",
+  "status": "reserved_pending_visual_review_and_field_photos",
+  "version": "campus-coco-test-v3",
+  "category_version": "campus-10-v4",
+  "categories_sha256": "8ec72dd73036014c597deb9da17273f63cead49ced874cd3e3f7f5f893aaea0b",
+  "manifest_sha256": "402ddfcd8cfc7eb47c9b0b973c689b4d26598fe1833e40fd8331a48ecfb18b20",
+  "created_at": "2026-10-10T22:51:03+08:00",
+  "seed": 42,
+  "annotation_sha256": "e8c7f7908f1d7278341fae127d0da654f102f11bd7b21d8aeefa635b8c810b6f",
+  "annotation_url": "https://s3.amazonaws.com/images.cocodataset.org/annotations/annotations_trainval2017.zip",
+  "protocol": {
+    "per_class": 20,
+    "min_bbox_side": 48,
+    "min_bbox_area_ratio": 0.01,
+    "bbox_margin_ratio": 0.05,
+    "one_crop_per_source_image": true,
+    "selection_uses_predictions": false,
+    "resize_or_upscale_before_crop": false
+  },
+  "counts": {
+    "0": 20,
+    "1": 20,
+    "2": 20,
+    "4": 20,
+    "5": 20,
+    "9": 20
+  },
+  "skipped": {
+    "class_4_shortfall": 0,
+    "class_5_shortfall": 0,
+    "training_or_near_duplicate": 18,
+    "class_9_shortfall": 0,
+    "class_2_shortfall": 0,
+    "class_1_shortfall": 0,
+    "class_0_shortfall": 0
+  },
+  "field_classes_required": [
+    3,
+    6,
+    7,
+    8
+  ],
+  "downloaded_photo_bytes": 781549,
+  "training_prohibited": true,
+  "independent_phone_acceptance": false,
+  "parent_reservation": "campus-coco-test-v2",
+  "visual_decisions_sha256": "be9bdd00a213cd496bf94408167720acb568ed4276311ae6b6f423a96458a5a4",
+  "rejected_sample_ids": [
+    "coco2017-000000562059-ann-672051",
+    "coco2017-000000379842-ann-1986248",
+    "coco2017-000000226147-ann-1167389",
+    "coco2017-000000424162-ann-1166516",
+    "coco2017-000000516677-ann-1828142"
+  ]
+}

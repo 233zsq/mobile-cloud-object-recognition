@@ -1,0 +1,1 @@
+{% extends 'base.html' %}{% block body %}<section class="panel auth"><h1>成员邀请已生成</h1><p>将链接交给一位组员，7天内使用。请通过你们现有的私密渠道分享。</p><label>邀请链接<input readonly value="{{link}}"></label><a href="{{url_for('index')}}">返回工作台 →</a></section>{% endblock %}

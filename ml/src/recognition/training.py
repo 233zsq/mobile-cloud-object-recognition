@@ -196,6 +196,8 @@ def train(config_path,experiment_id,resume=False,initial_checkpoint=None):
     import keras
     configure_fp32()
     config=read_json(config_path)
+    from .evolution import resolve_parent
+    initial_checkpoint,parent_lineage=resolve_parent(config,initial_checkpoint)
     safe_name(experiment_id)
     if config.get("category_version")!=categories(config.get("category_version"))["category_version"]:
         raise ValueError("Config category version mismatch")
@@ -221,12 +223,16 @@ def train(config_path,experiment_id,resume=False,initial_checkpoint=None):
     rows,data=load_split(config["data_version"],"train")
     if data["category_version"]!=config["category_version"]:
         raise ValueError("Config category version differs from frozen data")
+    if parent_lineage and (data.get('purpose')!='evolution_development' or data.get('parent_release')!=config['parent_release']):
+        raise ValueError('Parent training requires the matching evolution development dataset')
     valrows,_=load_split(config["data_version"],"validation")
     x,y=prepare(rows)
     vx,vy=prepare(valrows)
     if data.get("purpose")=="smoke" and not config.get("smoke"):
         raise ValueError("Smoke fixtures cannot be used for formal training")
     identity={"config":config,"data_metadata_sha256":digest(ROOT/"data/splits"/config["data_version"]/"dataset.json"),"code_snapshot_sha256":snapshot(),"initial_checkpoint_sha256":digest(initial_checkpoint) if initial_checkpoint else None}
+    if parent_lineage:
+        identity['parent_lineage']=parent_lineage
     state_path=run/"state.json"
     result_path=ROOT/"experiments/reports"/experiment_id/"result.json"
     if resume:
@@ -254,6 +260,12 @@ def train(config_path,experiment_id,resume=False,initial_checkpoint=None):
             if dropout.rate!=config["dropout"]:
                 raise ValueError("Initial head checkpoint Dropout differs from candidate config")
             scope(model,config["fine_tune_scope"])
+            if parent_lineage:
+                # A fixed parent supplies weights, while each repeat gets its own RNG.
+                for layer in model.layers:
+                    if isinstance(layer,keras.layers.Dropout) and layer.rate>0:
+                        layer.seed=config['seed']
+                        layer.seed_generator.state.assign([config['seed'],0])
         else:
             model=build(config)
         model.compile(optimizer=keras.optimizers.Adam(config["learning_rate"]),loss="sparse_categorical_crossentropy")
@@ -338,6 +350,8 @@ def plots(result,directory):
 def sweep(base_path,campaign,stage,previous=None,execute=False):
     safe_name(campaign)
     base=read_json(base_path)
+    if base.get('training_mode')=='parent_finetune':
+        raise ValueError('Parent fine-tuning keeps its head; use explicit train configurations instead of the legacy sweep')
     if stage not in ("learning_rate","dropout","fine_tune"):
         raise ValueError("Unknown stage")
     if stage!="learning_rate" and not previous:
@@ -475,7 +489,9 @@ def reproduce(result_path,seed=43):
     final["seed"]=seed
     name=f"{primary['experiment_id']}-repeat{seed}"
     initial=None
-    if final["fine_tune_scope"]!="frozen" or primary["identity"].get("initial_checkpoint_sha256"):
+    if final.get('training_mode')=='parent_finetune':
+        initial=ROOT/final['parent_checkpoint']
+    elif final["fine_tune_scope"]!="frozen" or primary["identity"].get("initial_checkpoint_sha256"):
         head=dict(final)
         head.update(fine_tune_scope="frozen",learning_rate=final["learning_rate"]*10)
         head_id=name+"-head"

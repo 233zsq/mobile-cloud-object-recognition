@@ -1,0 +1,81 @@
+{
+  "checked_at": "2026-10-09T08:42:22.509050+00:00",
+  "source": "0d36afed59fa7afbedabf06344f7336896b23c53",
+  "original_hashes_valid": true,
+  "count": 1409,
+  "status_counts": {
+    "pending": 1409
+  },
+  "source_counts": {
+    "wikimedia_commons": 1086,
+    "open_images": 323
+  },
+  "category_counts": {
+    "3": 122,
+    "7": 199,
+    "6": 98,
+    "8": 136,
+    "0": 46,
+    "1": 210,
+    "2": 181,
+    "4": 116,
+    "5": 175,
+    "9": 126
+  },
+  "egress_body_bytes": 0,
+  "egress_limit_bytes": 21474836480,
+  "import_report": {
+    "at": "2026-10-09T08:38:34+00:00",
+    "imported": 1409,
+    "rejected": [
+      {
+        "reason": "仅支持1600万像素以内的单帧 JPEG、PNG、WebP",
+        "sample_id": "oi-d38e1365450ab89e"
+      }
+    ],
+    "skipped_existing": 0
+  },
+  "renditions": {
+    "thumbs": {
+      "count": 1409,
+      "total_bytes": 14283098,
+      "max_bytes": 27384,
+      "p50_bytes": 9402,
+      "p95_bytes": 20010,
+      "ceiling_bytes": 32768,
+      "within_ceiling": true
+    },
+    "details": {
+      "count": 1409,
+      "total_bytes": 88868504,
+      "max_bytes": 163734,
+      "p50_bytes": 55234,
+      "p95_bytes": 134140,
+      "ceiling_bytes": 163840,
+      "within_ceiling": true
+    }
+  },
+  "existing_nginx_sha256": "bb970fbfc3253a82dd8154fcf169b4eaa5e050e813adca954c2db9e0258dffad",
+  "existing_backend_health": {
+    "model_loaded": true,
+    "model_status": "ready",
+    "model_version": "campus-gpu-v1",
+    "status": "ok",
+    "version": "0.1.0+5a0ca2e"
+  },
+  "service_memory_bytes": 42954752,
+  "passed": true,
+  "source_archive_sha256": "31ae8a8cebf4da59391e6ecb13867471d892e6597b9c8583afc53b9ae83f7c1b",
+  "queue_archive_sha256": "ce732fd5557955ae5b928b461a911bb655a5a9d525df399a8aea4e9b8d87f72b",
+  "baseline_tflite_sha256": "a58ca2be234d0d7e7db6bdec3853b3e077df6a88321da4f6bd7a8a5d5be51d13",
+  "database_backup": "/home/ubuntu/apps/campus-review/shared/backups/review-before-media-20261009T083542Z.sqlite3",
+  "tests": {
+    "ml_gpu_passed": 102,
+    "ml_gpu_duration_seconds": 51.03,
+    "web_windows_passed": 10,
+    "web_server_passed": 10,
+    "public_https_report": "web-http-media-20261009.json"
+  },
+  "counting_scope": "Cumulative review image/ZIP response bodies since upgrade; excludes 443, HTML and protocol overhead. No automatic reset.",
+  "crop_scope": "Optional human-reviewed training crop with original SHA/pHash/source identity retained; no object detector or model change."
+}

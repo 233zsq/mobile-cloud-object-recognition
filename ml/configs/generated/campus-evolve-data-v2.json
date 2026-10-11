@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "architecture": "MobileNetV2",
+  "pretrained_weights": "imagenet",
+  "alpha": 1.0,
+  "input_shape": [
+    224,
+    224,
+    3
+  ],
+  "num_classes": 10,
+  "learning_rate": 0.0001,
+  "dropout": 0.4,
+  "batch_size": 32,
+  "max_epochs": 20,
+  "patience": 3,
+  "fine_tune_scope": "last_1",
+  "seed": 42,
+  "data_version": "campus-evolve-data-v2",
+  "category_version": "campus-10-v4",
+  "stop_hour": 23,
+  "augmentation": true,
+  "smoke": false,
+  "training_mode": "parent_finetune",
+  "parent_release": "campus-evolve-v1",
+  "parent_metadata_sha256": "3136f829e9aa9394db576386ac749e50b1b993a5baf406924a2ea831789c9204",
+  "parent_checkpoint": "experiments/checkpoints/campus-evolve-v1-seed42/best.keras"
+}
