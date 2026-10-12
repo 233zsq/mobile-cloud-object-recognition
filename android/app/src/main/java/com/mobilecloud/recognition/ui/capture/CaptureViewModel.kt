@@ -1,7 +1,5 @@
 package com.mobilecloud.recognition.ui.capture
 
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mobilecloud.recognition.AppGraph
@@ -36,7 +34,6 @@ sealed interface ModelState {
 
 data class CaptureResult(
     val recordId: String,
-    val photoPreview: ImageBitmap?,
     val prediction: Prediction,
     val displayName: String,
     val lowConfidence: Boolean,
@@ -193,7 +190,6 @@ class CaptureViewModel : ViewModel() {
                 photoPath = file.absolutePath,
                 updatedAt = now,
             )
-            val preview = bitmap.asImageBitmap()
             AppGraph.recordDao.insert(record)
             pendingPhoto = null
             _state.update { current ->
@@ -201,7 +197,6 @@ class CaptureViewModel : ViewModel() {
                     capturing = false,
                     lastResult = CaptureResult(
                         recordId = record.recordId,
-                        photoPreview = preview,
                         prediction = prediction,
                         displayName = AppGraph.categoryCatalog.displayNameForLabel(prediction.label),
                         lowConfidence = prediction.isLowConfidence(threshold),
@@ -210,7 +205,6 @@ class CaptureViewModel : ViewModel() {
                     ),
                 )
             }
-            bitmap = null // Ownership transfers to the Compose result.
             runCatching { AppGraph.syncScheduler.requestSync() }.onFailure {
                 _state.update { it.copy(message = "识别已保存，可到记录页手动同步") }
             }
