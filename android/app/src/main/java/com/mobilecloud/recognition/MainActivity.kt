@@ -3,6 +3,7 @@ package com.mobilecloud.recognition
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.core.view.WindowCompat
 import com.mobilecloud.recognition.ui.AppRoot
 import com.mobilecloud.recognition.ui.theme.CampusRecognitionTheme
 
@@ -14,6 +15,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         AppGraph.init(this)
         super.onCreate(savedInstanceState)
+        WindowCompat.getInsetsController(window, window.decorView).apply {
+            isAppearanceLightStatusBars = true
+            isAppearanceLightNavigationBars = true
+        }
         setContent {
             CampusRecognitionTheme {
                 AppRoot()

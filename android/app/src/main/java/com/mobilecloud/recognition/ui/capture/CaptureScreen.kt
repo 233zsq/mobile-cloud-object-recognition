@@ -101,7 +101,7 @@ fun CaptureScreen(catalog: CategoryCatalog, viewModel: CaptureViewModel = viewMo
                     TextButton(onClick = viewModel::refreshCloudModels, enabled = !state.capturing && !state.cloudModelsLoading) { Text("重试") }
                 }
             }
-            Box(Modifier.fillMaxWidth().height(cameraHeight).padding(horizontal = 20.dp)) {
+            Box(Modifier.fillMaxWidth().height(if (permission) cameraHeight else 360.dp).padding(horizontal = 20.dp)) {
                 if (permission) CameraCaptureView(enabled, viewModel::onPhotoSaved, viewModel::onCaptureError,
                     launchImport, onCaptureStarted = viewModel::onCaptureStarted)
                 else Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
