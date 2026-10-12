@@ -47,7 +47,7 @@ fun CaptureScreen(catalog: CategoryCatalog, viewModel: CaptureViewModel = viewMo
     val enabled = !state.capturing && (state.mode == InferenceMode.CLOUD || state.modelState is ModelState.Ready)
     Scaffold(snackbarHost = { SnackbarHost(snackbar) }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState())) {
-            FieldNotesHeader("观察手册", "01 / 发现日常物品")
+            FieldNotesHeader("观察手册")
             InferenceModeSelector(state.mode, !state.capturing, viewModel::selectMode)
             Text(
                 if (state.mode == InferenceMode.CLOUD) "图片发送至组内服务器 · 自动生成去除位置等元数据的压缩副本"

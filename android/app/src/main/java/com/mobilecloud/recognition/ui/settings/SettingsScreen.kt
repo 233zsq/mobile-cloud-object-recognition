@@ -25,7 +25,7 @@ import com.mobilecloud.recognition.ui.theme.BrandMark
 import com.mobilecloud.recognition.ui.theme.FieldNotesHeader
 
 enum class SettingsPage(val path: String, val title: String, val description: String) {
-    OVERVIEW("", "我的手册", "03 / 设备与偏好"),
+    OVERVIEW("", "我的手册", ""),
     CONNECTION("connection", "云端连接", "管理组内服务地址与访问口令"),
     MODEL("model", "识别模型", "查看当前模型与校验信息"),
     PRIVACY("privacy", "数据与隐私", "了解照片、记录与访问权限"),
@@ -44,7 +44,7 @@ fun SettingsScreen(
     Column(Modifier.fillMaxSize()) {
         if (page == SettingsPage.OVERVIEW) {
             Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 24.dp)) {
-                FieldNotesHeader(page.title, page.description)
+                FieldNotesHeader(page.title)
                 SettingsOverview(state, onOpenPage)
             }
         } else {

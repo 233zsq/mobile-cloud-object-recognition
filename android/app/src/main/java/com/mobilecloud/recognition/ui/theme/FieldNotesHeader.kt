@@ -23,13 +23,9 @@ fun BrandMark(modifier: Modifier = Modifier.size(54.dp)) {
 }
 
 @Composable
-fun FieldNotesHeader(title: String, subtitle: String, modifier: Modifier = Modifier) {
+fun FieldNotesHeader(title: String, modifier: Modifier = Modifier) {
     Row(modifier.fillMaxWidth().padding(horizontal = 22.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-        Column(Modifier.weight(1f)) {
-            Text(subtitle, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.height(3.dp))
-            Text(title, style = MaterialTheme.typography.headlineMedium)
-        }
+        Text(title, modifier = Modifier.weight(1f), style = MaterialTheme.typography.headlineMedium)
         Spacer(Modifier.width(12.dp))
         BrandMark()
     }

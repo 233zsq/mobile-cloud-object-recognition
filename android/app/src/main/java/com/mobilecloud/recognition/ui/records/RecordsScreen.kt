@@ -90,7 +90,7 @@ fun RecordsScreen(viewModel: RecordsViewModel = viewModel()) {
 
     Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            FieldNotesHeader("观察记录", "02 / 本机观察档案")
+            FieldNotesHeader("观察记录")
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
