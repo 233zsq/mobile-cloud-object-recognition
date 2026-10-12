@@ -1,6 +1,6 @@
-# 云端 API 草案
+# 云端 API
 
-状态：已实现健康检查、记录上传/UUID去重和单图片CPU推理，其余业务接口仍是待冻结草案。数据与云端负责人维护，Android开发负责人和组长共同确认联调口径。
+状态：已实现健康检查、记录上传/UUID去重、纠错、分页查询、统计、类别查询和单图片CPU推理。字段兼容当前Android DTO，真机端到端验收仍需双方完成。
 
 ## 已实现：GET /api/health
 
@@ -50,9 +50,9 @@ Content-Type为 `application/json`，请求体必须包含且只包含以下8个
 
 去重覆盖全部8个原始字段。UUID大小写、同一时刻的不同时区表示及数值1/1.0会规范化；采集时间、置信度等实质内容变化会冲突。不同UUID分别计数，即使其他字段相同。数据库UUID主键约束处理并发竞争；事务失败回滚后读取已提交记录，再判断重复或冲突。后续人工纠错字段不参与原始上传去重，重试不会清空人工标签。
 
-调用前按 [数据库初始化说明](../../database/README.md) 建表、导入类别并登记模型。Flask自身尚未实现Bearer认证，本地直接调用Gunicorn时API_TOKEN不限制访问。当前公网部署由Nginx检查 `Authorization: Bearer <API_TOKEN>`，缺失或错误返回401；令牌位置、IP地址和自签名证书信任方式见 [部署说明](../../deploy/README.md)。
+调用前按 [数据库初始化说明](../../database/README.md) 建表、导入类别并登记模型。非空API_TOKEN启用Flask与Nginx两层Bearer认证，缺失或错误返回401；health公开可读，仅本地未设置口令时免认证。API响应为Cache-Control: no-store。令牌及证书信任方式见 [部署说明](../../deploy/README.md)。
 
-## 接口总览（health、POST records和infer已实现）
+## 接口总览（全部已实现）
 
 | 方法与路径 | 输入或查询 | 预期行为 |
 | --- | --- | --- |
@@ -66,7 +66,7 @@ Content-Type为 `application/json`，请求体必须包含且只包含以下8个
 
 ## 已实现：POST /api/infer
 
-Content-Type为 `multipart/form-data`，必须且只能包含一个文件字段 `image` 和各一个文本字段 `request_id`、`model_version`。request_id须为带连字符UUID；model_version须与当前加载版本 `campus-gpu-v1` 一致。沿用公网Nginx Bearer认证。
+Content-Type为 `multipart/form-data`，必须且只能包含一个文件字段 `image` 和各一个文本字段 `request_id`、`model_version`。request_id须为带连字符UUID；model_version须与当前加载版本一致，目前为campus-evolve-v2、类别campus-10-v4，以health为准。沿用Bearer认证。
 模型在独立Python 3.12工作进程启动时校验并加载，与手机使用同一份FP32 tflite、标签和预处理规则；Flask原环境不导入LiteRT或TensorFlow。
 
 成功返回200，字段包含 `request_id`、`model_version`、`model_sha256`、`predicted_id`、`label_key`、`confidence`、`low_confidence`、10类 `scores`、`preprocess_ms`、`inference_ms`、`model_call_ms` 及 `server_ms`。成功响应request_id为客户端UUID（规范为小写）；X-Request-ID仍为服务端生成的追踪UUID，错误体沿用该服务端编号。
@@ -90,13 +90,64 @@ preprocess_ms覆盖工作进程内读取、解码和预处理，inference_ms只�
 
 推理接口不自动创建采集记录。用户采用结果后通过`/api/records`保存原UUID一次，`inference_source`为`device`或`cloud`；同图对比结果进入实验清单，不覆盖既有原预测。照片默认处理后释放，不自动加入训练数据。
 
-## 联调前需冻结
+## 已实现：PATCH /api/records/{id}/label
 
-- 请求/响应 JSON 字段名称、类型、必填规则和示例，模型标识使用版本名还是数据库 ID。
-- HTTP 状态码、统一错误结构、UUID 内容冲突及纠错冲突的返回行为。
-- 时间格式、时区、毫秒精度，分页起点、页大小上限与默认时间范围。
-- 认证方式、本地和部署地址、Web 认证交互与跨域/反向代理配置。
-- 统计口径：原预测与人工修正分别展示，低置信阈值和模型版本的对应规则。
-- 云端照片字段、文件限制、推理忙碌与超时状态、模型哈希、阶段计时边界及`inference_source`规则。
+JSON必须且只能包含以下字段：
 
-原预测首次入库后保持不变，重试使用同一UUID；不能把重复提交当成覆盖操作。修订号在手机本地保存并递增，后端纠错接口需原子地比较修订号后再更新。当前health、POST records和infer可调用；GET records、PATCH label、stats和categories尚未实现。
+```json
+{"corrected_id":3,"revision":1,"corrected_at":"2026-10-12T10:00:00.123+08:00"}
+```
+
+corrected_id是记录所属类别版本内0～9的整数；revision是1～2^63−1的整数，不接受布尔值、字符串或浮点数。时间规则与captured_at相同，规范为UTC毫秒；URL中的UUID规范为小写。
+
+- 新revision大于已有revision：200，`{"updated":true,"record":{...}}`，通过条件UPDATE原子比较并更新，允许跳过离线期间未上传的中间修订。
+- 相同revision、类别及规范化时间：200，updated=false，可安全补传。
+- 旧revision或同revision的不同类别/时间：409 REVISION_CONFLICT，不覆盖。
+- 原记录未上传：404 RECORD_NOT_FOUND；字段非法：400 INVALID_CORRECTION；类别不属于记录的类别版本：400 UNKNOWN_CATEGORY。
+- 非JSON为415，损坏JSON为400，数据库故障为503。
+
+原预测、分数、耗时、采集时间和上传指纹不改变。纠错后重试原POST仍返回200，且不会清空纠错。
+
+## 已实现：GET /api/records 与 GET /api/stats
+
+共享以下筛选，省略时查询全部已入库记录。时间依据captured_at；未知、重复或非法参数返回400 INVALID_QUERY。
+
+| 参数 | 规则 |
+| --- | --- |
+| start、end | 带时区ISO-8601，最多3位小数；范围[start,end)，同时指定时start必须早于end |
+| model_version | 已登记模型；未知为400 UNKNOWN_MODEL_VERSION |
+| category_version | 已登记类别；未知为400 UNKNOWN_CATEGORY_VERSION；与模型同时指定必须一致 |
+| category_id | 0～9整数 |
+| category_basis | predicted（默认，按原预测筛选）或effective（修正类别优先，否则沿用原预测） |
+| client_id | 带连字符UUID |
+| inference_source | device或cloud |
+
+URL中的`+08:00`需将加号编码为`%2B`，URLSearchParams会自动处理。
+
+records另支持page（**从0开始**，兼容Android现有定义；默认0，最大1,000,000）与page_size（默认20，1～100）：
+
+```json
+{"records":[],"total":0,"page":0,"page_size":20,"pages":0,"filters":{"category_basis":"predicted"},"generated_at":"2026-10-12T02:00:00.000Z"}
+```
+
+按captured_at降序、record_id升序排序；超出页数返回空数组。记录字段与POST一致，包括纠错信息。分页期间新增记录可能改变页边界。
+
+stats返回total_count、corrected_count（有人工标签的数量）、low_confidence_count、device_count、cloud_count、latency_ms（average/min/max）、categories、daily_counts、models、filters、generated_at及timezone=UTC。无记录时计数为0、耗时为null、趋势为空。
+
+- categories按类别版本＋ID分别返回label_key、display_name、predicted_count（原预测）、corrected_count（仅人工标签）、effective_count（人工标签优先，未修正沿用原预测）；版本不混并，无记录类别为0。
+- 低置信使用每条记录所属模型的登记阈值，confidence严格小于阈值；纠错不改变原置信度。
+- daily_counts为按UTC日期的`[{"date":"2026-10-12","count":2}]`；models按模型版本返回数量。
+- 耗时是记录中的预处理＋推理，不含HTTP网络等待；修正比例不能视为独立模型准确率。
+- 数据库故障返回503，不以部分结果作为成功；health仍可用。
+
+## 已实现：GET /api/categories
+
+可指定model_version或category_version，两者同时指定须一致。默认选择INFERENCE_MODEL_VERSION对应的已登记类别，配置模型未登记时使用最近登记模型；只有类别时使用已登记版本。
+
+返回category_version、categories（按ID排序的id/label_key/display_name/definition）、catalogs（以类别版本为键的全部清单）、models（model_version/category_version/low_confidence_threshold）。categories兼容Android的CategoriesResponse，额外字段用于解释历史记录。
+
+## Web与联调
+
+同域`/`提供统计页，`/assets/`提供静态资源；API使用Bearer请求头，不启用跨域访问。操作员输入现有口令，只保存在页面内存，断开或刷新后清除；不写入源码、URL或浏览器存储。每5秒刷新、失败保留上次数据并提示，支持筛选及翻页。见 [Web说明](../../web/README.md)。
+
+接口契约已实现并验证，仍需Android负责人完成真实手机补传、纠错及新模型验收，由组长确认最终证据；不能将后端模拟请求记为真机通过。

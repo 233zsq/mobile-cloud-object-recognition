@@ -6,14 +6,14 @@ T04,模型加载异常,明确提示失败且不输出伪造预测,pending,,,,,,,
 T05,模型与端侧一致性,同批图片的标签顺序和预处理一致,passed,20 张交接样例双模式通过官方校验器：参考张量 Top-1 20/20、分数差 2.30e-06；图片链路输入差 3.05e-05（阈值均 0.001）,acc4621,,campus-gpu-v1,0.1.0-debug,小米13 Pro,fish123233,2026-10-09,experiments/reports/consistency/campus-gpu-v1/android-2210132C-20261009-151317-image_chain.json
 T06,识别结果上报,真实记录带UUID和模型版本入库,pending,,,,,,,,,
 T07,恢复网络补传,待传记录恢复后同步且本地状态更新,pending,,,,,,,,,
-T08,重复上报,相同UUID和内容只产生一条云端记录,pending,,,,,,,,,
-T09,UUID内容冲突,同一UUID不同原预测返回冲突且不覆盖,pending,,,,,,,,,
+T08,重复上报,相同UUID和内容只产生一条云端记录,passed,真实HTTPS生成请求：同UUID同内容201后200；并发首次上传只创建一次。范围为后端接口，Android补传见T07。,7e2b8a69bdf4ecf3b37ffd403adf783f37d313a1,,campus-evolve-v2,,实际腾讯云CPU/MySQL8.4.11；Edge浏览器,Codex（执行接口与浏览器验证）,2026-10-12,docs/cloud-records-dashboard-20261012.md
+T09,UUID内容冲突,同一UUID不同原预测返回冲突且不覆盖,passed,真实HTTPS同UUID不同分数409，原内容与人工修正均不被覆盖。,7e2b8a69bdf4ecf3b37ffd403adf783f37d313a1,,campus-evolve-v2,,实际腾讯云CPU/MySQL8.4.11；Edge浏览器,Codex（执行接口与浏览器验证）,2026-10-12,docs/cloud-records-dashboard-20261012.md
 T10,人工纠错,保留原预测并记录正确类别和修订号,passed,真机观察通过（显示已修正；原预测保留；截图待补）,4c9555f,,placeholder-letterbox-v1,0.1.0-debug,小米13 Pro,fish123233,2026-10-09,待补
-T11,过期纠错请求,旧修订号不能覆盖最新标签,pending,,,,,,,,,
-T12,接口异常输入,非法类别置信度模型版本和时间被校验,pending,,,,,,,,,
-T13,Web统计刷新,每5秒刷新并显示刷新时间及失败状态,pending,,,,,,,,,
-T14,云端重启,服务恢复后记录仍在且健康检查可用,pending,,,,,,,,,
-T15,备份恢复,恢复后记录数量UUID与清单哈希可核对,pending,,,,,,,,,
+T11,过期纠错请求,旧修订号不能覆盖最新标签,passed,真实HTTPS新修订200；同修订同内容幂等200；旧修订及同修订不同内容409；MySQL四请求竞争验证通过。,7e2b8a69bdf4ecf3b37ffd403adf783f37d313a1,,campus-evolve-v2,,实际腾讯云CPU/MySQL8.4.11；Edge浏览器,Codex（执行接口与浏览器验证）,2026-10-12,docs/cloud-records-dashboard-20261012.md
+T12,接口异常输入,非法类别置信度模型版本和时间被校验,passed,SQLite及真实MySQL验证类别、置信度、版本、时区、JSON类型及非法查询；数据库故障503且health可用。,7e2b8a69bdf4ecf3b37ffd403adf783f37d313a1,,campus-evolve-v2,,实际腾讯云CPU/MySQL8.4.11；Edge浏览器,Codex（执行接口与浏览器验证）,2026-10-12,docs/cloud-records-dashboard-20261012.md
+T13,Web统计刷新,每5秒刷新并显示刷新时间及失败状态,passed,隐藏Edge真实浏览器：每5秒刷新、来源筛选、翻页、失败保留上次数据及错误提示；390px布局无页面溢出。公网根路径与静态资源200。,7e2b8a69bdf4ecf3b37ffd403adf783f37d313a1,,campus-evolve-v2,,实际腾讯云CPU/MySQL8.4.11；Edge浏览器,Codex（执行接口与浏览器验证）,2026-10-12,docs/cloud-records-dashboard-20261012.md
+T14,云端重启,服务恢复后记录仍在且健康检查可用,passed,实际systemd重启后原记录与纠错revision=2保留；相同UUID重试200、health及v2模型ready。仅清理本次测试UUID。,7e2b8a69bdf4ecf3b37ffd403adf783f37d313a1,,campus-evolve-v2,,实际腾讯云CPU/MySQL8.4.11；Edge浏览器,Codex（执行接口与浏览器验证）,2026-10-12,docs/cloud-records-dashboard-20261012.md
+T15,备份恢复,恢复后记录数量UUID与清单哈希可核对,passed,实际mysqldump恢复到独立临时库；四表数量及全部字段排序哈希逐表相同；备份下载到本机并验证SHA256及gzip完整性。,7e2b8a69bdf4ecf3b37ffd403adf783f37d313a1,,campus-evolve-v2,,实际腾讯云CPU/MySQL8.4.11；Edge浏览器,Codex（执行接口与浏览器验证）,2026-10-12,docs/cloud-records-dashboard-20261012.md
 T16,端云模型与同图推理,模型标签哈希及预处理一致并记录分类差异,pending,,,,,,,,,
 T17,云端推理异常,损坏超限图片和模型未就绪返回明确错误且离线识别可用,pending,,,,,,,,,
 T18,端云计时与统计隔离,分开记录推理及总等待时间并保证采集只计一次及资源可核对,pending,,,,,,,,,

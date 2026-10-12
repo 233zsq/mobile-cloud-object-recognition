@@ -2,7 +2,7 @@
 
 负责人：数据与云端负责人。采用Python Flask、SQLAlchemy、PyMySQL与MySQL，同一应用提供记录管理、统计和单图片推理。云端使用LiteRT Python运行时加载与Android相同的FP32 tflite模型；训练在本地PC完成。
 
-当前已建立Flask工程和MySQL四张核心表，实现 `POST /api/records` 入库、UUID去重、内容冲突保护及字段校验，以及 `POST /api/infer` 单图片推理和类别/模型登记命令。记录接口独立于模型进程；上传记录需要先初始化MySQL。查询、统计、纠错及Flask自身认证仍待实现。云端CPU运行时使用独立Python 3.12进程，与现有Python 3.14后端通过私有Unix socket通信，部署见 [推理说明](../deploy/INFERENCE.md)。
+当前已建立Flask工程和MySQL四张核心表，实现 `POST /api/records` 入库、UUID去重、内容冲突保护及字段校验，以及 `POST /api/infer` 单图片推理和类别/模型登记命令。记录接口独立于模型进程；上传记录需要先初始化MySQL。已补齐修订号纠错、分页查询、统计、类别接口及同域Web统计页；非空API_TOKEN启用Flask与Nginx两层Bearer认证。云端CPU运行时使用独立Python 3.12进程，与现有Python 3.14后端通过私有Unix socket通信，部署见 [推理说明](../deploy/INFERENCE.md)。
 
 | 目录 | 用途 |
 | --- | --- |
@@ -10,7 +10,7 @@
 | `app/config.py` | 默认值、根目录.env及进程环境配置，启动时检查非法配置 |
 | `app/observability.py` | UTC控制台日志、服务端生成的请求编号及响应头 |
 | `app/errors.py` | HTTP错误、业务错误和未预期异常的JSON响应 |
-| `app/api/` | 已实现health、POST records和infer，后续加入查询、纠错、stats和categories |
+| `app/api/` | health、记录上传/纠错/查询、stats、categories和infer |
 | `app/services/` | 已实现上传校验、规范化、事务入库和UUID冲突处理 |
 | `app/models/` | category、model_version、inference_record和sample实体 |
 | `app/extensions.py` | Flask-SQLAlchemy、MySQL连接池、UTC会话及连接超时 |
@@ -61,7 +61,7 @@ Invoke-RestMethod http://127.0.0.1:8080/api/health
 | `SERVER_HOST`、`SERVER_PORT` | `127.0.0.1`、`8080` | 本地开发监听设置；真机局域网联调可将HOST设为0.0.0.0 |
 | `MAX_CONTENT_LENGTH` | `10485760` | 请求体限制，字节；不是图片解码或像素限制 |
 | `DB_HOST/PORT/NAME/USER/PASSWORD` | 见根目录.env.example | MySQL连接配置，首次数据库操作时建立连接 |
-| `API_TOKEN` | 空 | 已读取并预留，尚未实现认证 |
+| `API_TOKEN` | 空 | 非空时除health外的API校验Bearer请求头，本地空值免认证 |
 | `MODEL_DIR` | 空 | 已读取并预留；相对路径以仓库根目录解析，尚未加载模型 |
 | `INFERENCE_SOCKET` | 空 | CPU进程socket的绝对路径，空时推理返回503 |
 | `INFERENCE_MODEL_VERSION/SHA256` | campus-gpu-v1/冻结模型哈希 | 校验请求和工作进程使用同版模型 |
@@ -130,7 +130,7 @@ python3 -m venv .venv
 .venv/bin/gunicorn --workers 1 --threads 2 --bind 127.0.0.1:8080 wsgi:app
 ```
 
-Gunicorn监听地址由命令行决定；上面的命令是手动启动示例。2026-10-08已在Ubuntu 26.04 / Python 3.14.4 / MySQL 8.4.11上完成75项测试，3项SQLite参数下的MySQL专用用例跳过；已配置systemd、Nginx、自签名HTTPS及代理层Bearer认证，并验证公网入库与去重。应用自身鉴权仍待实现。实际路径、证书、令牌位置及运维命令见[部署说明](../deploy/README.md)，证据见 `tests/evidence/server-deployment-20261008.json`。应用工厂和错误处理参考[Flask官方文档](https://flask.palletsprojects.com/en/stable/tutorial/factory/)与[HTTP错误处理说明](https://flask.palletsprojects.com/en/stable/errorhandling/)。
+Gunicorn监听地址由命令行决定；上面的命令是手动启动示例。2026-10-08已在Ubuntu 26.04 / Python 3.14.4 / MySQL 8.4.11上完成75项测试，3项SQLite参数下的MySQL专用用例跳过；已配置systemd、Nginx、自签名HTTPS及代理层Bearer认证，并验证公网入库与去重。应用自身鉴权已实现。实际路径、证书、令牌位置及运维命令见[部署说明](../deploy/README.md)，证据见 `tests/evidence/server-deployment-20261008.json`。应用工厂和错误处理参考[Flask官方文档](https://flask.palletsprojects.com/en/stable/tutorial/factory/)与[HTTP错误处理说明](https://flask.palletsprojects.com/en/stable/errorhandling/)。
 
 ## 数据库初始化与记录上传
 
@@ -178,3 +178,9 @@ Invoke-WebRequest -Uri http://127.0.0.1:8080/api/records -Method Post -ContentTy
 模型启动时校验并加载，避免每请求重新加载。初始一个Gunicorn worker、受控推理并发，同一运行实例通过互斥或串行调度避免并发调用；配置图片大小、解码检查、请求超时和忙碌状态。健康检查显示模型状态和版本，模型异常应使推理接口明确失败，同时保持记录接口可用。
 
 Linux正式部署采用Gunicorn和Nginx，先测CPU、内存及推理与记录查询并行时的响应，再调整进程、线程和连接池，不直接照搬多worker配置造成模型重复驻留。
+
+## 纠错、查询与统计页
+
+PATCH /api/records/{id}/label通过条件UPDATE比较revision；相同修订相同内容可补传，旧修订或同修订不同内容返回409。GET /api/records分页从0开始，时间为[start,end)。GET /api/stats按类别版本隔离，低置信使用每个模型的阈值；GET /api/categories读取已登记清单。完整请求和响应见 [API说明](../docs/api/README.md)。
+
+浏览器打开同域根路径访问Web统计页，输入现有口令后每5秒刷新；口令只在页面内存。无需新增依赖或数据库迁移，已有记录和模型配置保留。

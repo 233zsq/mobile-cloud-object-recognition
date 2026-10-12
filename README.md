@@ -8,7 +8,7 @@
 
 ## 当前状态
 
-当前工作区已建立Flask工程、MySQL四张核心表，以及记录上传、UUID去重和内容冲突保护，并在腾讯云完成Gunicorn、Nginx、自签名HTTPS和代理层Bearer认证部署，公网记录接口已验证。查询、纠错、统计、Web、应用自身鉴权和云端模型仍待接入；Android与模型功能分支整体成果尚未集成，尚无完整系统验收。数据库初始化与启动见 [后端说明](backend/README.md) 和 [数据库说明](database/README.md)，服务器运维见 [部署说明](deploy/README.md)，版本见 [环境清单](docs/environment.md)。
+已完成Flask、MySQL四张核心表、记录入库/UUID去重、修订号纠错、分页查询、统计和类别接口，以及每5秒刷新的Web统计页。非空API_TOKEN启用Flask与Nginx两层Bearer认证。Android、训练及部署分支已集成；当前campus-evolve-v2模型、campus-10-v4类别已接入真实云端及Android模拟器，见 [v2接入记录](docs/campus-evolve-v2-deployment.md)。照片审核工作台独立部署在8443。真实手机业务联调、新模型真机性能和独立实拍评估仍待验收。初始化见 [后端说明](backend/README.md) 和 [数据库说明](database/README.md)，运维见 [部署说明](deploy/README.md)，接口见 [API说明](docs/api/README.md)。
 
 ## 技术栈
 
@@ -28,8 +28,8 @@
 mobile-cloud-object-recognition/
 ├── android/             # Kotlin Android App：拍照、推理、本地保存与同步
 │   └── app/src/main/    # java/、res/、assets/models/
-├── backend/             # Flask记录入库、去重及CPU推理；查询、纠错、统计待接入
-├── web/                 # HTML/JavaScript 统计页，计划每 5 秒刷新
+├── backend/             # Flask入库、去重、纠错、查询、统计及CPU推理
+├── web/                 # HTML/JavaScript统计页，每5秒刷新
 │   └── assets/          # css/、js/、images/
 ├── ml/                  # TensorFlow/Keras：训练、评估与 tflite 导出
 │   ├── configs/         # 训练配置示例

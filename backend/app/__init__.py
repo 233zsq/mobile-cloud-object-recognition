@@ -26,12 +26,16 @@ def create_app(
     from .extensions import init_database
     from .cli import register_commands
     from .inference.client import init_inference
+    from .security import register_security
+    from .dashboard import dashboard
 
     configure_logging(app)
     register_request_logging(app)
     register_error_handlers(app)
+    register_security(app)
     init_database(app)
     register_commands(app)
     init_inference(app)
     app.register_blueprint(api)
+    app.register_blueprint(dashboard)
     return app

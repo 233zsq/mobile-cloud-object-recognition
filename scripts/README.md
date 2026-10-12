@@ -10,7 +10,7 @@
 `ML_TRAIN_ENV`、`ML_RUNTIME_ENV` 可分别指定Linux环境目录；脚本解析目录链接，拒绝两个目录实际相同，并检查独立推理环境中没有TensorFlow。仓库在Windows挂载盘上时，优先把环境放在Linux文件系统，具体示例见 `ml/README.md`。
 每个新的Ubuntu终端先 `source scripts/activate-ml-wsl.sh`，加载训练解释器及NVIDIA动态库路径，再运行训练入口。自定义路径时使用相同的 `ML_TRAIN_ENV`。此设置只影响当前终端；独立LiteRT环境仍使用它自己的解释器。
 
-数据、训练、哈希、评估和模型交接使用安装后的 `python -m recognition`，命令详见 `ml/README.md`。本期不包含数据库备份脚本。
+数据、训练、哈希、评估和模型交接使用安装后的 `python -m recognition`，命令详见 `ml/README.md`。服务器数据库备份在deploy/scripts/backup_database.py，本机下载见下文。
 
 完成同一数据版本的训练后，运行 `python scripts/package-ml-delivery.py --release models/releases/<version>`。
 脚本校验发布模型、冻结清单和图片字节，打包源代码、环境锁、实际照片、检查点与交接样例，排除虚拟环境和个人计划书。
@@ -51,3 +51,13 @@ python -m unittest discover -s tests -p test_data_scripts.py -v
 ```
 
 加入脚本时说明用途、运行目录、参数、依赖与输出位置。清单和文件路径相对仓库根目录；本机绝对路径和凭据通过本地配置提供，不能写死在脚本里。Windows 脚本使用 PowerShell，云端 Linux 脚本放在相应部署目录或在此明确运行平台。
+
+## 数据库异机副本下载
+
+在服务器创建备份并完成隔离恢复后，将输出的备份路径及SHA-256传给download_database_backup.py。脚本使用固定主机指纹的SSH，下载后验证SHA-256与gzip完整性，不覆盖已有文件，不删除服务器备份；仅需Python标准库和OpenSSH。
+
+```text
+python scripts/download_database_backup.py --identity <本地私钥路径> --known-hosts <已核对的主机指纹文件> --backup /var/backups/mobile-cloud-backend/<实际备份.sql.gz> --sha256 <验证结果SHA256> --destination backups/<本次目录>
+```
+
+下载目录必须私密并被Git忽略；备份和凭据不进入交付源码。此工具按需执行，不创建自动化计划。本次实际部署与恢复结果见docs/cloud-records-dashboard-20261012.md。
