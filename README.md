@@ -1,3 +1,5 @@
+<img src="web/assets/images/brand-mark.png" width="104" height="104" alt="校园物品识别：扫描标签图标">
+
 # 移动端物品图像采集与识别系统
 
 计算机系统项目综合实践：手机拍照，在 Android 端离线识别物品，再把识别记录同步到云端，由 Web 页面展示统计结果。

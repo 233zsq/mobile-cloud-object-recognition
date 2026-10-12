@@ -1,15 +1,26 @@
 package com.mobilecloud.recognition.ui.theme
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import com.mobilecloud.recognition.R
+
+@Composable
+fun BrandMark(modifier: Modifier = Modifier.size(54.dp)) {
+    Image(
+        painter = painterResource(R.drawable.brand_mark),
+        contentDescription = null,
+        modifier = modifier.clip(RoundedCornerShape(14.dp)),
+    )
+}
 
 @Composable
 fun FieldNotesHeader(title: String, subtitle: String, modifier: Modifier = Modifier) {
@@ -19,8 +30,7 @@ fun FieldNotesHeader(title: String, subtitle: String, modifier: Modifier = Modif
             Spacer(Modifier.height(3.dp))
             Text(title, style = MaterialTheme.typography.headlineMedium)
         }
-        Box(Modifier.size(55.dp).rotate(10f).background(MaterialTheme.colorScheme.primaryContainer, CircleShape), contentAlignment = Alignment.Center) {
-            Text("FIELD\nNOTES", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onPrimaryContainer)
-        }
+        Spacer(Modifier.width(12.dp))
+        BrandMark()
     }
 }

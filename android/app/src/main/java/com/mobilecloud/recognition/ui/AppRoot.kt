@@ -1,8 +1,6 @@
 package com.mobilecloud.recognition.ui
 
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
@@ -11,8 +9,6 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
@@ -21,6 +17,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -33,6 +30,9 @@ import com.mobilecloud.recognition.R
 import com.mobilecloud.recognition.ui.capture.CaptureScreen
 import com.mobilecloud.recognition.ui.records.RecordsScreen
 import com.mobilecloud.recognition.ui.settings.SettingsScreen
+import com.mobilecloud.recognition.ui.settings.SettingsPage
+import com.mobilecloud.recognition.ui.settings.SettingsViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 private data class TopRoute(val route: String, val label: String)
 
@@ -53,23 +53,25 @@ fun AppRoot() {
 
     Scaffold(
         bottomBar = {
-            Row(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceContainer).navigationBarsPadding().padding(vertical = 8.dp)) {
-                listOf(CAPTURE, RECORDS, SETTINGS).forEach { tab ->
-                    val selected = currentRoute == tab.route
-                    Column(
-                        modifier = Modifier.weight(1f).selectable(selected, role = Role.Tab, onClick = {
-                            navController.navigate(tab.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
+            if (currentRoute?.startsWith("settings/") != true) {
+                Row(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceContainer).navigationBarsPadding().padding(vertical = 8.dp)) {
+                    listOf(CAPTURE, RECORDS, SETTINGS).forEach { tab ->
+                        val selected = currentRoute == tab.route
+                        Column(
+                            modifier = Modifier.weight(1f).selectable(selected, role = Role.Tab, onClick = {
+                                navController.navigate(tab.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
                                 }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        }).padding(vertical = 6.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Box(Modifier.background(if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainer, CircleShape).padding(horizontal = 20.dp, vertical = 3.dp)) { TabIcon(tab.route) }
-                        Text(tab.label, style = MaterialTheme.typography.labelMedium)
+                            }).padding(vertical = 6.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            Box(Modifier.background(if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainer, CircleShape).padding(horizontal = 20.dp, vertical = 3.dp)) { TabIcon(tab.route) }
+                            Text(tab.label, style = MaterialTheme.typography.labelMedium)
+                        }
                     }
                 }
             }
@@ -82,7 +84,16 @@ fun AppRoot() {
         ) {
             composable(CAPTURE.route) { CaptureScreen(catalog = AppGraph.categoryCatalog) }
             composable(RECORDS.route) { RecordsScreen() }
-            composable(SETTINGS.route) { SettingsScreen() }
+            composable(SETTINGS.route) {
+                SettingsScreen(onOpenPage = { page -> navController.navigate("settings/${page.path}") })
+            }
+            SettingsPage.entries.filter { it != SettingsPage.OVERVIEW }.forEach { page ->
+                composable("settings/${page.path}") { entry ->
+                    val owner = remember(entry) { navController.getBackStackEntry(SETTINGS.route) }
+                    val settingsViewModel: SettingsViewModel = viewModel(viewModelStoreOwner = owner)
+                    SettingsScreen(viewModel = settingsViewModel, page = page, onBack = { navController.popBackStack() })
+                }
+            }
         }
     }
 }
