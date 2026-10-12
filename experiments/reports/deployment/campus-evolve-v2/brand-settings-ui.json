@@ -1,0 +1,42 @@
+{
+  "source_commit": "cd344b1f9943c19b2b0caa975d050c634b93aaab",
+  "model_version": "campus-evolve-v2",
+  "apk_file": "campus-evolve-v2-brand-settings.apk",
+  "apk_bytes": 57506925,
+  "apk_sha256": "e59d4030b43fd863df69eff743cef55df13c79197e72543aa0176118ab67b49c",
+  "shared_icon_sha256": "948cb83c370b042c83bfe259a44a6512bd810b864613d15d61738e28f7abbd51",
+  "web_icon_bytes": 53814,
+  "unit_tests": {
+    "failures": 0,
+    "passed": 105
+  },
+  "current_emulator_checks": {
+    "scope": "settings navigation, fixed back bar, unsaved draft retention, capture mode, model filter",
+    "passed": 4,
+    "failures": 0,
+    "device": "MuMu portrait 127.0.0.1:16416"
+  },
+  "review_page_regression": {
+    "isolated_test_data": true,
+    "passed": 11,
+    "failures": 0
+  },
+  "responsive_web": {
+    "images_loaded": true,
+    "desktop_width": 1280,
+    "horizontal_overflow": false,
+    "narrow_width": 390
+  },
+  "deployed": {
+    "review": true,
+    "backup_id": "brand-settings-20261012",
+    "dashboard": true,
+    "review_service": "active",
+    "review_browser_screenshot": "unavailable: browser automatic approval service rate limit 429",
+    "backend_health": "ok"
+  },
+  "web_html_sha256": "47ff6a95d2d5abcc7dfa7a740a39e1dc4e5415ef871640523c29b1077eabf085",
+  "web_css_sha256": "3c9969bbe828652037141f61dda8273d7f84adbf7abf2215d4429921f0a88e74",
+  "physical_phone_acceptance": "pending",
+  "recorded_at": "2026-10-12T16:45:19.4909375+08:00"
+}
