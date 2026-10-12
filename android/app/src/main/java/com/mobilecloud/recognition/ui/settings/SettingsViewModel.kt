@@ -12,6 +12,7 @@ import com.mobilecloud.recognition.inference.ModelRepository
 import kotlinx.coroutines.launch
 
 data class SettingsUiState(
+    val configLoaded: Boolean = false,
     val baseUrl: String = "",
     val token: String = "",
     val clientId: String = "",
@@ -41,7 +42,7 @@ class SettingsViewModel : ViewModel() {
         viewModelScope.launch {
             val config = AppGraph.settings.currentConfig()
             val clientId = AppGraph.settings.ensureClientId()
-            update { it.copy(baseUrl = config.baseUrl, token = config.token, clientId = clientId) }
+            update { it.copy(configLoaded = true, baseUrl = config.baseUrl, token = config.token, clientId = clientId) }
             AppGraph.apiClient.updateConfig(config)
             update { it.copy(examplesAvailable = AppGraph.consistencyCheck.hasExamples()) }
             loadModelInfo()

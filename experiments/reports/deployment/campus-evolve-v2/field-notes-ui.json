@@ -1,0 +1,57 @@
+{
+  "source_commit": "dbfcabe487f7e2c17bdfa8c6003a2884cfe50fd0",
+  "base_commit": "6f516904132446c4cf6e42ec978233df12c13819",
+  "prototype_commit": "f07dce4cdc83184331d7242153757521542cecd8",
+  "model_version": "campus-evolve-v2",
+  "model_sha256": "7e2387600303333f714533aac1a0c1e4260425b06154dd7fa4ed920d01bef691",
+  "apk_file": "campus-evolve-v2-field-notes.apk",
+  "apk_bytes": 56815971,
+  "apk_sha256": "0b18916bdffaf5366b99fc84161ed56eebb4d9c56a61f3a4ea5730c24e0497c1",
+  "unit_tests": {
+    "errors": 0,
+    "tests": 105,
+    "failures": 0,
+    "skipped": 0
+  },
+  "instrumentation": {
+    "scope": "UI, model filter, migration, cloud multipart and auth, EXIF transport, real HTTPS comparison",
+    "device_kind": "MuMu portrait emulator",
+    "android": "12",
+    "screen": "1080x1920",
+    "failures": 0,
+    "tests": 7,
+    "skipped": 0
+  },
+  "cloud": {
+    "records_written": 0,
+    "reference_samples": 20,
+    "tls_verified": true,
+    "authenticated": true,
+    "transport_max_confidence_difference": 5.453825E-06,
+    "reference_max_score_difference": 0.0,
+    "transport_copies": 20,
+    "transport_top1_matches": 20
+  },
+  "backend_regression": {
+    "skipped": 31,
+    "failures": 0,
+    "passed": 104
+  },
+  "deployed_page_regression": {
+    "skipped": 11,
+    "failures": 0,
+    "passed": 35
+  },
+  "web": {
+    "deployed": true,
+    "api_health": "ok",
+    "backup_id": "field-notes-20261012",
+    "url": "https://49.232.195.47/",
+    "narrow_viewport_checked": 390,
+    "html_sha256": "f7a27edab87d093750b8e3e904515f95657934de3f821fadc780ed55e60a24d8",
+    "css_sha256": "3b0701cb73e632f25d3978b61ca0af121260eed679220ffdc6a4f55ef98619c3"
+  },
+  "installed_on_user_portrait_emulator": true,
+  "physical_phone_acceptance": "pending",
+  "recorded_at": "2026-10-12T16:11:23.1608849+08:00"
+}

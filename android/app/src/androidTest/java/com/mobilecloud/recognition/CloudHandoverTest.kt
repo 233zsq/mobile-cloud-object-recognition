@@ -7,6 +7,10 @@ import com.mobilecloud.recognition.data.remote.ApiClient
 import com.mobilecloud.recognition.data.settings.ServerConfig
 import com.mobilecloud.recognition.data.settings.SettingsStore
 import com.mobilecloud.recognition.inference.ExampleSample
+import com.mobilecloud.recognition.inference.CloudClassifier
+import com.mobilecloud.recognition.inference.CloudModelContract
+import com.mobilecloud.recognition.inference.ModelRepository
+import com.mobilecloud.recognition.camera.PhotoStore
 import java.io.File
 import java.util.UUID
 import java.util.concurrent.TimeUnit
@@ -55,6 +59,12 @@ class CloudHandoverTest {
         val samples = ExampleSample.parse(context.assets.open("models/examples/manifest.json").bufferedReader().use { it.readText() })
         val http = OkHttpClient.Builder().callTimeout(30, TimeUnit.SECONDS).build()
         val results = JSONArray()
+        val productResults = JSONArray()
+        val labels = context.assets.open("models/labels.txt").bufferedReader().use { it.readLines().filter(String::isNotBlank) }
+        val contract = CloudModelContract(metadata.getString("model_version"), metadata.getString("sha256"), labels,
+            metadata.getDouble("low_confidence_threshold").toFloat())
+        val photoStore = PhotoStore(context)
+        val localModel = ModelRepository(context)
         for (sample in samples) {
             val bytes = context.assets.open("models/examples/${sample.image}").use { it.readBytes() }
             val form = MultipartBody.Builder().setType(MultipartBody.FORM)
@@ -76,13 +86,28 @@ class CloudHandoverTest {
                 assertTrue("Cloud scores differ from the approved reference", difference <= .001)
                 results.put(JSONObject().put("sample_id", sample.sampleId).put("max_score_difference", difference).put("passed", true))
             }
+            val original = File.createTempFile("handover-source", ".jpg", context.cacheDir).apply { writeBytes(bytes) }
+            try {
+                val transport = photoStore.prepareCloudCopy(original)
+                try {
+                    val cloud = CloudClassifier(client.api).classify(transport, contract)
+                    val bitmap = requireNotNull(photoStore.decodeUpright(transport))
+                    val local = try { localModel.classify(bitmap) } finally { bitmap.recycle() }
+                    assertEquals("Transport-copy Top-1 differs", local.index, cloud.index)
+                    val difference = kotlin.math.abs(local.confidence - cloud.confidence)
+                    assertTrue("Transport-copy confidence differs", difference <= .001)
+                    productResults.put(JSONObject().put("sample_id", sample.sampleId).put("predicted_id", cloud.index)
+                        .put("confidence_difference", difference).put("passed", true))
+                } finally { transport.delete() }
+            } finally { original.delete() }
         }
         settings.setConfig(config)
         val report = JSONObject().put("scope", InstrumentationRegistry.getArguments().getString("execution_scope", "Android device; physical/emulator context recorded separately"))
             .put("device", "${Build.MANUFACTURER} ${Build.MODEL}; Android ${Build.VERSION.RELEASE}")
             .put("base_url", config.baseUrl).put("model_version", metadata.getString("model_version"))
             .put("model_sha256", metadata.getString("sha256")).put("tls_verified", true)
-            .put("authenticated", true).put("records_written", 0).put("samples", results).put("passed", true)
+            .put("authenticated", true).put("records_written", 0).put("samples", results)
+            .put("product_client_transport_copies", productResults).put("passed", true)
         File(context.getExternalFilesDir(null), "cloud-handover-${System.currentTimeMillis()}.json").writeText(report.toString(2) + "\n")
     }
 }

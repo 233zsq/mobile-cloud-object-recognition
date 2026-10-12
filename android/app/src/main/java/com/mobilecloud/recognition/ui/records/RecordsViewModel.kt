@@ -1,6 +1,7 @@
 package com.mobilecloud.recognition.ui.records
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.mobilecloud.recognition.AppGraph
 import com.mobilecloud.recognition.data.local.RecordEntity
@@ -15,9 +16,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 data class RecordsUiState(
-    val records: List<RecordEntity> = emptyList(),
-    val total: Int = 0,
-    val pendingCount: Int = 0,
+    val selection: RecordSelection = selectRecords(emptyList(), null),
     val syncing: Boolean = false,
     val message: String? = null,
 )
@@ -26,20 +25,24 @@ data class RecordsUiState(
  * 记录页状态：本地记录列表（含同步状态与纠错信息）+ 手动同步。
  * 列表来自 Room Flow，上传成功后自动刷新。
  */
-class RecordsViewModel : ViewModel() {
+class RecordsViewModel(private val savedStateHandle: SavedStateHandle) : ViewModel() {
 
     private val syncing = MutableStateFlow(false)
     private val message = MutableStateFlow<String?>(null)
+    private val modelVersion = savedStateHandle.getStateFlow<String?>("model_version", null)
 
     val state: StateFlow<RecordsUiState> = combine(
         AppGraph.recordDao.observeAll(),
-        AppGraph.recordDao.observeTotal(),
-        AppGraph.recordDao.observePendingCount(),
+        modelVersion,
         syncing,
         message,
-    ) { records, total, pending, isSyncing, currentMessage ->
-        RecordsUiState(records, total, pending, isSyncing, currentMessage)
+    ) { records, version, isSyncing, currentMessage ->
+        RecordsUiState(selectRecords(records, version), isSyncing, currentMessage)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), RecordsUiState())
+
+    fun selectModel(version: String?) {
+        savedStateHandle["model_version"] = version
+    }
 
     /** 手动立即同步：直接调用上传器以获得即时反馈；后台 Worker 补传仍由调度器负责（F04/T07） */
     fun syncNow() {

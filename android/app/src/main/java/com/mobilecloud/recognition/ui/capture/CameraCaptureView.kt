@@ -20,6 +20,21 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -54,6 +69,7 @@ fun CameraCaptureView(
     onCaptureError: (String) -> Unit,
     onImportClick: () -> Unit,
     modifier: Modifier = Modifier,
+    onCaptureStarted: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -89,7 +105,8 @@ fun CameraCaptureView(
         }
     }
 
-    Box(modifier = modifier.fillMaxSize()) {
+    Column(modifier = modifier.fillMaxSize()) {
+      Box(Modifier.weight(1f).fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Color(0xFF5D725F))) {
         AndroidView(
             factory = { previewView },
             update = { view ->
@@ -99,21 +116,28 @@ fun CameraCaptureView(
             },
             modifier = Modifier.fillMaxSize(),
         )
-
+        Canvas(Modifier.fillMaxSize().padding(20.dp)) {
+            drawRoundRect(Color.White.copy(alpha = .55f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(20.dp.toPx()), style = Stroke(1.dp.toPx()))
+        }
+        Text("把一个主要物品放入画面", Modifier.align(Alignment.BottomCenter).padding(14.dp).background(Color.Black.copy(alpha = .35f), RoundedCornerShape(14.dp)).padding(horizontal = 12.dp, vertical = 5.dp), color = Color.White, style = MaterialTheme.typography.bodySmall)
+      }
         Row(
             modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 24.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                .fillMaxWidth().padding(vertical = 10.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            OutlinedButton(onClick = onImportClick, enabled = captureEnabled) {
-                Text("导入图片")
+            androidx.compose.material3.TextButton(onClick = onImportClick, enabled = captureEnabled) {
+                Text("从相册导入", style = MaterialTheme.typography.labelMedium)
             }
-            Button(
-                onClick = {
-                    if (capturing || !captureEnabled) return@Button
+            Box(
+                modifier = Modifier.size(64.dp).border(1.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                .padding(6.dp).background(if (captureEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline, CircleShape)
+                .semantics { contentDescription = "拍照识别" }
+                .clickable(enabled = captureEnabled && !capturing, role = Role.Button) {
+                    if (capturing || !captureEnabled) return@clickable
                     capturing = true
+                    onCaptureStarted()
                     val file = AppGraph.photoStore.newPhotoFile()
                     val options = ImageCapture.OutputFileOptions.Builder(file).build()
                     imageCapture.takePicture(
@@ -132,8 +156,7 @@ fun CameraCaptureView(
                             }
                         },
                     )
-                },
-                enabled = captureEnabled,
+                }, contentAlignment = Alignment.Center,
             ) {
                 if (capturing) {
                     CircularProgressIndicator(
@@ -142,9 +165,8 @@ fun CameraCaptureView(
                         color = MaterialTheme.colorScheme.onPrimary,
                     )
                 }
-                Spacer(Modifier.height(2.dp))
-                Text("拍照识别")
             }
+            Text("十种物品", Modifier.padding(horizontal = 10.dp), style = MaterialTheme.typography.labelMedium)
         }
     }
 }
@@ -163,7 +185,7 @@ fun CameraPermissionRationale(onRequest: () -> Unit, modifier: Modifier = Modifi
         Spacer(Modifier.height(8.dp))
         Text(
             "识别功能使用相机拍摄校园物品照片。照片保存在应用私有目录，" +
-                "不上传照片本身，仅上传识别结果。",
+                "本地模式仅上传识别结果；选择云端模式时会上传去除元数据的压缩图片供识别。",
             style = MaterialTheme.typography.bodyMedium,
         )
         Spacer(Modifier.height(16.dp))

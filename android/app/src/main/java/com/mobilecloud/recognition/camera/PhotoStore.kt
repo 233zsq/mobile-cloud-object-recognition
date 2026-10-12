@@ -24,6 +24,27 @@ class PhotoStore(private val context: Context) {
         return File(photoDir, "${UUID.randomUUID()}.jpg")
     }
 
+    /** Cloud transport copy: upright JPEG, no EXIF/location, at most 2048 px on either side. */
+    fun prepareCloudCopy(file: File): File {
+        require(file.length() <= 32L * 1024 * 1024) { "原图超过 32 MiB，请先缩小图片" }
+        val bitmap = decodeUpright(file, maxDimension = 2048) ?: error("照片解码失败")
+        val scale = minOf(1f, 2048f / maxOf(bitmap.width, bitmap.height))
+        val resized = if (scale < 1f) Bitmap.createScaledBitmap(bitmap,
+            maxOf(1, (bitmap.width * scale).toInt()), maxOf(1, (bitmap.height * scale).toInt()), true) else bitmap
+        val target = newPhotoFile()
+        try {
+            target.outputStream().use { check(resized.compress(Bitmap.CompressFormat.JPEG, 92, it)) }
+            check(target.length() in 1..8L * 1024 * 1024) { "云端图片超过大小限制" }
+            return target
+        } catch (e: Exception) {
+            target.delete()
+            throw e
+        } finally {
+            if (resized !== bitmap) resized.recycle()
+            bitmap.recycle()
+        }
+    }
+
     /**
      * 把相册/文件选择器返回的图片复制进应用私有目录，供识别与记录使用。
      * 按字节复制以保留 EXIF 方向信息（重新编码会丢失 EXIF，破坏方向处理契约）；
@@ -35,7 +56,17 @@ class PhotoStore(private val context: Context) {
             val input = context.contentResolver.openInputStream(uri)
                 ?: throw IllegalStateException("无法读取所选图片")
             input.use { source ->
-                target.outputStream().use { destination -> source.copyTo(destination) }
+                target.outputStream().use { destination ->
+                    val buffer = ByteArray(8192)
+                    var total = 0L
+                    while (true) {
+                        val count = source.read(buffer)
+                        if (count < 0) break
+                        total += count
+                        require(total <= 32L * 1024 * 1024) { "图片超过 32 MiB，请先缩小图片" }
+                        destination.write(buffer, 0, count)
+                    }
+                }
             }
             val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
             BitmapFactory.decodeFile(target.absolutePath, bounds)

@@ -19,7 +19,7 @@ object RecordMapper {
     fun toUploadRequest(entity: RecordEntity): RecordUploadRequest = RecordUploadRequest(
         recordId = entity.recordId,
         clientId = entity.clientId,
-        inferenceSource = SOURCE_DEVICE,
+        inferenceSource = entity.inferenceSource,
         modelVersion = entity.modelVersion,
         predictedId = entity.predictedIndex,
         confidence = entity.confidence,

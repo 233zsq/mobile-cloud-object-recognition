@@ -1,6 +1,8 @@
 package com.mobilecloud.recognition.ui.records
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,17 +17,25 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -37,14 +47,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mobilecloud.recognition.AppGraph
 import com.mobilecloud.recognition.data.local.RecordEntity
+import com.mobilecloud.recognition.ui.theme.FieldNotesHeader
 import java.io.File
 import java.time.Instant
 import java.time.ZoneId
@@ -71,40 +85,83 @@ fun RecordsScreen(viewModel: RecordsViewModel = viewModel()) {
     var pendingDelete by remember { mutableStateOf<RecordEntity?>(null) }
     // 清空全部：批量破坏性操作，单独确认
     var showClearAll by remember { mutableStateOf(false) }
+    var showActions by remember { mutableStateOf(false) }
+    val selection = state.selection
 
     Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+            FieldNotesHeader("观察记录")
             Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("识别记录", style = MaterialTheme.typography.titleLarge)
                     Text(
-                        "共 ${state.total} 条 · 待同步 ${state.pendingCount} 条",
+                        "按模型查看本机记录与同步状态",
                         style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 if (state.syncing) {
                     CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                 } else {
-                    TextButton(onClick = viewModel::syncNow) { Text("立即同步") }
+                    TextButton(onClick = viewModel::syncNow) { Text("同步全部") }
                 }
-                TextButton(
-                    onClick = { showClearAll = true },
-                    enabled = state.records.isNotEmpty(),
-                ) {
-                    Text("清空全部", color = MaterialTheme.colorScheme.error)
+                Box {
+                    IconButton(onClick = { showActions = true }) {
+                        Icon(Icons.Filled.MoreVert, contentDescription = "记录操作")
+                    }
+                    DropdownMenu(expanded = showActions, onDismissRequest = { showActions = false }) {
+                        DropdownMenuItem(
+                            text = { Text("清空全部本地记录", color = MaterialTheme.colorScheme.error) },
+                            enabled = selection.allCount > 0,
+                            onClick = { showActions = false; showClearAll = true },
+                        )
+                    }
                 }
             }
 
-            if (state.records.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("暂无识别记录，请到采集页拍照", style = MaterialTheme.typography.bodyMedium)
+            Surface(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                shape = MaterialTheme.shapes.medium,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            ) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    ModelVersionFilter(selection.modelVersions, selection.modelVersion, viewModel::selectModel)
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        RecordMetric("记录", selection.count)
+                        RecordMetric("待同步", selection.pendingCount)
+                        RecordMetric("已修正", selection.correctedCount)
+                    }
+                }
+            }
+            if (selection.modelVersion != null) {
+                Text(
+                    "当前筛选 ${selection.count} 条 · 本机共 ${selection.allCount} 条",
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                Spacer(Modifier.height(10.dp))
+            }
+
+            if (selection.records.isEmpty()) {
+                Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            if (selection.modelVersion == null) "暂无观察记录，请到识别页拍照" else "此模型暂无本地记录",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        if (selection.modelVersion != null) {
+                            TextButton(onClick = { viewModel.selectModel(null) }) { Text("查看全部模型") }
+                        }
+                    }
                 }
             } else {
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    items(state.records, key = { it.recordId }) { record ->
+                LazyColumn(modifier = Modifier.weight(1f)) {
+                    items(selection.records, key = { it.recordId }) { record ->
                         RecordCard(record, onDelete = { pendingDelete = record })
                     }
                 }
@@ -145,8 +202,8 @@ fun RecordsScreen(viewModel: RecordsViewModel = viewModel()) {
             text = {
                 Text(
                     RecordDeletionText.clearConfirm(
-                        total = state.total,
-                        pending = state.pendingCount,
+                        total = selection.allCount,
+                        pending = selection.allPendingCount,
                     ),
                 )
             },
@@ -165,6 +222,42 @@ fun RecordsScreen(viewModel: RecordsViewModel = viewModel()) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun ModelVersionFilter(versions: List<String>, selected: String?, onSelect: (String?) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
+        OutlinedTextField(
+            value = selected ?: "全部模型",
+            onValueChange = {},
+            readOnly = true,
+            singleLine = true,
+            label = { Text("模型版本") },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
+            modifier = Modifier.fillMaxWidth()
+                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                .testTag("model-version-filter"),
+        )
+        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenuItem(text = { Text("全部模型") }, onClick = { onSelect(null); expanded = false })
+            versions.forEach { version ->
+                DropdownMenuItem(
+                    text = { Text(version, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                    onClick = { onSelect(version); expanded = false },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun RecordMetric(label: String, count: Int) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(count.toString(), style = MaterialTheme.typography.headlineSmall)
+        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
 @Composable
 private fun RecordCard(record: RecordEntity, onDelete: () -> Unit) {
     val catalog = AppGraph.categoryCatalog
@@ -172,9 +265,11 @@ private fun RecordCard(record: RecordEntity, onDelete: () -> Unit) {
     val originalName = catalog.displayNameForLabel(record.predictedLabel)
 
     Card(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 5.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
-        Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             RecordThumbnail(record.photoPath)
             Spacer(Modifier.width(10.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -194,6 +289,14 @@ private fun RecordCard(record: RecordEntity, onDelete: () -> Unit) {
                 Text(
                     formatTime(record.capturedAt),
                     style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    "${if (record.inferenceSource == "cloud") "云端" else "本地"} · ${record.modelVersion}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
                 record.lastError?.let {
                     Text(
@@ -205,17 +308,17 @@ private fun RecordCard(record: RecordEntity, onDelete: () -> Unit) {
             }
             Spacer(Modifier.width(6.dp))
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                AssistChip(
-                    onClick = {},
-                    label = {
-                        Text(
-                            when {
-                                record.pendingSync -> "待同步"
-                                else -> "已同步"
-                            }
-                        )
-                    },
-                )
+                Surface(
+                    shape = MaterialTheme.shapes.small,
+                    color = if (record.pendingSync) MaterialTheme.colorScheme.secondaryContainer
+                        else MaterialTheme.colorScheme.primaryContainer,
+                ) {
+                    Text(
+                        if (record.pendingSync) "待同步" else "已同步",
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                }
                 IconButton(onClick = onDelete) {
                     Icon(
                         Icons.Filled.Delete,
@@ -241,7 +344,7 @@ private fun RecordThumbnail(photoPath: String?) {
         }
     }
     Box(
-        modifier = Modifier.size(56.dp),
+        modifier = Modifier.size(56.dp).clip(MaterialTheme.shapes.small),
         contentAlignment = Alignment.Center,
     ) {
         val current = bitmap
