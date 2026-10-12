@@ -28,6 +28,10 @@ class SettingsStore(private val context: Context) {
 
     /** 单次读取整个配置快照：地址与令牌必然同源 */
     suspend fun currentConfig(): ServerConfig = configFlow.first()
+    suspend fun cloudModelVersion(): String? = context.dataStore.data.first()[KEY_CLOUD_MODEL]
+    suspend fun setCloudModelVersion(version: String) {
+        context.dataStore.edit { it[KEY_CLOUD_MODEL] = version }
+    }
 
     /** 单次事务写入地址与令牌，避免只写入一半 */
     suspend fun setConfig(config: ServerConfig) {
@@ -55,5 +59,6 @@ class SettingsStore(private val context: Context) {
         private val KEY_BASE_URL = stringPreferencesKey("base_url")
         private val KEY_TOKEN = stringPreferencesKey("api_token")
         private val KEY_CLIENT_ID = stringPreferencesKey("client_id")
+        private val KEY_CLOUD_MODEL = stringPreferencesKey("cloud_model")
     }
 }

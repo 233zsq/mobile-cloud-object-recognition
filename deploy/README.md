@@ -4,7 +4,7 @@
 
 ## 2026-10-12 后端与统计页
 
-当前模型为campus-evolve-v2，类别campus-10-v4；health返回实际模型和当前后端提交版本。已增加修订号纠错、分页记录、统计和类别接口，Flask与Nginx均校验非空API_TOKEN。根路径提供Web统计页，页面输入现有口令后每5秒刷新，口令只在页面内存。443证书保持原样，8443照片审核站点使用独立可信IP证书。
+当前模型为campus-evolve-v2，类别campus-10-v4；health返回实际模型和当前后端提交版本。已增加修订号纠错、分页记录、统计和类别接口，Flask与Nginx均校验非空API_TOKEN。根路径提供Web统计页，页面输入现有口令后每5秒刷新，口令只在页面内存。443与8443现共用已签发、自动续期的可信IP证书；原自签证书保留为回退资料。
 
 本次不新增依赖或改变数据库结构。用固定提交生成发布归档，通过SHA-256核对后，按以下流程部署；staging.json记录旧发布、待激活发布和Nginx哈希，激活时使用这些值。
 
@@ -44,16 +44,16 @@ sudo -n python3 /暂存发布/deploy/scripts/deploy_dashboard.py activate \
 
 ## HTTPS 与认证
 
-按 IP 测试部署方案使用自签名证书。公开证书见 [certs/server.crt](certs/server.crt)，私钥仅在服务器 `/etc/mobile-cloud-backend/tls/server.key`，权限 0600。证书有效期至北京时间 **2027-01-06 19:58:23**，到期前需更换并更新客户端信任。
+2026-10-12 起，现有443服务使用 `/etc/letsencrypt-campus-review/live/campus-review-ip/fullchain.pem`，与8443共用可信IP证书及现有自动续期任务。Android已包含系统CA信任，无需随短期证书续期重发APK。`certs/server.crt`及服务器原自签证书仅用于历史部署回退。首次引导部署仍生成自签证书，已有可信证书后可运行 `sudo python3 deploy/scripts/public_tls.py` 安全切换；脚本持有ACME锁，备份并验证配置，失败恢复。
 
-SHA-256 指纹：`73:7D:DB:0A:98:47:3E:94:E2:08:B1:D6:C7:5B:A6:5A:6A:9D:D7:0F:CF:6E:B5:42:AD:63:E2:33:B7:68:02:D6`。
+原自签证书的 SHA-256 指纹（回退资料）：`73:7D:DB:0A:98:47:3E:94:E2:08:B1:D6:C7:5B:A6:5A:6A:9D:D7:0F:CF:6E:B5:42:AD:63:E2:33:B7:68:02:D6`。
 
 `GET /api/health` 不要求令牌。其余 `/api/` 请求由 Nginx 校验 `Authorization: Bearer <API_TOKEN>`，令牌区分大小写；缺失或错误返回 401。真实令牌在服务器配置的 `API_TOKEN` 字段，渲染后的 Nginx map 为 root 所有、0600。当前Flask也执行相同校验，直接访问回环Gunicorn不能绕过非空口令。
 
 从仓库根目录验证（Windows）：
 
 ```powershell
-curl.exe --noproxy "*" --cacert deploy/certs/server.crt https://49.232.195.47/api/health
+curl.exe --noproxy "*" https://49.232.195.47/api/health
 ```
 
 初始记录发布结果为 `status=ok`、`version=0.1.0+9eb92b9`、`model_loaded=false`。启用独立推理工作进程后返回新发布版本、model_loaded=true、model_version=campus-gpu-v1及model_status=ready。记录调用需配置令牌及证书信任；不能把忽略证书验证作为正式客户端配置。后续更换受信任证书时，同步更新客户端信任配置和 API 地址。
@@ -69,7 +69,7 @@ sudo systemctl status mobile-cloud-backend mysql nginx
 sudo journalctl -u mobile-cloud-backend -n 100 --no-pager
 sudo systemctl restart mobile-cloud-backend
 sudo nginx -t
-curl --cacert /home/gongyi/apps/mobile-cloud-backend/shared/server.crt https://127.0.0.1/api/health
+curl https://49.232.195.47/api/health
 ```
 
 服务定义在 `systemd/mobile-cloud-backend.service`，代理配置在 `nginx/mobile-cloud-backend.conf`。服务已设自动启动及故障重启，MemoryHigh/MemoryMax 为 192MiB/384MiB。初始实测 MySQL 约 230MiB、后端约 73MiB，整机仍可用约 526MiB，已有约 1.1GiB 交换空间被使用；尚未完成负载测试。
@@ -120,3 +120,23 @@ sudo journalctl -u mobile-cloud-backend-backup.service -n 20 --no-pager
 ## 云端推理接入
 
 新增 `POST /api/infer` 使用独立 Python 3.12 CPU 模型进程，保留当前 Flask/MySQL 部署；安装、回传文件与回退说明见 [INFERENCE.md](INFERENCE.md)。
+
+## 2026-10-12 自适应识别网页（/ios）
+
+`https://49.232.195.47/ios/` 提供手机、平板和PC共用的云端识别页面。页面是纯静态文件，
+由 nginx 直接托管（`/var/www/mobile-cloud-ios/`），**不经过** Flask 发布流程，也不改数据库、模型、口令
+和审核站。静态更新与证书切换使用独立脚本；实现与验收记录见 [web/ios/README.md](../web/ios/README.md)。
+
+```bash
+sudo python3 deploy/scripts/apply_ios_static.py   # 备份 + 写入 location + nginx -t + reload
+```
+
+注意两点：
+
+- **nginx 配置哈希会随静态路由和证书配置变化**（当前以服务器实读为准）。`deploy_dashboard.py activate` 会用 staging 时记录的
+  `--expected-nginx-sha256` 校验配置，因此下一次发布统计页前必须重新暂存以记录新哈希，否则激活会按设计拒绝覆盖。
+  回退配置在 `shared/nginx-mobile-cloud-backend-pre-ios-*.conf`。
+- 静态页用 `alias` 直接读取 `/var/www/mobile-cloud-ios/`，与 `current` 发布目录解耦；页面调用的 `/api/*`
+  仍是同一个 Flask 发布，两者互不影响。
+
+静态包更新使用 `publish_ios.py <shared目录中的归档> --sha256 <归档哈希>`，仅接受7个运行文件，校验后原子切换目录指针；旧版本保存在 `/var/www/mobile-cloud-ios-releases/`。不使用全目录上传，测试和README不会公开托管。

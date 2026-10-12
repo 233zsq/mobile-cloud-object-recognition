@@ -69,16 +69,24 @@ def tests(data):
         sql(f'DROP DATABASE IF EXISTS `{name}`;')
 
 
+def tls_context():
+    context = ssl.create_default_context()
+    legacy = BASE / 'shared/server.crt'
+    if legacy.is_file():
+        context.load_verify_locations(cafile=str(legacy))
+    return context
+
+
 def http(data):
     values = dict(line.split('=', 1) for line in (ROOT / '.env').read_text().splitlines() if line and not line.startswith('#'))
     token = values['API_TOKEN']
-    context = ssl.create_default_context(cafile=str(BASE / 'shared/server.crt'))
+    context = tls_context()
 
     def call(path, body=None, bearer=None, method=None):
         headers = {'Content-Type': 'application/json'}
         if bearer is not None:
             headers['Authorization'] = 'Bearer ' + bearer
-        request = Request('https://127.0.0.1' + path,
+        request = Request('https://49.232.195.47' + path,
                           data=None if body is None else json.dumps(body).encode(), headers=headers, method=method)
         try:
             response = urlopen(request, context=context, timeout=15)

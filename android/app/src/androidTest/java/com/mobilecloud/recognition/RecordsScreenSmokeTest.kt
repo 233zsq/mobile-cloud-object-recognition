@@ -11,6 +11,7 @@ import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -54,7 +55,11 @@ class RecordsScreenSmokeTest {
         compose.onNodeWithTag("inference-mode-device").assertIsSelected()
         saveScreen("capture-field-notes-local.png")
         compose.onNodeWithTag("inference-mode-cloud").performClick().assertIsSelected()
-        compose.onNodeWithText("图片发送至组内服务器", substring = true).assertIsDisplayed()
+        compose.onNodeWithTag("cloud-model-picker").assertIsDisplayed()
+        compose.waitUntil(15_000) {
+            compose.onAllNodesWithText("正在读取云端模型…").fetchSemanticsNodes().isEmpty()
+        }
+        compose.onNodeWithText("图片发送至组内服务器", substring = true).performScrollTo().assertIsDisplayed()
         saveScreen("capture-field-notes-cloud.png")
         compose.onNodeWithTag("inference-mode-device").performClick().assertIsSelected()
     }

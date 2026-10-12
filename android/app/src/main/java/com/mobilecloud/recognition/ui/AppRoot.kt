@@ -4,6 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
@@ -52,13 +54,16 @@ fun AppRoot() {
     }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
             if (currentRoute?.startsWith("settings/") != true) {
-                Row(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceContainer).navigationBarsPadding().padding(vertical = 8.dp)) {
+                Row(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 20.dp, vertical = 10.dp)
+                    .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(28.dp)).padding(6.dp)) {
                     listOf(CAPTURE, RECORDS, SETTINGS).forEach { tab ->
                         val selected = currentRoute == tab.route
                         Column(
-                            modifier = Modifier.weight(1f).selectable(selected, role = Role.Tab, onClick = {
+                            modifier = Modifier.weight(1f).background(if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+                                RoundedCornerShape(23.dp)).heightIn(min = 52.dp).selectable(selected, role = Role.Tab, onClick = {
                                 navController.navigate(tab.route) {
                                     popUpTo(navController.graph.findStartDestination().id) {
                                         saveState = true
@@ -69,8 +74,9 @@ fun AppRoot() {
                             }).padding(vertical = 6.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
-                            Box(Modifier.background(if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainer, CircleShape).padding(horizontal = 20.dp, vertical = 3.dp)) { TabIcon(tab.route) }
-                            Text(tab.label, style = MaterialTheme.typography.labelMedium)
+                            val ink = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onPrimary
+                            Box(Modifier.padding(vertical = 1.dp)) { TabIcon(tab.route, ink) }
+                            Text(tab.label, style = MaterialTheme.typography.labelMedium, color = ink)
                         }
                     }
                 }
@@ -80,7 +86,7 @@ fun AppRoot() {
         NavHost(
             navController = navController,
             startDestination = CAPTURE.route,
-            modifier = Modifier.padding(padding),
+            modifier = Modifier.padding(padding).consumeWindowInsets(padding),
         ) {
             composable(CAPTURE.route) { CaptureScreen(catalog = AppGraph.categoryCatalog) }
             composable(RECORDS.route) { RecordsScreen() }
@@ -99,10 +105,10 @@ fun AppRoot() {
 }
 
 @Composable
-private fun TabIcon(route: String) {
+private fun TabIcon(route: String, tint: Color) {
     when (route) {
-        CAPTURE.route -> Icon(painterResource(R.drawable.ic_tab_camera), contentDescription = "采集")
-        RECORDS.route -> Icon(Icons.Filled.List, contentDescription = "记录")
-        SETTINGS.route -> Icon(Icons.Filled.Settings, contentDescription = "设置")
+        CAPTURE.route -> Icon(painterResource(R.drawable.ic_tab_camera), contentDescription = null, tint = tint)
+        RECORDS.route -> Icon(Icons.Filled.List, contentDescription = null, tint = tint)
+        SETTINGS.route -> Icon(Icons.Filled.Settings, contentDescription = null, tint = tint)
     }
 }

@@ -16,6 +16,9 @@ import okhttp3.RequestBody
  * 接口实现就绪前的失败会保存在本地记录，不阻塞离线识别。
  */
 interface ApiService {
+    @GET("api/models")
+    suspend fun models(): CloudModelsResponse
+
     @Multipart
     @POST("api/infer")
     suspend fun infer(

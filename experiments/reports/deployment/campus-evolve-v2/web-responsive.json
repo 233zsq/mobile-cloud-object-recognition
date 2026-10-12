@@ -1,0 +1,83 @@
+{
+  "verified_on": "2026-10-12",
+  "base_commit": "40a9f9a",
+  "url": "https://49.232.195.47/ios/",
+  "model_version": "campus-evolve-v2",
+  "model_sha256": "7e2387600303333f714533aac1a0c1e4260425b06154dd7fa4ed920d01bef691",
+  "category_version": "campus-10-v4",
+  "node_core_tests": {
+    "command": "node --test web/ios/tests/core.test.cjs",
+    "passed": 14
+  },
+  "python_deployment_tests": {
+    "passed": 18,
+    "command": "pytest tests/test_ios_deploy.py review/tests/test_acme.py -q",
+    "environment": "isolated server test directory, existing backend venv"
+  },
+  "browser": {
+    "checks": [
+      {
+        "columns": "698.396px 465.604px",
+        "device": "desktop",
+        "pageWidth": 1425,
+        "service": "云端 v2",
+        "width": 1440
+      },
+      {
+        "columns": "384.594px 343.406px",
+        "device": "tablet",
+        "pageWidth": 820,
+        "width": 820
+      },
+      {
+        "columns": "350px",
+        "device": "phone",
+        "emptyResultHidden": true,
+        "pageWidth": 390,
+        "width": 390
+      }
+    ],
+    "date_validation": true,
+    "filter_reset": true,
+    "settings_navigation": true,
+    "console_errors": [],
+    "real_safari_tested": false
+  },
+  "tls": {
+    "hostname_verified": true,
+    "existing_renewal_timer_active": true,
+    "system_trust_verified": true,
+    "shared_lineage_ports": [
+      443,
+      8443
+    ]
+  },
+  "live_inference": {
+    "performance_acceptance": false,
+    "sample": "oi-30d38acdacfe06d0",
+    "production_record_writes": 0,
+    "request_id": "349c73cc-6e59-480a-b092-ee6173f08e4d",
+    "max_score_difference_from_reference": 0,
+    "response_contract_valid": true
+  },
+  "static_bundle": {
+    "archive_sha256": "50362871519c7ae6cbf436f52ee090a6a7e847832e025c63d818cd23979a7c31",
+    "files": {
+      "index.html": "d002ac323cd31d7ccbdb0e2b01fda1578acd307eb98322b99d200aee16f281c6",
+      "app.css": "d159d151bc9e2bde192e716faff87dbc3a7d5bdc1e61ad712731e74c08ce101e",
+      "app.js": "6c6bfc82179bee9d29364a436464203ef522e3ae9029fa18e773240eb3089639",
+      "core.js": "c0247eb0fb680f21c492cf77fab81cb9f68ab63f20d34c27665fc4756a68c282",
+      "categories.json": "8ec72dd73036014c597deb9da17273f63cead49ced874cd3e3f7f5f893aaea0b",
+      "model-contract.json": "03139e4bf5ff3278c7fbdf2273f94d1d6cae8bdc108b1916f7cc0c35adafc73e",
+      "manifest.webmanifest": "9b16e842277977a30d63a58258c66f6062b2e7bef3fa2eaa813b17988b0e44ef"
+    }
+  },
+  "release": "/var/www/mobile-cloud-ios-releases/20261012T131935Z-50362871519c",
+  "previous_release": "/var/www/mobile-cloud-ios-releases/20261012T130745Z-b8cc677a9f88",
+  "pending": [
+    "Real iPhone Safari capture and HEIC validation",
+    "Independent field accuracy and macro F1 acceptance",
+    "Documented physical Android device and performance acceptance"
+  ],
+  "android_capture_feedback": "User reports capture works; client, APK and device not pinned. No Android behavior changed in this patch."
+}

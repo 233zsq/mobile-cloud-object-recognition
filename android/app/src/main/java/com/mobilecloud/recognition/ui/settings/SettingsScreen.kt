@@ -1,6 +1,7 @@
 package com.mobilecloud.recognition.ui.settings
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -99,11 +100,14 @@ private fun SettingsOverview(state: SettingsUiState, onOpenPage: (SettingsPage) 
                 else -> "识别说明、20 张样例自检与报告"
             }
             Row(
-                Modifier.fillMaxWidth().testTag("settings-${page.path}").clickable { onOpenPage(page) }.padding(vertical = 14.dp),
+                Modifier.fillMaxWidth().testTag("settings-${page.path}")
+                    .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(18.dp))
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(18.dp))
+                    .clickable { onOpenPage(page) }.padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(Modifier.size(38.dp).background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(10.dp)), contentAlignment = Alignment.Center) {
-                    Text("0${index + 1}", style = MaterialTheme.typography.labelMedium)
+                    Text(listOf("↗", "⌗", "▤", "?")[index], style = MaterialTheme.typography.titleMedium)
                 }
                 Spacer(Modifier.width(14.dp))
                 Column(Modifier.weight(1f)) {
@@ -113,7 +117,7 @@ private fun SettingsOverview(state: SettingsUiState, onOpenPage: (SettingsPage) 
                 }
                 Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            Spacer(Modifier.height(10.dp))
         }
         Spacer(Modifier.height(20.dp))
         Text("CAMPUS / FIELD NOTES", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

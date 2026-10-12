@@ -66,6 +66,7 @@ def load_config(env_file: str | Path | None = None) -> dict:
         "API_TOKEN": values.get("API_TOKEN", ""),
         "MODEL_DIR": model_dir,
         "INFERENCE_SOCKET": inference_socket,
+        "INFERENCE_REGISTRY": values.get("INFERENCE_REGISTRY", ""),
         "INFERENCE_MODEL_VERSION": inference_version,
         "INFERENCE_MODEL_SHA256": inference_sha256,
         "INFERENCE_TIMEOUT_SECONDS": _integer(values, "INFERENCE_TIMEOUT_SECONDS", 15, 25),

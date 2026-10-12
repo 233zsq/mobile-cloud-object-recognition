@@ -1,0 +1,14 @@
+{
+  "name": "物品识别 · 校园观察手册",
+  "short_name": "物品识别",
+  "description": "校园观察手册：手机、平板与电脑共用的云端物品识别，记录可上报与纠错。",
+  "lang": "zh-CN",
+  "start_url": "/ios/",
+  "scope": "/ios/",
+  "display": "standalone",
+  "background_color": "#f6f3e8",
+  "theme_color": "#183f32",
+  "icons": [
+    { "src": "/assets/images/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+  ]
+}

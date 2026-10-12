@@ -2,6 +2,8 @@ package com.mobilecloud.recognition.inference
 
 import com.mobilecloud.recognition.data.remote.ApiService
 import com.mobilecloud.recognition.data.remote.InferResponse
+import com.mobilecloud.recognition.data.remote.CloudModelsResponse
+import com.mobilecloud.recognition.data.remote.CloudModelOption
 import java.io.File
 import java.util.UUID
 import kotlin.math.abs
@@ -21,11 +23,32 @@ data class CloudModelContract(val version: String, val sha256: String, val label
         val index = scores.indices.maxBy { scores[it] }
         require(response.predictedId == index && response.labelKey == labels[index] && response.confidence == scores[index]) { "云端类别与分数不一致" }
         require(listOf(response.preprocessMs, response.inferenceMs).all { it.isFinite() && it >= 0 && it < 60_000 }) { "云端耗时无效" }
+        require(response.lowConfidence == (response.confidence < threshold)) { "云端阈值与选定模型不一致" }
         return Prediction(index, response.confidence, response.labelKey,
             response.preprocessMs.roundToLong(), response.inferenceMs.roundToLong(),
             (response.preprocessMs + response.inferenceMs).roundToLong(), response.modelVersion)
     }
 }
+
+/** The authenticated HTTPS catalog pins a separate contract for each cloud model. */
+fun CloudModelsResponse.validated(expectedLabels: List<String>): CloudModelsResponse {
+    require(models.size in 1..2 && models.map { it.version }.distinct().size == models.size) { "云端模型清单无效" }
+    require(models.any { it.version == defaultModelVersion }) { "缺少默认云端模型" }
+    models.forEach { model ->
+        require(model.version.matches(Regex("[A-Za-z0-9][A-Za-z0-9._-]{0,63}"))
+            && model.sha256.matches(Regex("[0-9a-f]{64}"))
+            && model.labelsSha256.matches(Regex("[0-9a-f]{64}"))
+            && model.categoryVersion.matches(Regex("[A-Za-z0-9][A-Za-z0-9._-]{0,63}"))
+            && model.status == "frozen" && model.labels == expectedLabels
+            && model.threshold.isFinite() && model.threshold in 0f..1f
+            && model.displayName.length in 1..64 && model.description.length in 1..160) { "云端模型规格不兼容" }
+        val labelsBytes = (model.labels.joinToString("\n") + "\n").toByteArray(Charsets.UTF_8)
+        require(com.mobilecloud.recognition.util.ShaUtil.sha256Hex(labelsBytes) == model.labelsSha256) { "云端标签哈希不一致" }
+    }
+    return this
+}
+
+fun CloudModelOption.contract() = CloudModelContract(version, sha256, labels, threshold)
 
 class CloudClassifier(private val api: ApiService) {
     suspend fun classify(file: File, contract: CloudModelContract): Prediction {
@@ -36,7 +59,7 @@ class CloudClassifier(private val api: ApiService) {
             MultipartBody.Part.createFormData("image", "capture.jpg", file.asRequestBody("image/jpeg".toMediaType())))
         if (!response.isSuccessful) throw IllegalStateException(when (response.code()) {
             401, 403 -> "云端认证失败，请在我的设备中检查访问令牌"
-            409 -> "端云模型版本不一致，请联系管理员"
+            409 -> "所选云端模型已不可用，请刷新模型列表后重试"
             413 -> "图片过大，请换一张照片"
             429, 503 -> "云端繁忙或暂不可用，请稍后重试"
             else -> "云端识别失败（HTTP ${response.code()}）"

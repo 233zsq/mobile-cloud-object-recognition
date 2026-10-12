@@ -92,3 +92,28 @@ def init_inference(app):
         path, app.config["INFERENCE_MODEL_VERSION"], app.config["INFERENCE_MODEL_SHA256"],
         app.config["INFERENCE_TIMEOUT_SECONDS"],
     ) if path else None
+    app.extensions['inference_clients'] = {}
+    app.extensions['inference_contracts'] = []
+    if app.config['INFERENCE_REGISTRY']:
+        from inference_registry import load_registry, public_contract
+        registry = load_registry(app.config['INFERENCE_REGISTRY'])
+        default = next(m for m in registry['models'] if m['model_version'] == registry['default_model_version'])
+        if (default['model_version'], default['model_sha256']) != (
+                app.config['INFERENCE_MODEL_VERSION'], app.config['INFERENCE_MODEL_SHA256']):
+            raise ValueError('Registry default differs from pinned configuration')
+        if not path:
+            raise ValueError('Multi-model registry requires a private socket')
+        app.extensions['inference_contracts'] = [public_contract(m) for m in registry['models']]
+        app.extensions['inference_clients'] = {m['model_version']: ModelClient(
+            path, m['model_version'], m['model_sha256'], app.config['INFERENCE_TIMEOUT_SECONDS'])
+            for m in registry['models']}
+        app.extensions['inference_client'] = app.extensions['inference_clients'][default['model_version']]
+
+
+def selected_client(app, version):
+    # Keep the single-model installation and its health contract backwards compatible.
+    if version == app.config['INFERENCE_MODEL_VERSION']:
+        return app.extensions['inference_client']
+    if version in app.extensions['inference_clients']:
+        return app.extensions['inference_clients'][version]
+    raise ApiError('MODEL_VERSION_MISMATCH', MESSAGES['MODEL_VERSION_MISMATCH'], 409)

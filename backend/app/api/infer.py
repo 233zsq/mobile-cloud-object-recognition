@@ -8,7 +8,7 @@ from flask import current_app, request
 
 from . import api
 from ..errors import ApiError
-from ..inference.client import MESSAGES
+from ..inference.client import MESSAGES, selected_client
 from ..services.records import UUID_PATTERN
 
 
@@ -24,9 +24,7 @@ def infer():
     request_id = request.form["request_id"]
     if not re.fullmatch(UUID_PATTERN, request_id):
         raise ApiError("INVALID_INFER_REQUEST", "request_id 必须为带连字符的 UUID。")
-    if request.form["model_version"] != current_app.config["INFERENCE_MODEL_VERSION"]:
-        raise ApiError("MODEL_VERSION_MISMATCH", MESSAGES["MODEL_VERSION_MISMATCH"], 409)
-    client = current_app.extensions["inference_client"]
+    client = selected_client(current_app, request.form['model_version'])
     if client is None:
         raise ApiError("MODEL_UNAVAILABLE", MESSAGES["MODEL_UNAVAILABLE"], 503)
     image = request.files["image"].stream.read(current_app.config["INFERENCE_MAX_IMAGE_BYTES"] + 1)
@@ -38,3 +36,18 @@ def infer():
     response = dict(result, request_id=str(UUID(request_id)))
     response["server_ms"] = (time.perf_counter() - started) * 1000
     return response
+
+
+@api.get('/models')
+def models():
+    """Expose contracts for approved models, never filesystem paths or credentials."""
+    result = []
+    for contract in current_app.extensions['inference_contracts']:
+        available = False
+        try:
+            selected_client(current_app, contract['model_version']).health()
+            available = True
+        except ApiError:
+            pass
+        result.append(dict(contract, available=available))
+    return {'default_model_version': current_app.config['INFERENCE_MODEL_VERSION'], 'models': result}

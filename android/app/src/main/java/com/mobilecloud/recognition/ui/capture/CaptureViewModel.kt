@@ -7,9 +7,10 @@ import com.mobilecloud.recognition.data.local.RecordEntity
 import com.mobilecloud.recognition.inference.ModelRepository
 import com.mobilecloud.recognition.inference.Prediction
 import com.mobilecloud.recognition.inference.CloudClassifier
-import com.mobilecloud.recognition.inference.CloudModelContract
-import com.mobilecloud.recognition.inference.ModelMetadata
-import com.mobilecloud.recognition.util.ShaUtil
+import com.mobilecloud.recognition.inference.validated
+import com.mobilecloud.recognition.inference.contract
+import com.mobilecloud.recognition.data.remote.CloudModelOption
+import com.mobilecloud.recognition.data.settings.ServerConfig
 import android.os.SystemClock
 import java.io.File
 import kotlinx.coroutines.Dispatchers
@@ -51,6 +52,10 @@ data class CaptureUiState(
     val mode: InferenceMode = InferenceMode.DEVICE,
     val failedPhoto: Boolean = false,
     val failure: String? = null,
+    val cloudModels: List<CloudModelOption> = emptyList(),
+    val cloudModelVersion: String? = null,
+    val cloudModelsLoading: Boolean = false,
+    val cloudModelsError: String? = null,
 )
 
 /**
@@ -65,6 +70,8 @@ class CaptureViewModel : ViewModel() {
     private var pendingPhoto: File? = null
     private var cloudPrepared = false
     private var capturedAt = 0L
+    private var modelsJob: Job? = null
+    private var catalogConfig: ServerConfig? = null
 
     init {
         loadModel()
@@ -82,7 +89,44 @@ class CaptureViewModel : ViewModel() {
     }
 
     /** 拍照保存回调：解码直立图 → 端侧推理 → 写入 Room → 触发上报（F02/F03/F04） */
-    fun selectMode(mode: InferenceMode) { if (!_state.value.capturing) _state.update { it.copy(mode = mode) } }
+    fun selectMode(mode: InferenceMode) {
+        if (_state.value.capturing) return
+        _state.update { it.copy(mode = mode) }
+        if (mode == InferenceMode.CLOUD) refreshCloudModels()
+    }
+
+    fun refreshCloudModels() {
+        if (_state.value.capturing || modelsJob?.isActive == true) return
+        _state.update { it.copy(cloudModelsLoading = true, cloudModelsError = null) }
+        modelsJob = viewModelScope.launch {
+            try {
+                val config = AppGraph.settings.currentConfig()
+                AppGraph.apiClient.updateConfig(config)
+                val catalog = AppGraph.apiClient.api.models().validated(AppGraph.categoryCatalog.categories.map { it.labelKey })
+                require(AppGraph.settings.currentConfig() == config) { "连接设置已变化，请重新加载模型" }
+                val saved = _state.value.cloudModelVersion ?: AppGraph.settings.cloudModelVersion()
+                val selected = saved ?: catalog.defaultModelVersion
+                catalogConfig = config
+                _state.update { it.copy(cloudModels = catalog.models, cloudModelVersion = selected,
+                    cloudModelsLoading = false, cloudModelsError = if (catalog.models.none { m -> m.version == selected && m.available })
+                        "上次选择的模型不可用，请选择一个就绪模型。" else null) }
+            } catch (e: CancellationException) { throw e }
+            catch (e: Exception) {
+                _state.update { it.copy(cloudModelsLoading = false, cloudModels = emptyList(),
+                    cloudModelsError = "无法读取云端模型，请检查已保存的连接与口令后重试。") }
+            }
+        }
+    }
+
+    fun selectCloudModel(version: String) {
+        if (_state.value.capturing || _state.value.cloudModels.none { it.version == version && it.available }) return
+        _state.update { it.copy(cloudModelVersion = version, cloudModelsError = null) }
+        viewModelScope.launch {
+            try { AppGraph.settings.setCloudModelVersion(version) }
+            catch (e: CancellationException) { throw e }
+            catch (e: Exception) { _state.update { it.copy(message = "本次模型选择已生效，但未能保存到设备。") } }
+        }
+    }
 
     fun onCaptureStarted() { capturedAt = System.currentTimeMillis(); _state.update { it.copy(capturing = true) } }
 
@@ -160,17 +204,20 @@ class CaptureViewModel : ViewModel() {
                 else -> com.mobilecloud.recognition.inference.ModelBundle.DEFAULT_THRESHOLD
             }
             val prediction = if (mode == InferenceMode.DEVICE) AppGraph.modelRepository.classify(requireNotNull(bitmap)) else {
-                AppGraph.apiClient.updateConfig(AppGraph.settings.currentConfig())
-                val contract = withContext(Dispatchers.IO) {
-                    val assets = AppGraph.appContext.assets
-                    val metadata = ModelMetadata.parse(assets.open("models/metadata.json").bufferedReader().use { it.readText() })
-                    val labelsText = assets.open("models/labels.txt").bufferedReader().use { it.readText() }
-                    require(ShaUtil.sha256Hex(labelsText.toByteArray(Charsets.UTF_8)) == metadata.labelsSha256) { "标签哈希校验失败" }
-                    val labels = labelsText.lineSequence().map { it.trim() }.filter { it.isNotEmpty() }.toList()
-                    require(labels == AppGraph.categoryCatalog.categories.map { it.labelKey }) { "类别顺序不一致" }
-                    CloudModelContract(requireNotNull(metadata.modelVersion), requireNotNull(metadata.sha256), labels,
-                        metadata.lowConfidenceThreshold ?: .5f)
+                val selected = _state.value.cloudModelVersion ?: error("请先选择云端模型")
+                val previous = _state.value.cloudModels.singleOrNull { it.version == selected }
+                    ?: error("请先刷新云端模型列表")
+                val config = AppGraph.settings.currentConfig()
+                require(config == catalogConfig) { "连接设置已变化，请刷新云端模型后重试" }
+                AppGraph.apiClient.updateConfig(config)
+                val catalog = AppGraph.apiClient.api.models().validated(AppGraph.categoryCatalog.categories.map { it.labelKey })
+                val fresh = catalog.models.singleOrNull { it.version == selected && it.available }
+                    ?: error("所选模型暂不可用，请刷新列表后手动选择")
+                require(fresh.sha256 == previous.sha256 && fresh.labelsSha256 == previous.labelsSha256
+                    && fresh.categoryVersion == previous.categoryVersion && fresh.threshold == previous.threshold) {
+                    "所选模型规格已变化，请刷新列表后手动选择"
                 }
+                val contract = fresh.contract()
                 threshold = contract.threshold
                 CloudClassifier(AppGraph.apiClient.api).classify(file, contract)
             }

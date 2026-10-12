@@ -117,22 +117,30 @@ fun CameraCaptureView(
             modifier = Modifier.fillMaxSize(),
         )
         Canvas(Modifier.fillMaxSize().padding(20.dp)) {
-            drawRoundRect(Color.White.copy(alpha = .55f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(20.dp.toPx()), style = Stroke(1.dp.toPx()))
+            val length = 24.dp.toPx()
+            val stroke = 2.dp.toPx()
+            val ink = Color(0xFFD7EF78)
+            listOf(androidx.compose.ui.geometry.Offset.Zero, androidx.compose.ui.geometry.Offset(size.width, 0f),
+                androidx.compose.ui.geometry.Offset(0f, size.height), androidx.compose.ui.geometry.Offset(size.width, size.height)).forEach { point ->
+                drawLine(ink, point, point + androidx.compose.ui.geometry.Offset(if (point.x == 0f) length else -length, 0f), stroke)
+                drawLine(ink, point, point + androidx.compose.ui.geometry.Offset(0f, if (point.y == 0f) length else -length), stroke)
+            }
         }
         Text("把一个主要物品放入画面", Modifier.align(Alignment.BottomCenter).padding(14.dp).background(Color.Black.copy(alpha = .35f), RoundedCornerShape(14.dp)).padding(horizontal = 12.dp, vertical = 5.dp), color = Color.White, style = MaterialTheme.typography.bodySmall)
       }
         Row(
             modifier = Modifier
                 .fillMaxWidth().padding(vertical = 10.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            androidx.compose.material3.TextButton(onClick = onImportClick, enabled = captureEnabled) {
-                Text("从相册导入", style = MaterialTheme.typography.labelMedium)
+            OutlinedButton(onClick = onImportClick, enabled = captureEnabled,
+                modifier = Modifier.weight(.85f).height(56.dp), shape = RoundedCornerShape(18.dp)) {
+                Text("选择图片", style = MaterialTheme.typography.labelLarge)
             }
             Box(
-                modifier = Modifier.size(64.dp).border(1.dp, MaterialTheme.colorScheme.primary, CircleShape)
-                .padding(6.dp).background(if (captureEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline, CircleShape)
+                modifier = Modifier.weight(1.3f).height(56.dp).clip(RoundedCornerShape(18.dp))
+                .background(if (captureEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline)
                 .semantics { contentDescription = "拍照识别" }
                 .clickable(enabled = captureEnabled && !capturing, role = Role.Button) {
                     if (capturing || !captureEnabled) return@clickable
@@ -164,9 +172,8 @@ fun CameraCaptureView(
                         strokeWidth = 2.dp,
                         color = MaterialTheme.colorScheme.onPrimary,
                     )
-                }
+                } else Text("拍照识别", color = MaterialTheme.colorScheme.onPrimary, style = MaterialTheme.typography.titleMedium)
             }
-            Text("十种物品", Modifier.padding(horizontal = 10.dp), style = MaterialTheme.typography.labelMedium)
         }
     }
 }
