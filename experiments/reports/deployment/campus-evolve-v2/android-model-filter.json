@@ -1,0 +1,44 @@
+{
+  "source_commit": "54c7af742ab5d1c5952cde43c82b225f7179d627",
+  "base_commit": "6f516904132446c4cf6e42ec978233df12c13819",
+  "model_version": "campus-evolve-v2",
+  "model_sha256": "7e2387600303333f714533aac1a0c1e4260425b06154dd7fa4ed920d01bef691",
+  "apk_file": "campus-evolve-v2-model-filter.apk",
+  "apk_bytes": 56811796,
+  "apk_sha256": "de9848b04094b123915fcda3a0f5d7e63c0737f85b678a6550bff57d47e77d9a",
+  "unit_tests": {
+    "tests": 97,
+    "errors": 0,
+    "failures": 0,
+    "skipped": 0
+  },
+  "instrumentation": {
+    "failures": 0,
+    "sdk": 32,
+    "skipped": 0,
+    "tests": 2,
+    "cases": [
+      "specific model selection and reset",
+      "real record-page navigation and ViewModel creation"
+    ],
+    "android": "12",
+    "errors": 0,
+    "device_kind": "MuMu emulator",
+    "screen": "1080x1920 portrait"
+  },
+  "screenshot": {
+    "scope": "Actual Compose screenshot of the new emulator with an empty local record database",
+    "file": "records-model-filter.png",
+    "sha256": "323c0341f6c69b8be9d516b7eb065f3b8a2f1746f948e6c44f8674c0fae2ee03"
+  },
+  "behavior": [
+    "Exact model-version filtering of local records only",
+    "Visible counts follow the filter",
+    "Global sync and clear confirmation retain whole-device scope",
+    "Model choices are derived from local history, including a now-empty selected version"
+  ],
+  "installed_on_user_portrait_emulator": true,
+  "cloud_web_model_filter": "Already implemented and deployed; no redundant API or Web changes",
+  "physical_phone_acceptance": "pending",
+  "captured_at": "2026-10-12T07:15:03Z"
+}
