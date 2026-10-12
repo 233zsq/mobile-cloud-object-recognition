@@ -73,9 +73,7 @@ uploaded=1 且 correctionPending=0 ──纠错──> correctionPending=1 ─�
   `(v*a + bg*(255-a) + 127)/255`；截断会在半透明像素上产生 1 的偏差（已实测：截断 1 → 四舍五入 0）。
 
 ### 传输安全（TLS）
-- 后端为 IP 自签名证书（`deploy/certs/server.crt`，CN/SAN `49.232.195.47`，有效期至
-  2027-01-06）。`res/xml/network_security_config.xml` 的 domain-config **显式信任该公钥证书**，
-  不依赖设备安装；服务器换证或换 IP 时同步更新该文件与 `deploy/certs/server.crt`。
+- 2026-10-12 起后端443使用与审核站8443共用的可信IP证书，由现有ACME任务自动续期。`res/xml/network_security_config.xml` 已包含系统CA信任，短期证书续期不需要更新APK。原 `res/raw/team_server_cert.crt` 保留用于原自签部署回退；正式连接始终校验证书与主机名。
 - base-config 默认信任系统 CA；联调期保留明文 http 供局域网使用，后端全面 HTTPS 后收紧。
 - debug 构建额外信任设备上用户安装的 CA（`debug-overrides`），便于局域网/自签环境联调；
   release 构建不生效。

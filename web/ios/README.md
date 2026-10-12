@@ -1,0 +1,91 @@
+# 自适应识别网页（/ios）
+
+手机、平板与 PC 共用的「观察手册」，部署于 https://49.232.195.47/ios/ 。
+拍照或选图 → 云端推理 → 本机记录 → 同步与纠错。网页版需要联网，不提供端侧离线推理。
+
+## 页面与操作
+
+- 手机使用底部“识别／记录／我的”；平板识别区与结果并排，PC 使用顶部导航和更宽的工作区。
+- 图片在本次会话预览，显示处理阶段，可取消和重试；手机成功识别后滚动到结果。
+- 记录按模型、修正后的类别、状态及日期筛选，计数与列表使用相同范围；每次渲染24条，按需加载。
+- 设置分为云端连接、识别模型、数据与隐私、使用说明。只点“保存口令”才生效，二级页切换保留未保存输入。
+- 本机 JSON 备份不含访问口令、设备凭据或照片。云端统计页与本机记录范围不同。
+
+## 数据与同步保证
+
+保留原 localStorage 键 `campus-ios-v1`，升级保留已有记录和设置。
+默认保留最近300条；超过时从最旧开始清理已同步、无待传纠错、无冲突的记录。
+待同步项不为凑上限而删除，因此总数可以超过300。
+
+所有手动、定时、联网和逐条触发共享同一顺序队列。每次纠错发送不可变快照，
+旧响应只确认对应修订，不能确认或覆盖发送期间的新修改。每次响应后及时保存进度。
+409保留未同步冲突，暂停自动重试，用户可采用云端修正或以新修订提交本机修正；
+404重新上传原记录，不能标记为同步成功。旧版误标“已同步”的冲突在加载时转回待处理。
+
+存储失败显示全局提醒及导出入口，不把仅在内存中的记录显示成可靠保存。
+网页关闭后不会继续执行后台补传；再次打开或恢复前台并联网后继续。
+
+## 模型与图片规格
+
+`model-contract.json` 固定 campus-evolve-v2、完整模型SHA-256、campus-10-v4标签顺序及0.50阈值，
+与冻结发布和Android类别文件对照检查。请求编号、模型身份、10类Softmax、Top-1、
+置信度、阈值标记及耗时有效性通过后才保存结果。服务换模型时拒绝静默切换。
+
+图片最长边2048，JPEG质量0.92，透明区域使用128灰底，重编码去除EXIF和位置元数据；
+原图最多32MiB，传输副本最多8MiB。实际HEIC解码与相机唤起取决于浏览器，
+失败提示转换JPEG／PNG；真实iPhone Safari仍需验收。
+
+## 部署与回退
+
+只公开7个运行文件：index.html、app.css、app.js、core.js、categories.json、
+model-contract.json、manifest.webmanifest。不上传README、测试、照片或凭据。
+`apply_ios_static.py` 管理Nginx静态路由，`publish_ios.py` 校验归档哈希和成员白名单，
+持有ACME共享锁后原子切换 `/var/www/mobile-cloud-ios` 指针。
+旧版本保存在 `/var/www/mobile-cloud-ios-releases/`，发布记录位于后端shared目录。
+
+443已切换到8443正在使用的可信IP证书，复用现有自动续期任务，正常访问无需安装自签证书。
+`public_tls.py` 只替换已知443证书指令，预检查、备份、Nginx验证、等待就绪；失败恢复旧配置。
+Android配置已有system信任，续期不需要更新APK；不关闭证书或主机名校验。
+
+配置变更会影响 `deploy_dashboard.py` 暂存时记录的Nginx哈希，后续激活前重新暂存。
+静态页面更新不切换后端、模型、数据库和审核站。
+
+## 本轮验证（2026-10-12）
+
+- 14项网页核心检查通过：记录清理、存储失败、POST／PATCH期间再纠错、共用队列、409／404、
+  网络失败重试、筛选以及模型响应与冻结规格。
+- 18项部署及ACME检查通过：证书修改边界、Nginx过渡、归档白名单、重复／越界成员、可信连接及续期恢复。
+- Chromium检查390×844、820×1180和1440×1000的布局与导航；真实Safari不据此标为通过。
+- 公网系统可信HTTPS健康检查成功，campus-evolve-v2就绪；公开交接样例完成真实推理响应检查，
+  不调用正式记录写入接口。
+- 用户反馈安卓机拍照正常；具体客户端、版本、设备与完整真机链路尚未留证，不替代实拍准确率验收。
+
+复现：`node --test web/ios/tests/core.test.cjs`；
+在具备pytest的Python环境运行 `pytest tests/test_ios_deploy.py review/tests/test_acme.py -q`。
+
+
+
+## 初版历史验证（2026-10-12，改版前）
+
+静态与部署：
+- `/ios` 返回 308 跳到 `/ios/`；`/ios/` 200 且带 CSP、`X-Content-Type-Options`、`Referrer-Policy`、`Cache-Control: no-cache`。
+- `app.css` / `app.js` / `categories.json` 的 MIME 正确；`manifest.webmanifest` 由独立 location 声明为
+  `application/manifest+json`（nginx 内置 mime.types 不含该后缀）。
+- 原有路由未受影响：`/` 统计页 200，未知路径仍 404，`/assets/images/*` 可达；80 端口仍 308 跳 HTTPS。
+- 线上文件与仓库逐字节一致（5 个文件 sha256 相同）。
+
+接口（经公网，Linux 侧 `curl --cacert` 校验证书链通过）：
+- `GET /api/health` 200，`model_version=campus-evolve-v2`、`model_status=ready`。
+- `POST /api/infer`：无口令 401；口令错误 401；`model_version` 不符 409 `MODEL_VERSION_MISMATCH`
+  （页面据此刷新版本后重试一次）；`request_id` 非 UUID 400。
+- 三张仓库自带样例图（真值 水杯/书本/钥匙）经公网推理的类别与置信度与样例清单一致
+  （0.9999 / 1.0000 / 0.9779），响应含页面读取的全部字段，`scores` 10 项且和为 1。
+- `POST /api/records` 与 `PATCH /api/records/{id}/label` 的字段集合与页面发送一致：
+  用无效模型版本与随机 UUID 触发 `UNKNOWN_MODEL_VERSION`、`RECORD_NOT_FOUND`，未写入任何记录。
+
+浏览器（Chromium，390×844 手机视口）：
+- 首屏无横向溢出，类别清单 10 条加载成功，三屏标签切换正常，健康检查失败时按预期显示「无法连接」。
+- 传输副本：2400×1600 → 2048×1365 JPEG，符合「最长边 2048、质量 92」规格。
+- 识别失败时显示服务端中文错误并给出「再试一次」，不写入记录、不残留忙碌状态。
+- 识别成功时依次发出 `POST /api/infer`、`POST /api/records`，票据显示类别/置信度/来源/模型/分阶段耗时/
+  总等待/编号，记录标记为已上报；纠错发出 `PATCH /api/records/{id}/label` 并保留原预测。

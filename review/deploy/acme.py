@@ -1,7 +1,8 @@
 """Root-only IP certificate operations; HTTP-01 temporarily uses port 80.
 
 Only the first HTTP redirect block is patched, then restored byte for byte.
-The existing 443 certificate and server block are never replaced.
+Renewal never edits the 443 server block. The separate public_tls.py opt-in now
+points 443 at this same lineage; the deploy hook's nginx reload refreshes both ports.
 """
 import argparse
 import contextlib

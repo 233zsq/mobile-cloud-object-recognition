@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>物品识别 · 观察手册</title>
+  <meta name="theme-color" content="#183f32">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="物品识别">
+  <link rel="icon" type="image/png" href="/assets/images/favicon.png">
+  <link rel="apple-touch-icon" href="/assets/images/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="app.css">
+  <script src="core.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到主要内容</a>
+  <header class="topbar">
+    <div class="brand"><img class="mark" src="/assets/images/brand-mark.png" width="44" height="44" alt="" decoding="async"><div class="titles"><strong>物品识别</strong><small>校园观察手册</small></div></div>
+    <div class="service"><span class="service-dot" aria-hidden="true"></span><span id="health-badge" class="badge" role="status" aria-live="polite">检查服务…</span></div>
+    <a class="dashboard-link" href="/">云端统计 ↗</a>
+  </header>
+  <nav class="tabbar" aria-label="页面切换">
+    <button type="button" data-view="capture" aria-current="page"><span class="nav-icon" aria-hidden="true">⌗</span>识别</button>
+    <button type="button" data-view="records"><span class="nav-icon" aria-hidden="true">▤</span>记录</button>
+    <button type="button" data-view="settings"><span class="nav-icon" aria-hidden="true">◉</span>我的</button>
+  </nav>
+  <main id="main" tabindex="-1">
+    <aside id="storage-warning" class="notice error-notice" role="alert" hidden><p id="storage-warning-text"></p><button type="button" class="text-button" data-export-records>导出记录备份</button></aside>
+    <section id="view-capture" class="view">
+      <div class="page-heading"><div><p class="eyebrow">CAMPUS / FIELD NOTES</p><h1>随手一拍，<br>留下一次观察。</h1></div><span class="chip">云端识别</span></div>
+      <div class="capture-layout">
+        <div class="capture-workspace">
+          <div class="photo-stage" id="photo-stage">
+            <div id="photo-empty" class="photo-empty"><div class="scan-frame"><img src="/assets/images/brand-mark.png" width="88" height="88" alt="" decoding="async"></div><strong>从身边的一件物品开始</strong><p>保留完整主体，让背景简单一点。</p></div>
+            <img id="photo-preview" class="photo-preview" alt="本次识别的照片预览" hidden><span class="photo-caption">OBSERVATION IN PROGRESS</span>
+          </div>
+          <div class="capture-actions">
+            <label class="btn primary"><span>拍照识别</span><input class="file-input" id="input-camera" type="file" accept="image/*" capture="environment" aria-label="拍照识别"></label>
+            <label class="btn secondary"><span>选择图片</span><input class="file-input" id="input-library" type="file" accept="image/*" aria-label="从相册或电脑选择图片"></label>
+          </div>
+          <p class="mode-note">照片仅上传至组内服务器完成本次识别，上报记录不含照片。网页版需要联网。</p>
+          <p id="connection-hint" class="hint"></p><button id="connect-shortcut" type="button" class="text-button" data-settings="cloud" hidden>设置云端连接 →</button>
+          <ol id="processing-steps" class="processing-steps" aria-label="识别进度" hidden><li data-step="prepare">处理照片</li><li data-step="infer">云端识别</li><li data-step="save">保存结果</li></ol>
+          <p id="capture-status" class="status" role="status" aria-live="polite"></p><button id="cancel-infer" type="button" class="secondary compact" hidden>取消本次识别</button>
+        </div>
+        <div class="result-column">
+          <article id="result-empty" class="result-empty"><p class="eyebrow">YOUR NEXT OBSERVATION</p><h2>识别结果<br>会留在这里。</h2><p>拍照或选择一张图片，查看类别、置信度与本次耗时。</p><div class="empty-rule"></div><small>水杯 · 伞 · 书本 · 笔袋 · 鼠标<br>键盘 · 耳机 · 充电器 · 钥匙 · 背包</small></article>
+          <article id="ticket" class="ticket" hidden>
+            <div class="ticket-heading"><p class="eyebrow">OBSERVATION / 识别票据</p><span class="ticket-stamp">已观察</span></div>
+            <div class="verdict"><strong id="ticket-name" class="name">—</strong><span id="ticket-confidence" class="confidence">—</span></div>
+            <p id="ticket-flag" class="flag" hidden>低于模型阈值，需要确认</p><p id="ticket-original" class="original" hidden></p><dl id="ticket-meta" class="meta"></dl>
+            <div class="row-actions"><button id="ticket-correct" type="button">纠正类别</button><button id="ticket-again" type="button" class="secondary">再识别一张</button></div>
+            <div id="correction" class="correction" hidden><p class="hint">选择正确类别；原预测会保留。</p><div id="category-grid" class="grid"></div></div>
+            <p id="ticket-sync" class="status" role="status" aria-live="polite"></p>
+            <div id="ticket-conflict-actions" class="conflict-actions" hidden><p class="hint">同步暂停，选择要保留的修正；读取云端最新修订后再处理。</p><button id="conflict-cloud" type="button" class="secondary">采用云端修正</button><button id="conflict-local" type="button" class="secondary">以新修订提交本机修正</button></div>
+          </article>
+        </div>
+      </div>
+    </section>
+    <section id="view-records" class="view" hidden>
+      <div class="page-heading"><div><p class="eyebrow">THE OBSERVATION ARCHIVE</p><h1>观察记录</h1></div><button type="button" class="secondary compact" data-export-records>导出备份 ↗</button></div>
+      <div class="metrics"><div class="metric"><span>本机记录</span><strong id="m-total">0</strong></div><div class="metric"><span>待同步</span><strong id="m-pending">0</strong></div><div class="metric"><span>已修正</span><strong id="m-corrected">0</strong></div></div>
+      <details class="filter-panel" open><summary>筛选记录 <span id="filter-count"></span></summary><div class="filters">
+        <label>模型<select id="filter-model"><option value="">全部模型</option></select></label>
+        <label>类别<select id="filter-category"><option value="">全部类别</option></select></label>
+        <label>状态<select id="filter-status"><option value="">全部状态</option><option value="pending">待同步</option><option value="conflict">修订冲突</option><option value="corrected">已修正</option></select></label>
+        <label>开始日期<input id="filter-start" type="date"></label><label>结束日期<input id="filter-end" type="date"></label><button id="filter-reset" type="button" class="text-button">重置筛选</button>
+      </div><p class="hint">类别按修正后的结果筛选；计数与列表使用相同范围。</p></details>
+      <div class="records-toolbar"><p class="hint">本机记录与云端已入库记录范围不同。</p><div class="row-actions"><button id="sync-now" type="button" class="compact">同步全部</button><button id="clear-all" type="button" class="secondary danger compact">清空本机全部</button></div></div>
+      <p id="records-status" class="status" role="status" aria-live="polite"></p><ul id="record-list" class="records"></ul><p id="records-empty" class="empty" hidden>还没有记录，去识别一件物品吧。</p><button id="load-more" type="button" class="secondary load-more" hidden>加载更多记录</button>
+    </section>
+    <section id="view-settings" class="view" hidden>
+      <div id="settings-overview">
+        <div class="page-heading"><div><p class="eyebrow">YOUR FIELD MANUAL</p><h1>我的手册</h1></div><span class="chip">网页版</span></div>
+        <div class="manual-summary"><div><span class="summary-label">当前识别模型</span><strong id="model-summary">检查中…</strong><p>与安卓端共用组内云端服务。</p></div><span class="manual-seal" aria-hidden="true">观察<br>手册</span></div>
+        <div class="settings-grid">
+          <button type="button" class="setting-link" data-settings="cloud"><span class="setting-symbol" aria-hidden="true">↗</span><span><strong>云端连接</strong><small>访问口令、服务状态与连接测试</small></span><span aria-hidden="true">→</span></button>
+          <button type="button" class="setting-link" data-settings="model"><span class="setting-symbol" aria-hidden="true">⌗</span><span><strong>识别模型</strong><small>当前版本、类别与一致性规格</small></span><span aria-hidden="true">→</span></button>
+          <button type="button" class="setting-link" data-settings="data"><span class="setting-symbol" aria-hidden="true">▤</span><span><strong>数据与隐私</strong><small>本机备份、同步状态与数据清理</small></span><span aria-hidden="true">→</span></button>
+          <button type="button" class="setting-link" data-settings="help"><span class="setting-symbol" aria-hidden="true">?</span><span><strong>使用说明</strong><small>拍照建议、添加到主屏幕与使用边界</small></span><span aria-hidden="true">→</span></button>
+        </div>
+      </div>
+      <div id="settings-detail" hidden>
+        <button id="settings-back" type="button" class="text-button back-button">← 返回我的手册</button><h1 id="settings-title">云端连接</h1>
+        <section data-settings-page="cloud" class="detail-panel" hidden>
+          <form id="token-form" class="panel"><label for="token">组内访问口令<input id="token" type="password" autocomplete="off" placeholder="输入组内提供的访问口令"></label><div class="row-actions"><button type="submit">保存口令</button><button id="test-connection" type="button" class="secondary">测试已保存连接</button></div><p id="settings-status" class="status" role="status" aria-live="polite"></p><p class="hint">仅点保存才生效。口令仅用于本站接口；共用设备用完后请清除。</p></form><dl id="connection-meta" class="meta"></dl>
+        </section>
+        <section data-settings-page="model" class="detail-panel" hidden><p class="hint">响应编号、模型哈希、10类分数、标签和耗时通过校验后，才会保存识别结果。</p><dl id="model-meta" class="meta"></dl><ul id="model-categories" class="category-notes"></ul></section>
+        <section data-settings-page="data" class="detail-panel" hidden><h2>本机数据</h2><p id="storage-info" class="hint">—</p><button type="button" data-export-records>导出本机记录备份</button><p class="hint">备份为 JSON，不含访问口令和照片。未同步记录及有冲突的修正不会被自动清理。</p><div class="danger-zone"><h2>清除本机数据</h2><p class="hint">清除口令和本机记录，云端记录仍会保留。请先同步或导出备份。</p><button id="clear-storage" type="button" class="secondary danger">清除本机全部数据</button></div></section>
+        <section data-settings-page="help" class="detail-panel" hidden><ul class="notes"><li><strong>拍摄：</strong>主体完整、清晰，尽量只放一件主要物品。电脑也可直接选择图片。</li><li><strong>联网：</strong>网页版使用云端模型；断网不能识别，已识别的待同步记录在页面联网后补传。</li><li><strong>隐私：</strong>照片生成去除 EXIF 的传输副本，仅用于本次识别；长期上报记录不含照片。</li><li><strong>安装：</strong>iPhone 可在 Safari 的分享菜单选择“添加到主屏幕”。</li><li><strong>记录：</strong>默认保留最近300条，超出时仅清理最旧的已同步、无冲突记录；待同步项可能使总数超过300。</li><li><strong>设备：</strong>手机、平板与 PC 共用此页面；相机能否直接打开取决于设备和浏览器。</li><li><strong>准确率：</strong>人工纠错比例不代表模型准确率，实拍评估单独进行。</li></ul><a class="inline-link" href="/">查看云端统计 →</a></section>
+      </div>
+      <footer class="foot">校园观察手册 · 把身边的小事物，认真记录下来。</footer>
+    </section>
+  </main>
+</body>
+</html>

@@ -12,6 +12,8 @@
 
 已完成Flask、MySQL四张核心表、记录入库/UUID去重、修订号纠错、分页查询、统计和类别接口，以及每5秒刷新的Web统计页。非空API_TOKEN启用Flask与Nginx两层Bearer认证。Android、训练及部署分支已集成；当前campus-evolve-v2模型、campus-10-v4类别已接入真实云端及Android模拟器，见 [v2接入记录](docs/campus-evolve-v2-deployment.md)。照片审核工作台独立部署在8443。真实手机业务联调、新模型真机性能和独立实拍评估仍待验收。初始化见 [后端说明](backend/README.md) 和 [数据库说明](database/README.md)，运维见 [部署说明](deploy/README.md)，接口见 [API说明](docs/api/README.md)。
 
+手机、平板和PC可打开 [识别网页版](https://49.232.195.47/ios/)，使用同版云端模型；支持照片预览、记录筛选、纠错补传和本机备份。网页与审核站现使用可信HTTPS证书。网页版实现和边界见 [使用说明](web/ios/README.md)。
+
 ## 技术栈
 
 | 模块 | 计划采用的技术 | 职责 |

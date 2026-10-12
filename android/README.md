@@ -82,9 +82,9 @@ python scripts/make_placeholder_model.py   # 仓库根目录执行，需要 tens
 
 ## 联调说明
 
-- **组内云端已部署**：`https://49.232.195.47`（IP 自签名证书，`deploy/certs/server.crt`
-  已内置信任，见 `res/xml/network_security_config.xml`）；`POST/PATCH` 需要
-  `Authorization: Bearer <API_TOKEN>`，令牌在 App「设置」页填写（服务器端配置持有真实值，勿提交到仓库）。
+- **组内云端已部署**：`https://49.232.195.47`（443现使用自动续期的可信IP证书，App已有系统CA信任，
+  见 `res/xml/network_security_config.xml`）；`POST/PATCH` 需要
+  `Authorization: Bearer <API_TOKEN>`，令牌在 App「我的 → 云端连接」填写（勿提交到仓库）。
 - 默认占位地址 `http://localhost:8080`（与 `.env.example` 的 `API_BASE_URL` 一致）表示"未配置"，
   此时请求快速失败并保留待传记录。
 - 局域网/自签环境联调：debug 构建信任设备上用户安装的 CA，可在手机上安装对应证书后使用 https；
