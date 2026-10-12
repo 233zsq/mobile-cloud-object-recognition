@@ -92,6 +92,17 @@ def registry_for(packages, cpu_python):
     return {'schema_version': 1, 'default_model_version': 'campus-evolve-v2', 'models': models}
 
 
+def register_packages(python, backend, models):
+    for model in models:
+        package = Path(model['package'])
+        categories = package / 'categories.json'
+        # Legacy approved v1 packages have no root categories.json. Registration
+        # still verifies the complete, already-seeded category version and order.
+        if categories.is_file():
+            run([str(python), '-m', 'flask', '--app', 'app:create_app', 'db-seed', '--categories', str(categories)], cwd=backend)
+        run([str(python), '-m', 'flask', '--app', 'app:create_app', 'register-model', '--metadata', str(package / 'release/metadata.json')], cwd=backend)
+
+
 def activate(args):
     if not re.fullmatch('[0-9a-f]{40}', args.revision):
         raise ValueError('Expected a fixed Git commit')
@@ -131,10 +142,7 @@ def activate(args):
     backend = release / 'backend'
     run([str(python), '-m', 'pytest', 'tests/test_infer.py', 'tests/test_cloud_models.py', '-q'], cwd=backend)
     run([str(cpu_python), 'test_server.py'], cwd=backend / 'inference_service')
-    for model in registry['models']:
-        package = Path(model['package'])
-        run([str(python), '-m', 'flask', '--app', 'app:create_app', 'db-seed', '--categories', str(package / 'categories.json')], cwd=backend)
-        run([str(python), '-m', 'flask', '--app', 'app:create_app', 'register-model', '--metadata', str(package / 'release/metadata.json')], cwd=backend)
+    register_packages(python, backend, registry['models'])
     stamp = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
     backup = BASE / 'shared/model-rollbacks' / (stamp + '-multi-model')
     backup.mkdir(parents=True, mode=0o700)

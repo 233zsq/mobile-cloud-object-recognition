@@ -44,3 +44,16 @@ def test_source_bundle_checks_hash_duplicate_names_and_regular_files(tmp_path):
                 output.addfile(member, io.BytesIO(b'abc'))
         with pytest.raises(ValueError):
             module.source_files(archive, hashlib.sha256(archive.read_bytes()).hexdigest())
+
+
+def test_legacy_package_uses_existing_category_registration_without_fabricating_seed(tmp_path, monkeypatch):
+    v1, v2 = tmp_path / 'v1', tmp_path / 'v2'
+    v1.mkdir()
+    v2.mkdir()
+    (v2 / 'categories.json').write_text('{}')
+    commands = []
+    monkeypatch.setattr(module, 'run', lambda args, cwd: commands.append(args))
+    module.register_packages(Path('/python'), tmp_path, [{'package': str(v2)}, {'package': str(v1)}])
+    assert len(commands) == 3
+    assert 'db-seed' in commands[0] and commands[0][-1] == str(v2 / 'categories.json')
+    assert all('register-model' in command for command in commands[1:])
