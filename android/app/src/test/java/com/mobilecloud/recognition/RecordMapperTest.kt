@@ -41,6 +41,12 @@ class RecordMapperTest {
         assertEquals(2, request.revision)
     }
 
+    @Test fun `cloud results retain their source on upload and retry`() {
+        val cloud = entity.copy(inferenceSource = "cloud")
+        assertEquals("cloud", RecordMapper.toUploadRequest(cloud).inferenceSource)
+        assertEquals("cloud", RecordMapper.toUploadRequest(cloud.copy(lastError = "offline")).inferenceSource)
+    }
+
     @Test
     fun `iso time keeps zone offset`() {
         val zone = ZoneId.of("+08:00")

@@ -58,6 +58,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mobilecloud.recognition.AppGraph
 import com.mobilecloud.recognition.data.local.RecordEntity
+import com.mobilecloud.recognition.ui.theme.FieldNotesHeader
 import java.io.File
 import java.time.Instant
 import java.time.ZoneId
@@ -89,12 +90,12 @@ fun RecordsScreen(viewModel: RecordsViewModel = viewModel()) {
 
     Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+            FieldNotesHeader("观察记录", "02 / 本机观察档案")
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("识别记录", style = MaterialTheme.typography.headlineSmall)
                     Text(
                         "按模型查看本机记录与同步状态",
                         style = MaterialTheme.typography.bodySmall,
@@ -149,7 +150,7 @@ fun RecordsScreen(viewModel: RecordsViewModel = viewModel()) {
                 Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            if (selection.modelVersion == null) "暂无识别记录，请到采集页拍照" else "此模型暂无本地记录",
+                            if (selection.modelVersion == null) "暂无观察记录，请到识别页拍照" else "此模型暂无本地记录",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -291,7 +292,7 @@ private fun RecordCard(record: RecordEntity, onDelete: () -> Unit) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
-                    record.modelVersion,
+                    "${if (record.inferenceSource == "cloud") "云端" else "本地"} · ${record.modelVersion}",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,

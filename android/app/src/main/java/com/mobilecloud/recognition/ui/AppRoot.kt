@@ -1,6 +1,15 @@
 package com.mobilecloud.recognition.ui
 
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.dp
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -27,9 +36,9 @@ import com.mobilecloud.recognition.ui.settings.SettingsScreen
 
 private data class TopRoute(val route: String, val label: String)
 
-private val CAPTURE = TopRoute("capture", "采集")
+private val CAPTURE = TopRoute("capture", "识别")
 private val RECORDS = TopRoute("records", "记录")
-private val SETTINGS = TopRoute("settings", "设置")
+private val SETTINGS = TopRoute("settings", "我的")
 
 /** 底部三 Tab：采集 / 记录 / 设置 */
 @Composable
@@ -44,12 +53,11 @@ fun AppRoot() {
 
     Scaffold(
         bottomBar = {
-            NavigationBar {
+            Row(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceContainer).navigationBarsPadding().padding(vertical = 8.dp)) {
                 listOf(CAPTURE, RECORDS, SETTINGS).forEach { tab ->
                     val selected = currentRoute == tab.route
-                    NavigationBarItem(
-                        selected = selected,
-                        onClick = {
+                    Column(
+                        modifier = Modifier.weight(1f).selectable(selected, role = Role.Tab, onClick = {
                             navController.navigate(tab.route) {
                                 popUpTo(navController.graph.findStartDestination().id) {
                                     saveState = true
@@ -57,10 +65,12 @@ fun AppRoot() {
                                 launchSingleTop = true
                                 restoreState = true
                             }
-                        },
-                        icon = { TabIcon(tab.route) },
-                        label = { Text(tab.label) },
-                    )
+                        }).padding(vertical = 6.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Box(Modifier.background(if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainer, CircleShape).padding(horizontal = 20.dp, vertical = 3.dp)) { TabIcon(tab.route) }
+                        Text(tab.label, style = MaterialTheme.typography.labelMedium)
+                    }
                 }
             }
         },

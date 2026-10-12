@@ -4,7 +4,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * 请求/响应字段名称为 Android 端提案，尚未与云端冻结（docs/api/README.md「联调前需冻结」）。
+ * 已联调的请求/响应契约，字段名与现有云端接口保持一致。
  * 变更时同步修改 RecordMapper 与 docs/api/android-client-notes.md。
  */
 @Serializable
@@ -49,4 +49,17 @@ data class CategoryDto(
     val id: Int = -1,
     @SerialName("label_key") val labelKey: String = "",
     @SerialName("display_name") val displayName: String = "",
+)
+
+@Serializable
+data class InferResponse(
+    @SerialName("request_id") val requestId: String,
+    @SerialName("model_version") val modelVersion: String,
+    @SerialName("model_sha256") val modelSha256: String,
+    @SerialName("predicted_id") val predictedId: Int,
+    @SerialName("label_key") val labelKey: String,
+    val confidence: Float,
+    val scores: List<Float>,
+    @SerialName("preprocess_ms") val preprocessMs: Double,
+    @SerialName("inference_ms") val inferenceMs: Double,
 )

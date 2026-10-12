@@ -2,6 +2,7 @@ package com.mobilecloud.recognition.data.local
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import androidx.room.ColumnInfo
 
 /**
  * 一条识别记录。recordId 在手机端生成后永不变更，上报与补传使用同一 UUID（F04/T07/T08）。
@@ -12,6 +13,7 @@ data class RecordEntity(
     @PrimaryKey val recordId: String,
     val clientId: String,
     val modelVersion: String,
+    @ColumnInfo(defaultValue = "'device'") val inferenceSource: String = "device",
     /** 模型输出索引（=类别 ID），原预测 */
     val predictedIndex: Int,
     /** 原预测标签（labels.txt 对应行） */

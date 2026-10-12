@@ -29,6 +29,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import com.mobilecloud.recognition.ui.theme.FieldNotesHeader
 
 /**
  * 设置页：服务器地址与令牌、连接测试、模型包信息（F05 联调辅助 + T04 验证）。
@@ -53,7 +55,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
             .verticalScroll(rememberScrollState())
             .padding(16.dp),
     ) {
-        Text("设置", style = MaterialTheme.typography.titleLarge)
+        FieldNotesHeader("我的设备", "03 / 连接与模型")
         Spacer(Modifier.height(12.dp))
 
         OutlinedTextField(
@@ -74,6 +76,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
             value = token,
             onValueChange = { token = it; viewModel.onTokenChange(it) },
             label = { Text("访问令牌（可选）") },
+            visualTransformation = PasswordVisualTransformation(),
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
         )

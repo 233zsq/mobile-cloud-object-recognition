@@ -8,14 +8,16 @@
   <script src="/assets/js/dashboard.js" defer></script>
 </head>
 <body>
-  <header class="topbar"><a class="brand" href="/">◈ 物品识别<span>云端统计</span></a><span class="badge" id="health">连接后检查服务</span></header>
-  <main>
-    <div class="intro"><div><p class="eyebrow">采集记录 / 数据概览</p><h1>每一次识别，都有记录。</h1><p class="muted">查看采集数量、识别耗时和人工修正，追踪手机与云端的数据同步。</p></div><button id="disconnect" class="secondary" hidden>断开连接</button></div>
+  <aside class="field-sidebar"><a class="field-logo" href="/">FIELD<br>NOTES<small>CAMPUS / 观察手册</small></a><nav aria-label="工作空间"><a class="active" href="#overview">01 / 数据概览</a><a href="#records">02 / 观察记录</a><a href="https://49.232.195.47:8443/" target="_blank" rel="noopener">03 / 照片审核 ↗</a></nav><p>EVERYDAY OBJECTS<br>发现日常，记录观察。</p></aside>
+  <div class="field-workspace">
+  <header class="topbar"><a class="brand" href="/">工作空间<span>云端观察档案</span></a><div class="topbar-tools"><span class="badge" id="health">连接后检查服务</span><button id="disconnect" class="secondary" hidden>断开连接</button></div></header>
+  <main id="overview">
+    <div class="intro"><div><p class="eyebrow">CAMPUS / FIELD NOTES</p><h1>每件物品，<br>都值得被看见。</h1><p class="muted">把一次次识别，收集成对日常的观察。</p></div><div class="field-stamp" aria-hidden="true">CAMPUS<br>FIELD NOTES<br>日常物品观察</div></div>
     <section id="connection" class="panel">
       <form id="connect-form"><label for="token">访问口令</label><div class="connect-row"><input id="token" type="password" autocomplete="off" placeholder="输入组内提供的访问口令"><button type="submit">连接统计</button></div><p class="hint">口令仅在当前页面使用，关闭或刷新页面后需重新输入。本地未设置口令时可直接连接。</p></form>
     </section>
     <div class="statusline"><span id="status" role="status" aria-live="polite">尚未连接</span><div class="refresh-controls"><label><input id="auto-refresh" type="checkbox" checked> 每 5 秒刷新</label><button id="refresh" class="secondary" disabled>立即刷新</button></div></div>
-    <section class="panel filters" aria-label="记录筛选">
+    <details class="filter-details"><summary>筛选观察记录 <span>时间 / 模型 / 类别 / 来源</span></summary><section class="panel filters" aria-label="记录筛选">
       <label>开始时间<input id="start" type="datetime-local" step="1"></label>
       <label>结束时间（不含）<input id="end" type="datetime-local" step="1"></label>
       <label>模型版本<select id="model"><option value="">全部模型</option></select></label>
@@ -23,19 +25,20 @@
       <label>识别来源<select id="source"><option value="">全部来源</option><option value="device">手机离线</option><option value="cloud">云端识别</option></select></label>
       <label>类别统计口径<select id="basis"><option value="predicted">原始预测</option><option value="effective">修正后（未修正沿用原预测）</option></select></label>
       <button id="apply" disabled>应用筛选</button><button id="reset" class="secondary" disabled>重置</button>
-    </section>
+    </section></details>
     <section class="metrics" aria-label="统计概览">
-      <article class="metric"><span>采集记录</span><strong id="total">—</strong><small id="sources">手机 — / 云端 —</small></article>
-      <article class="metric"><span>人工修正记录</span><strong id="corrected">—</strong><small>原预测始终保留</small></article>
-      <article class="metric"><span>低置信记录</span><strong id="low">—</strong><small>使用每个模型登记的阈值</small></article>
-      <article class="metric"><span>平均识别耗时</span><strong id="latency">—</strong><small id="latency-range">预处理＋推理，不含网络</small></article>
+      <article class="metric"><span>采集记录 / OBSERVATIONS</span><strong id="total">—</strong><small id="sources">手机 — / 云端 —</small></article>
+      <article class="metric"><span>人工修正 / CORRECTED</span><strong id="corrected">—</strong><small>原预测始终保留</small></article>
+      <article class="metric"><span>需要确认 / UNCERTAIN</span><strong id="low">—</strong><small>使用每个模型登记的阈值</small></article>
+      <article class="metric"><span>平均耗时 / LATENCY</span><strong id="latency">—</strong><small id="latency-range">预处理＋推理，不含网络</small></article>
     </section>
     <div class="charts">
       <section class="panel"><div class="section-title"><h2>类别分布</h2><span id="basis-label" class="muted">原始预测</span></div><div id="category-chart" class="chart empty">连接后展示类别数量</div><p class="hint">不同类别版本分别列示。修正比例不代表模型准确率。</p></section>
       <section class="panel"><div class="section-title"><h2>每日采集数量</h2><span class="muted">按 UTC 日期</span></div><div id="daily-chart" class="chart empty">连接后展示采集趋势</div></section>
     </div>
-    <section class="panel records"><div class="section-title"><h2>最近识别记录</h2><span id="page-info" class="muted">—</span></div><div class="table-scroll"><table><thead><tr><th>采集时间</th><th>原预测</th><th>人工修正</th><th>置信度</th><th>耗时</th><th>来源 / 模型</th><th>记录编号</th></tr></thead><tbody id="record-rows"><tr><td colspan="7" class="empty">连接后展示记录</td></tr></tbody></table></div><div class="pagination"><button id="previous" class="secondary" disabled>上一页</button><button id="next" class="secondary" disabled>下一页</button></div></section>
+    <section id="records" class="panel records"><div class="section-title"><h2>02 / 最近观察</h2><span id="page-info" class="muted">—</span></div><div class="table-scroll"><table><thead><tr><th>采集时间</th><th>原预测</th><th>人工修正</th><th>置信度</th><th>耗时</th><th>来源 / 模型</th><th>记录编号</th></tr></thead><tbody id="record-rows"><tr><td colspan="7" class="empty">连接后展示记录</td></tr></tbody></table></div><div class="pagination"><button id="previous" class="secondary" disabled>上一页</button><button id="next" class="secondary" disabled>下一页</button></div></section>
     <footer>仅统计已入库的采集记录。同图推理对比不重复计数，页面不展示原始照片。</footer>
   </main>
+  </div>
 </body>
 </html>
