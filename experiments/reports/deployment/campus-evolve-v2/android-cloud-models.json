@@ -1,0 +1,171 @@
+{
+  "verified_on": "2026-10-12",
+  "android_source_commit": "a637f277a4ddcc75f822321801e1b10d410165e1",
+  "backend_activation": {
+    "source_commit": "576cf5cf3a68e83c7d1c76c99b59d1e57e82d36b",
+    "release": "/home/gongyi/apps/mobile-cloud-backend/releases/576cf5cf3a68-cloud-models",
+    "previous_release": "/home/gongyi/apps/mobile-cloud-backend/releases/7e2b8a6-64698845",
+    "rollback_directory": "/home/gongyi/apps/mobile-cloud-backend/shared/model-rollbacks/20261012T140556Z-multi-model",
+    "models": {
+      "default_model_version": "campus-evolve-v2",
+      "models": [
+        {
+          "available": true,
+          "category_version": "campus-10-v4",
+          "description": "当前推荐版本，加入审核后的补充照片。",
+          "display_name": "进阶版 v2",
+          "labels": [
+            "cup",
+            "umbrella",
+            "book",
+            "pencil_case",
+            "mouse",
+            "keyboard",
+            "earphones",
+            "charger",
+            "key",
+            "backpack"
+          ],
+          "labels_sha256": "3148fcb53e5859041bf7f6af5acbfb952a9d3fbd52a4fd334525b7d3af6a1064",
+          "low_confidence_threshold": 0.5,
+          "model_sha256": "7e2387600303333f714533aac1a0c1e4260425b06154dd7fa4ed920d01bef691",
+          "model_version": "campus-evolve-v2",
+          "status": "frozen"
+        },
+        {
+          "available": true,
+          "category_version": "campus-10-v2",
+          "description": "最初 GPU 模型，采用较早的类别口径，供对比使用。",
+          "display_name": "基准版 v1",
+          "labels": [
+            "cup",
+            "umbrella",
+            "book",
+            "pencil_case",
+            "mouse",
+            "keyboard",
+            "earphones",
+            "charger",
+            "key",
+            "backpack"
+          ],
+          "labels_sha256": "3148fcb53e5859041bf7f6af5acbfb952a9d3fbd52a4fd334525b7d3af6a1064",
+          "low_confidence_threshold": 0.5,
+          "model_sha256": "a58ca2be234d0d7e7db6bdec3853b3e077df6a88321da4f6bd7a8a5d5be51d13",
+          "model_version": "campus-gpu-v1",
+          "status": "frozen"
+        }
+      ]
+    },
+    "credentials_preserved": true,
+    "tls_ports_and_static_ios_changed": false,
+    "database_schema_changed": false
+  },
+  "packages": {
+    "revision": "576cf5cf3a68e83c7d1c76c99b59d1e57e82d36b",
+    "source_sha256": "37842f86149428b952ca9c5afa3a67550c03b381912d26ca6e2bd9c644832cc1",
+    "source_file_count": 82,
+    "static_sha256": "37a0b57620811830e6ee58a74003b8e0aa654ccdfc7f995b4da687dbcc4b6562",
+    "static_files": {
+      "index.html": "85ee4bf99ff6f2aea9b779ca489536e9c64938dea0b53af2571886ae6dfc150f",
+      "app.css": "dde6942e9c73ddfac3437b25484720665d7cd50de88c70c9ba119a75055e8bd8",
+      "app.js": "ec5890039a61835e8f4d922b8d56886c2189c9c6f3d1a86627f8f2fcd5f13c1e",
+      "core.js": "4361ff468e04f9847f642fb071bc891e0154ece76490737bb9b6255ca39413d6",
+      "categories.json": "8ec72dd73036014c597deb9da17273f63cead49ced874cd3e3f7f5f893aaea0b",
+      "model-contract.json": "03139e4bf5ff3278c7fbdf2273f94d1d6cae8bdc108b1916f7cc0c35adafc73e",
+      "manifest.webmanifest": "9b16e842277977a30d63a58258c66f6062b2e7bef3fa2eaa813b17988b0e44ef"
+    }
+  },
+  "android": {
+    "unit_checks": 109,
+    "device_checks": 6,
+    "device_checks_passed": true,
+    "device": "MuMu, 1080x1920, density 480; retains existing authorized group connection",
+    "normal_phone_visual_check": {
+      "size": [
+        1080,
+        2400
+      ],
+      "density": 420,
+      "device": "Android Studio AVD",
+      "camera_actions_visible": true,
+      "dark_status_bar_icons": true
+    },
+    "short_phone_visual_check": {
+      "size": [
+        1080,
+        1920
+      ],
+      "density": 480,
+      "camera_actions_visible": true
+    },
+    "local_model_count": 1,
+    "local_model_version": "campus-evolve-v2",
+    "local_model_sha256": "7e2387600303333f714533aac1a0c1e4260425b06154dd7fa4ed920d01bef691",
+    "live_inference": {
+      "record_writes": 0,
+      "models": [
+        {
+          "model_version": "campus-evolve-v2",
+          "model_sha256": "7e2387600303333f714533aac1a0c1e4260425b06154dd7fa4ed920d01bef691",
+          "predicted_id": 0,
+          "confidence": 0.9999733
+        },
+        {
+          "model_version": "campus-gpu-v1",
+          "model_sha256": "a58ca2be234d0d7e7db6bdec3853b3e077df6a88321da4f6bd7a8a5d5be51d13",
+          "predicted_id": 0,
+          "confidence": 0.99955875
+        }
+      ]
+    },
+    "new_credentials_written": false,
+    "apk": {
+      "name": "campus-recognition-cloud-models-debug.apk",
+      "sha256": "4c759af66782f49e7a1fb992d12c99eaf4af2fd9d5140c4b7fb02c3d6c5974f9",
+      "bytes": 57153579,
+      "signing": "existing debug key",
+      "version_name": "0.1.0"
+    },
+    "api37_instrumentation": "Bundled Espresso cannot reflect InputManager.getInstance on the API37 preview; visual check only there. Device checks passed on MuMu."
+  },
+  "backend_checks": {
+    "api": 15,
+    "real_unix_socket": 6,
+    "deployment": 7
+  },
+  "web_checks": {
+    "core": 16,
+    "browser": {
+      "checks": [
+        {
+          "modelPicker": 270.66668701171875,
+          "pageWidth": 375,
+          "requiresCredential": true,
+          "width": 390
+        },
+        {
+          "modelPicker": 634.3958740234375,
+          "pageWidth": 1425,
+          "requiresCredential": true,
+          "width": 1440
+        }
+      ],
+      "errors": []
+    }
+  },
+  "cpu_worker": {
+    "memory_current_bytes": 168964096,
+    "memory_peak_bytes": 169426944,
+    "memory_limit_bytes": 536870912,
+    "concurrent_image_limit_across_models": 1
+  },
+  "static_release": "/var/www/mobile-cloud-ios-releases/20261012T140753Z-37a0b5762081",
+  "static_previous_release": "/var/www/mobile-cloud-ios-releases/20261012T131935Z-50362871519c",
+  "acceptance_pending": [
+    "New APK physical phone capture and offline/sync chain",
+    "Independent field accuracy and macro F1",
+    "Physical phone P95 performance",
+    "Real iPhone Safari"
+  ]
+}
