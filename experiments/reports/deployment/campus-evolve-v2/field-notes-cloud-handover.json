@@ -1,0 +1,235 @@
+{
+  "scope": "MuMu-portrait-emulator-not-physical-phone",
+  "device": "Xiaomi 23116PN5BC; Android 12",
+  "base_url": "https:\/\/49.232.195.47",
+  "model_version": "campus-evolve-v2",
+  "model_sha256": "7e2387600303333f714533aac1a0c1e4260425b06154dd7fa4ed920d01bef691",
+  "tls_verified": true,
+  "authenticated": true,
+  "records_written": 0,
+  "samples": [
+    {
+      "sample_id": "oi-30d38acdacfe06d0",
+      "max_score_difference": 0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-101801303",
+      "max_score_difference": 0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-142628717",
+      "max_score_difference": 0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-170447402",
+      "max_score_difference": 0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-19912806",
+      "max_score_difference": 0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-2987257",
+      "max_score_difference": 0,
+      "passed": true
+    },
+    {
+      "sample_id": "oi-6b784b107eaa3126",
+      "max_score_difference": 0,
+      "passed": true
+    },
+    {
+      "sample_id": "oi-10dd651ae86b43b3",
+      "max_score_difference": 0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-176030688",
+      "max_score_difference": 0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-176030689",
+      "max_score_difference": 0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-109930862",
+      "max_score_difference": 0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-144261318",
+      "max_score_difference": 0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-14723373",
+      "max_score_difference": 0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-72283140",
+      "max_score_difference": 0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-192911358",
+      "max_score_difference": 0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-13640856",
+      "max_score_difference": 0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-79672988",
+      "max_score_difference": 0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-71474663",
+      "max_score_difference": 0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-7151563",
+      "max_score_difference": 0,
+      "passed": true
+    },
+    {
+      "sample_id": "oi-2fdfbd153b29517b",
+      "max_score_difference": 0,
+      "passed": true
+    }
+  ],
+  "product_client_transport_copies": [
+    {
+      "sample_id": "oi-30d38acdacfe06d0",
+      "predicted_id": 0,
+      "confidence_difference": 0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-101801303",
+      "predicted_id": 0,
+      "confidence_difference": 0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-142628717",
+      "predicted_id": 1,
+      "confidence_difference": 0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-170447402",
+      "predicted_id": 1,
+      "confidence_difference": 5.453825E-6,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-19912806",
+      "predicted_id": 2,
+      "confidence_difference": 0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-2987257",
+      "predicted_id": 2,
+      "confidence_difference": 0,
+      "passed": true
+    },
+    {
+      "sample_id": "oi-6b784b107eaa3126",
+      "predicted_id": 3,
+      "confidence_difference": 0,
+      "passed": true
+    },
+    {
+      "sample_id": "oi-10dd651ae86b43b3",
+      "predicted_id": 3,
+      "confidence_difference": 0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-176030688",
+      "predicted_id": 4,
+      "confidence_difference": 1.7881393E-7,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-176030689",
+      "predicted_id": 8,
+      "confidence_difference": 2.026558E-6,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-109930862",
+      "predicted_id": 5,
+      "confidence_difference": 0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-144261318",
+      "predicted_id": 5,
+      "confidence_difference": 0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-14723373",
+      "predicted_id": 6,
+      "confidence_difference": 0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-72283140",
+      "predicted_id": 6,
+      "confidence_difference": 1.2516975E-6,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-192911358",
+      "predicted_id": 6,
+      "confidence_difference": 1.1324883E-6,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-13640856",
+      "predicted_id": 5,
+      "confidence_difference": 2.3841858E-7,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-79672988",
+      "predicted_id": 8,
+      "confidence_difference": 0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-71474663",
+      "predicted_id": 8,
+      "confidence_difference": 6.556511E-7,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-7151563",
+      "predicted_id": 9,
+      "confidence_difference": 0,
+      "passed": true
+    },
+    {
+      "sample_id": "oi-2fdfbd153b29517b",
+      "predicted_id": 9,
+      "confidence_difference": 0,
+      "passed": true
+    }
+  ],
+  "passed": true
+}
