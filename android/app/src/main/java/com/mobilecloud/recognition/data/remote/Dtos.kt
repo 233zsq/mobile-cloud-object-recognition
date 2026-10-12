@@ -62,4 +62,25 @@ data class InferResponse(
     val scores: List<Float>,
     @SerialName("preprocess_ms") val preprocessMs: Double,
     @SerialName("inference_ms") val inferenceMs: Double,
+    @SerialName("low_confidence") val lowConfidence: Boolean? = null,
+)
+
+@Serializable
+data class CloudModelsResponse(
+    @SerialName("default_model_version") val defaultModelVersion: String,
+    val models: List<CloudModelOption>,
+)
+
+@Serializable
+data class CloudModelOption(
+    @SerialName("model_version") val version: String,
+    @SerialName("model_sha256") val sha256: String,
+    @SerialName("category_version") val categoryVersion: String,
+    @SerialName("labels_sha256") val labelsSha256: String,
+    @SerialName("display_name") val displayName: String,
+    val description: String,
+    val status: String,
+    val labels: List<String>,
+    @SerialName("low_confidence_threshold") val threshold: Float,
+    val available: Boolean,
 )

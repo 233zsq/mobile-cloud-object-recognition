@@ -64,14 +64,19 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path != "/health":
             return self.error("NOT_FOUND", 404)
-        engine = self.server.engine
+        version = self.headers.get('X-Model-Version', self.server.engine.model_version)
+        engine = getattr(self.server, 'engines', {self.server.engine.model_version: self.server.engine}).get(version)
+        if engine is None:
+            return self.error('MODEL_VERSION_MISMATCH', 409)
         self.send_json(200, {"model_loaded": True, "model_version": engine.model_version,
                             "model_sha256": engine.model_sha256, "model_status": "ready"})
 
     def do_POST(self):
         if self.path != "/infer":
             return self.error("NOT_FOUND", 404)
-        if self.headers.get("X-Model-Version") != self.server.engine.model_version:
+        version = self.headers.get('X-Model-Version')
+        engine = getattr(self.server, 'engines', {self.server.engine.model_version: self.server.engine}).get(version)
+        if engine is None:
             return self.error("MODEL_VERSION_MISMATCH", 409)
         try:
             lengths = self.headers.get_all("Content-Length", [])
@@ -99,7 +104,7 @@ class Handler(BaseHTTPRequestHandler):
                 path = Path(directory) / "upload"
                 path.write_bytes(data)
                 validate_image(path)
-                result = self.server.engine.predict_image(path)
+                result = engine.predict_image(path)
             self.send_json(200, result)
         except ImageError as exc:
             self.error(exc.code, exc.status)
@@ -120,6 +125,7 @@ def main():
     parser.add_argument("--socket", required=True, type=Path)
     parser.add_argument("--model-version", default="campus-gpu-v1")
     parser.add_argument("--model-sha256", required=True)
+    parser.add_argument('--registry', type=Path)
     args = parser.parse_args()
     from PIL import Image
     Image.MAX_IMAGE_PIXELS = MAX_IMAGE_PIXELS
@@ -127,14 +133,38 @@ def main():
     sys.path.insert(0, str(args.package.resolve(strict=True)))
     from verify_package import verify_package
     from backend_adapter import CpuModelService
-    integrity = verify_package(args.package)
-    if integrity["model_version"] != args.model_version or integrity["model_sha256"] != args.model_sha256:
-        raise ValueError("Package does not match pinned model identity")
-    engine = CpuModelService(args.package / "release", threads=1)
+    entries = [{'package': str(args.package), 'model_version': args.model_version, 'model_sha256': args.model_sha256}]
+    if args.registry:
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+        from inference_registry import load_registry
+        registry = load_registry(args.registry)
+        if registry['default_model_version'] != args.model_version:
+            raise ValueError('Registry default differs from worker configuration')
+        entries = registry['models']
+    engines = {}
     # Warm the interpreter before accepting requests; no training runtime is loaded.
     import numpy as np
-    for _ in range(20):
-        engine.runner.predict_tensor(np.full((224,224,3),128,dtype=np.float32))
+    for entry in entries:
+        package = Path(entry['package']).resolve(strict=True)
+        integrity = verify_package(package)
+        if (integrity['model_version'], integrity['model_sha256']) != (entry['model_version'], entry['model_sha256']):
+            raise ValueError('Package does not match pinned model identity')
+        if (args.package / 'locks/linux-py312-runtime.lock').read_bytes() != (package / 'locks/linux-py312-runtime.lock').read_bytes():
+            raise ValueError('CPU runtime dependencies differ')
+        if args.registry:
+            meta = json.loads((package / 'release/metadata.json').read_text())
+            actual = (meta['category_version'], meta['labels_sha256'], meta['low_confidence_threshold'],
+                      [item['label_key'] for item in meta['categories']])
+            expected = (entry['category_version'], entry['labels_sha256'], entry['low_confidence_threshold'], entry['labels'])
+            if actual != expected:
+                raise ValueError('Registry contract differs from frozen package')
+        engine = CpuModelService(package / 'release', threads=1)
+        for _ in range(20):
+            engine.runner.predict_tensor(np.full((224,224,3),128,dtype=np.float32))
+        engines[engine.model_version] = engine
+    engine = engines[args.model_version]
+    if engine.model_sha256 != args.model_sha256:
+        raise ValueError('Default model hash differs')
     path = args.socket
     if not path.is_absolute() or not path.parent.is_dir():
         raise ValueError("A private absolute runtime socket path is required")
@@ -151,6 +181,7 @@ def main():
     os.umask(0o077)
     with CpuServer(str(path), Handler) as server:
         server.engine = engine
+        server.engines = engines
         server.admission = threading.BoundedSemaphore(1)
         server.temporary_directory = path.parent
         print(json.dumps({"event":"model_ready","model_version":engine.model_version,"model_sha256":engine.model_sha256,"threads":1}), flush=True)

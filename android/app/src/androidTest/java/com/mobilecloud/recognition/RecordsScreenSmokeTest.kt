@@ -54,7 +54,7 @@ class RecordsScreenSmokeTest {
         compose.onNodeWithTag("inference-mode-device").assertIsSelected()
         saveScreen("capture-field-notes-local.png")
         compose.onNodeWithTag("inference-mode-cloud").performClick().assertIsSelected()
-        compose.onNodeWithText("图片发送至组内服务器", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("图片发送至组内服务器", substring = true).performScrollTo().assertIsDisplayed()
         saveScreen("capture-field-notes-cloud.png")
         compose.onNodeWithTag("inference-mode-device").performClick().assertIsSelected()
     }

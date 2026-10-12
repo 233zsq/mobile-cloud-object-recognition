@@ -93,6 +93,34 @@ class WorkerTests(unittest.TestCase):
             self.assertEqual(pending.result()[0],200)
         self.assertEqual(self.server.engine.calls,1)
 
+    def test_second_model_uses_its_own_engine_and_health_identity(self):
+        alternate = Engine()
+        alternate.model_version = 'campus-evolve-v2'
+        alternate.model_sha256 = 'b' * 64
+        self.server.engines = {self.server.engine.model_version: self.server.engine,
+                               alternate.model_version: alternate}
+        status, body = self.call(self.image, alternate.model_version)
+        self.assertEqual((status, body['model_version'], body['model_sha256']), (200, alternate.model_version, 'b' * 64))
+        self.assertEqual((self.server.engine.calls, alternate.calls), (0, 1))
+        connection = Connection(self.path)
+        connection.request('GET', '/health', headers={'X-Model-Version': alternate.model_version})
+        response = connection.getresponse()
+        self.assertEqual((response.status, json.loads(response.read())['model_sha256']), (200, 'b' * 64))
+        connection.close()
+
+    def test_admission_limit_is_shared_between_models(self):
+        alternate = Engine()
+        alternate.model_version = 'campus-evolve-v2'
+        self.server.engines = {self.server.engine.model_version: self.server.engine, alternate.model_version: alternate}
+        self.server.engine.release.clear()
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            pending = executor.submit(self.call, self.image)
+            self.assertTrue(self.server.engine.enter.wait(2))
+            self.assertEqual(self.call(self.image, alternate.model_version)[0], 503)
+            self.assertEqual(alternate.calls, 0)
+            self.server.engine.release.set()
+            self.assertEqual(pending.result()[0], 200)
+
 
 if __name__=="__main__":
     unittest.main()

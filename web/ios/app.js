@@ -32,6 +32,8 @@ const state = {
   lastFile: null,
   health: null,
   contract: null,
+  cloudModels: [],
+  modelsLoading: false,
   storageError: '',
   syncing: false,
   settingsPage: '',
@@ -244,6 +246,48 @@ async function refreshHealth() {
   }
 }
 
+async function refreshModels() {
+  if (state.busy || state.modelsLoading || !state.token || state.categories.length !== 10) return;
+  state.modelsLoading = true;
+  dom.cloudModel.disabled = true;
+  dom.refreshModels.disabled = true;
+  const token = state.token;
+  try {
+    const data = Core.validateModels(await api('/api/models'), state.categories);
+    if (token !== state.token) throw new Error('口令已变化，请重新加载模型。');
+    for (const model of data.models) {
+      const bytes = new TextEncoder().encode(model.labels.join('\n') + '\n');
+      const digest = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)), (value) => value.toString(16).padStart(2, '0')).join('');
+      if (digest !== model.labels_sha256) throw new Error('云端标签哈希不一致。');
+    }
+    if (token !== state.token) throw new Error('口令已变化，请重新加载模型。');
+    state.cloudModels = data.models;
+    const version = state.modelVersion || data.default_model_version;
+    dom.cloudModel.replaceChildren();
+    for (const model of data.models) {
+      const option = new Option(`${model.display_name} · ${model.model_version}${model.available ? '' : '（暂不可用）'}`, model.model_version);
+      option.disabled = !model.available;
+      dom.cloudModel.add(option);
+    }
+    const selected = data.models.find((model) => model.model_version === version && model.available);
+    state.contract = selected || null;
+    state.modelVersion = version;
+    dom.cloudModel.value = selected ? version : '';
+    dom.cloudModelStatus.textContent = selected ? selected.description : '上次选择的模型不可用，请手动选择就绪模型。';
+    saveState();
+  } catch (error) {
+    state.cloudModels = [];
+    state.contract = null;
+    dom.cloudModel.replaceChildren(new Option('模型未加载', ''));
+    dom.cloudModelStatus.textContent = error.message;
+  } finally {
+    state.modelsLoading = false;
+    dom.cloudModel.disabled = state.busy || !state.cloudModels.length;
+    dom.refreshModels.disabled = state.busy;
+    renderModelInfo();
+  }
+}
+
 /* ---------------- 图片：直立、缩放、去元数据（传输副本） ---------------- */
 /** 返回可绘制的图片（EXIF 方向已按 image-orientation: from-image 应用）；对象 URL 由调用方绘制后释放。 */
 function loadImage(file) {
@@ -308,20 +352,20 @@ async function makeTransferCopy(file) {
 }
 
 /* ---------------- 识别 ---------------- */
-async function inferOnce(blob, signal) {
+async function inferOnce(blob, signal, contract) {
   const requestId = uuidv4();
   const body = new FormData();
   body.append('request_id', requestId);
-  body.append('model_version', state.contract.model_version);
+  body.append('model_version', contract.model_version);
   body.append('image', blob, 'photo.jpg');
   const result = await api('/api/infer', { method: 'POST', body, timeout: INFER_TIMEOUT_MS, signal });
-  return Core.validateInference(result, { requestId, contract: state.contract, categories: state.categories });
+  return Core.validateInference(result, { requestId, contract, categories: state.categories });
 }
 
 async function recognize(file) {
   if (state.busy) return;
   state.lastFile = file;
-  if (!state.contract || state.categories.length !== 10) {
+  if (state.categories.length !== 10) {
     setStatus(dom.captureStatus, '模型规格尚未加载，请刷新页面重试。', true);
     return;
   }
@@ -329,6 +373,12 @@ async function recognize(file) {
     setStatus(dom.captureStatus, '请先在「我的 → 云端连接」保存组内访问口令。', true);
     renderRetryButton();
     showView('settings', 'cloud');
+    return;
+  }
+  const contract = state.contract;
+  if (!contract) {
+    setStatus(dom.captureStatus, '请先刷新模型列表并选择一个就绪的云端模型。', true);
+    renderRetryButton();
     return;
   }
   state.ticket = null;
@@ -346,15 +396,14 @@ async function recognize(file) {
     setPreview(blob);
     setBusy(true, '正在上传并识别…');
     setPhase('infer');
-    const health = await refreshHealth();
+    const catalog = Core.validateModels(await api('/api/models', { signal: controller.signal }), state.categories);
     if (controller.signal.aborted) throw new ApiFailure('CANCELLED', '本次识别已取消，未保存识别记录。', 0);
-    if (!health.model_loaded) {
-      throw new ApiFailure('MODEL_UNAVAILABLE', '云端模型未就绪，请联系维护人员。', 503);
+    const current = catalog.models.find((model) => model.model_version === contract.model_version && model.available);
+    if (!current || current.model_sha256 !== contract.model_sha256 || current.labels_sha256 !== contract.labels_sha256
+      || current.low_confidence_threshold !== contract.low_confidence_threshold || current.category_version !== contract.category_version) {
+      throw new ApiFailure('MODEL_VERSION_MISMATCH', '所选模型不可用或规格已变化，请刷新模型列表后手动选择。', 409);
     }
-    if (health.model_version !== state.contract.model_version) {
-      throw new ApiFailure('MODEL_VERSION_MISMATCH', '云端模型已变更，请更新网页后重试。本次未切换模型。', 409);
-    }
-    const result = await inferOnce(blob, controller.signal);
+    const result = await inferOnce(blob, controller.signal, contract);
     if (controller.signal.aborted) throw new ApiFailure('CANCELLED', '本次识别已取消，未保存识别记录。', 0);
     setPhase('save');
     const totalMs = Date.now() - started;
@@ -511,6 +560,8 @@ function setBusy(busy, message) {
   dom.cancelInfer.hidden = !busy;
   dom.processingSteps.hidden = !busy;
   dom.ticketAgain.disabled = busy;
+  dom.cloudModel.disabled = busy || state.modelsLoading || !state.cloudModels.length;
+  dom.refreshModels.disabled = busy || state.modelsLoading;
   dom.clearStorage.disabled = busy || state.syncing;
   if (message) setStatus(dom.captureStatus, message, false);
 }
@@ -537,17 +588,11 @@ function renderHealthBadge() {
     return;
   }
   if (state.health.model_loaded && state.health.model_version) {
-    if (state.contract && state.health.model_version !== state.contract.model_version) {
-      badge.textContent = '模型需更新';
-      badge.classList.add('warn');
-      badge.title = `网页 ${state.contract.model_version}；云端 ${state.health.model_version}`;
-      return;
-    }
     // 手机顶栏空间有限：徽章只显示版本尾号（如 v2），完整版本放 tooltip 与票据里
-    const tail = /(v\d+(?:\.\d+)*)$/.exec(state.health.model_version);
+    const tail = /(v\d+(?:\.\d+)*)$/.exec(state.contract?.model_version || state.health.model_version);
     badge.textContent = `云端 ${tail ? tail[1] : '就绪'}`;
     badge.classList.add('ok');
-    badge.title = `模型 ${state.health.model_version}（${state.health.model_status}）；服务版本 ${state.health.version}`;
+    badge.title = `所选模型 ${state.contract?.model_version || '尚未选择'}；默认 ${state.health.model_version}；服务版本 ${state.health.version}`;
   } else {
     badge.textContent = '模型未就绪';
     badge.classList.add('warn');
@@ -787,21 +832,22 @@ function appendRows(target, rows) {
 
 function renderModelInfo() {
   const contract = state.contract;
-  dom.modelSummary.textContent = contract ? contract.model_version : '规格未加载';
+  dom.modelSummary.textContent = contract ? contract.model_version : '请选择云端模型';
   appendRows(dom.connectionMeta, [
-    ['服务地址', location.origin], ['云端模型', state.health?.model_version || '尚未连接'],
+    ['服务地址', location.origin], ['默认云端模型', state.health?.model_version || '尚未连接'],
     ['连接状态', state.health?.model_loaded ? '模型已就绪' : '未就绪'],
     ['访问口令', state.token ? '已设置（需测试认证）' : '未设置'],
   ]);
-  if (contract) appendRows(dom.modelMeta, [
-    ['网页登记模型', contract.model_version], ['类别版本', contract.category_version],
+  appendRows(dom.modelMeta, contract ? [
+    ['所选云端模型', contract.model_version], ['类别版本', contract.category_version],
     ['模型 SHA-256', contract.model_sha256], ['低置信阈值', percent(contract.low_confidence_threshold)],
     ['输入规格', 'RGB 224 × 224 · 模型内部归一化'],
     ['传输副本', '最长边 2048 · JPEG · 灰底 · 清除 EXIF'],
-  ]);
+  ] : [['当前选择', '请在识别页选择云端模型']]);
   dom.connectShortcut.hidden = Boolean(state.token);
   dom.connectionHint.textContent = !state.token ? '首次使用，请先保存组内访问口令。'
-    : (state.health && contract && state.health.model_version !== contract.model_version ? '云端与网页模型不同，请更新网页后重试。' : '');
+    : (!contract ? '请刷新模型列表并选择就绪模型。' : '');
+  renderHealthBadge();
 }
 
 function exportRecords() {
@@ -880,7 +926,7 @@ async function loadCategories() {
     || !/^[a-f0-9]{64}$/.test(contract.model_sha256) || !Number.isFinite(contract.low_confidence_threshold)) throw new Error('模型与类别规格不一致');
   state.categories = categories;
   state.contract = contract;
-  state.modelVersion = contract.model_version;
+  if (!state.modelVersion) state.modelVersion = contract.model_version;
   dom.filterCategory.replaceChildren(new Option('全部类别', ''));
   dom.modelCategories.textContent = '';
   for (const category of categories) {
@@ -892,6 +938,17 @@ async function loadCategories() {
 }
 
 function bindEvents() {
+  dom.refreshModels.addEventListener('click', refreshModels);
+  dom.cloudModel.addEventListener('change', () => {
+    if (state.busy || state.modelsLoading) return;
+    const model = state.cloudModels.find((item) => item.model_version === dom.cloudModel.value && item.available);
+    if (!model) return;
+    state.contract = model;
+    state.modelVersion = model.model_version;
+    dom.cloudModelStatus.textContent = model.description;
+    saveState();
+    renderModelInfo();
+  });
   document.querySelector('.skip-link').addEventListener('click', (event) => {
     event.preventDefault();
     document.getElementById('main').focus();
@@ -947,10 +1004,15 @@ function bindEvents() {
   dom.tokenForm.addEventListener('submit', (event) => {
     event.preventDefault();
     state.token = dom.tokenInput.value.trim();
+    state.cloudModels = [];
+    state.contract = null;
+    dom.cloudModel.replaceChildren(new Option('先设置访问口令', ''));
+    dom.cloudModel.disabled = true;
     const saved = saveState();
     setStatus(dom.settingsStatus, saved ? (state.token ? '口令已保存在本机。' : '口令已清空。') : state.storageError, !saved);
     renderStorageInfo();
     renderModelInfo();
+    refreshModels();
   });
 
   dom.testConnection.addEventListener('click', async () => {
@@ -985,6 +1047,10 @@ function bindEvents() {
     // 只保留设备标识，避免下次上报被当成新设备
     const clientId = state.clientId;
     state.token = '';
+    state.contract = null;
+    state.cloudModels = [];
+    dom.cloudModel.replaceChildren(new Option('先设置访问口令', ''));
+    dom.cloudModel.disabled = true;
     state.records = [];
     state.ticket = null;
     state.lastFile = null;
@@ -1078,6 +1144,7 @@ function cacheDom() {
     settingsBack: 'settings-back', modelSummary: 'model-summary', modelMeta: 'model-meta',
     connectionMeta: 'connection-meta', modelCategories: 'model-categories', connectionHint: 'connection-hint',
     connectShortcut: 'connect-shortcut',
+    cloudModel: 'cloud-model', cloudModelStatus: 'cloud-model-status', refreshModels: 'refresh-models',
   })) dom[key] = document.getElementById(id);
   dom.settingsPages = Array.from(document.querySelectorAll('[data-settings-page]'));
 }
@@ -1094,6 +1161,9 @@ async function init() {
   renderTicket();
   try {
     await loadCategories();
+    if (state.token) await refreshModels();
+    else state.contract = null;
+    renderModelInfo();
   } catch (error) {
     setStatus(dom.captureStatus, '模型或类别规格加载失败，请刷新页面重试。', true);
   }

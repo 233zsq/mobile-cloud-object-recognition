@@ -88,7 +88,7 @@ fun RecordsScreen(viewModel: RecordsViewModel = viewModel()) {
     var showActions by remember { mutableStateOf(false) }
     val selection = state.selection
 
-    Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { padding ->
+    Scaffold(containerColor = MaterialTheme.colorScheme.background, snackbarHost = { SnackbarHost(snackbarHostState) }) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
             FieldNotesHeader("观察记录")
             Row(

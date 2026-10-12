@@ -1271,3 +1271,13 @@ input[type=date] {
     display:none
   }
 }
+.cloud-model-control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 8px 12px;
+  margin-bottom: 16px;
+}
+.cloud-model-control label { display: grid; gap: 7px; min-width: 0; font-size: 13px; font-weight: 700; }
+.cloud-model-control select { width: 100%; min-width: 0; font-size: 14px; }
+.cloud-model-control p { grid-column: 1 / -1; margin: 0; }

@@ -151,6 +151,24 @@
     });
   }
 
+  function validateModels(data, categories) {
+    const validVersion = (value) => typeof value === 'string' && /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(value);
+    const hash = (value) => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
+    if (categories.length !== 10 || !data || !Array.isArray(data.models) || data.models.length < 1 || data.models.length > 2
+      || new Set(data.models.map((model) => model.model_version)).size !== data.models.length
+      || !data.models.some((model) => model.model_version === data.default_model_version)) throw new Error('云端模型列表无效。');
+    for (const model of data.models) {
+      if (!validVersion(model.model_version) || !validVersion(model.category_version)
+        || !hash(model.model_sha256) || !hash(model.labels_sha256) || model.status !== 'frozen'
+        || typeof model.available !== 'boolean' || !Array.isArray(model.labels) || model.labels.length !== 10
+        || !categories.every((category, index) => category.label_key === model.labels[index])
+        || !Number.isFinite(model.low_confidence_threshold) || model.low_confidence_threshold < 0 || model.low_confidence_threshold > 1
+        || typeof model.display_name !== 'string' || !model.display_name.length || model.display_name.length > 64
+        || typeof model.description !== 'string' || !model.description.length || model.description.length > 160) throw new Error('云端模型规格不兼容。');
+    }
+    return data;
+  }
+
   function validateInference(result, { requestId, contract, categories }) {
     const invalid = (message) => { throw new Error(message); };
     if (!result || result.request_id !== requestId) invalid('响应编号不匹配，结果未保存，请重试。');
@@ -172,5 +190,5 @@
   }
 
   return { hasCorrection, isPending, trimRecords, writeState, serverRecord, adoptServerCorrection,
-    syncRecord, createSyncQueue, filterRecords, validateInference };
+    syncRecord, createSyncQueue, filterRecords, validateInference, validateModels };
 });

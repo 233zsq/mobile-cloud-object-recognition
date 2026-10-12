@@ -11,6 +11,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontFamily
 import com.mobilecloud.recognition.R
 
 @Composable
@@ -24,9 +26,10 @@ fun BrandMark(modifier: Modifier = Modifier.size(54.dp)) {
 
 @Composable
 fun FieldNotesHeader(title: String, modifier: Modifier = Modifier) {
-    Row(modifier.fillMaxWidth().padding(horizontal = 22.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(title, modifier = Modifier.weight(1f), style = MaterialTheme.typography.headlineMedium)
-        Spacer(Modifier.width(12.dp))
-        BrandMark()
+    Row(modifier.fillMaxWidth().padding(horizontal = 22.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+        BrandMark(Modifier.size(38.dp))
+        Spacer(Modifier.width(10.dp))
+        Text(title, modifier = Modifier.weight(1f), fontSize = 22.sp, fontFamily = FontFamily.Serif)
+        Text("CAMPUS", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
