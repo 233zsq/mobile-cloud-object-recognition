@@ -15,7 +15,7 @@ revision=subprocess.check_output(['git','rev-parse','--verify',args.revision+'^{
 blob=subprocess.check_output(['git','archive',revision,'backend','database','deploy','web'],cwd=root)
 with tarfile.open(fileobj=io.BytesIO(blob)) as source, tarfile.open(args.output,'x') as destination:
     for member in source:
-        if member.isfile():
+        if member.isfile() and not any(part.startswith('.') for part in Path(member.name).parts):
             destination.addfile(member,source.extractfile(member))
     data=(revision+'\n').encode()
     entry=tarfile.TarInfo('SOURCE_REVISION'); entry.size=len(data)
