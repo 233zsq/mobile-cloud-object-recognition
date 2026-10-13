@@ -5,7 +5,24 @@ import collections
 import os
 import shlex
 import subprocess
+import textwrap
 from pathlib import Path
+
+
+def remote_fetch_command(url, limit):
+    # Keep the remote program's indentation independent of this module's layout.
+    code = textwrap.dedent("""\
+        import sys, urllib.request, urllib.parse
+        url, limit = sys.argv[1], int(sys.argv[2])
+        if urllib.parse.urlsplit(url).scheme != 'https' or urllib.parse.urlsplit(url).hostname not in ('commons.wikimedia.org', 'upload.wikimedia.org', 'thumb.wikimedia.org', 'open-images-dataset.s3.amazonaws.com'):
+            raise ValueError('Unsupported collection origin')
+        with urllib.request.urlopen(urllib.request.Request(url, headers={'User-Agent': 'CampusRecognitionCourse/0.1 (educational image classification; attribution retained)'}), timeout=30) as r:
+            if int(r.headers.get('Content-Length', '0')) > limit: raise ValueError('Response exceeds byte limit')
+            data = r.read(limit + 1)
+            if len(data) > limit: raise ValueError('Response exceeds byte limit')
+            sys.stdout.buffer.write(data)
+        """)
+    return "python3 -c " + shlex.quote(code) + " " + shlex.quote(url) + " " + str(limit)
 
 
 def run(args):
@@ -36,24 +53,7 @@ def run(args):
                 except (collect.urllib.error.URLError, TimeoutError):
                     pass
             # Only fixed dataset origins; no general-purpose public proxy or port.
-            code = """import sys, urllib.request, urllib.parse
-    url, limit = sys.argv[1], int(sys.argv[2])
-    if urllib.parse.urlsplit(url).scheme != 'https' or urllib.parse.urlsplit(url).hostname not in ('commons.wikimedia.org', 'upload.wikimedia.org', 'thumb.wikimedia.org', 'open-images-dataset.s3.amazonaws.com'):
-        raise ValueError('Unsupported collection origin')
-    with urllib.request.urlopen(urllib.request.Request(url, headers={'User-Agent': 'CampusRecognitionCourse/0.1 (educational image classification; attribution retained)'}), timeout=30) as r:
-        if int(r.headers.get('Content-Length', '0')) > limit: raise ValueError('Response exceeds byte limit')
-        data = r.read(limit + 1)
-        if len(data) > limit: raise ValueError('Response exceeds byte limit')
-        sys.stdout.buffer.write(data)
-    """
-            command = (
-                "python3 -c "
-                + shlex.quote(code)
-                + " "
-                + shlex.quote(url)
-                + " "
-                + str(limit)
-            )
+            command = remote_fetch_command(url, limit)
             for attempt in range(retries):
                 result = subprocess.run(
                     ["ssh", args.remote_fetch, command], capture_output=True, timeout=45

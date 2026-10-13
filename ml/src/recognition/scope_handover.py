@@ -21,6 +21,24 @@ def write(path, value):
     )
 
 
+def copy_cpu_runtime(output):
+    runtime = output / "campus_scope_runtime"
+    runtime.mkdir()
+    (runtime / "__init__.py").write_text("", encoding="utf8")
+    for name in ("common.py", "manifest_io.py", "preprocessing.py", "inference.py"):
+        shutil.copyfile(ROOT / "ml/src/recognition" / name, runtime / name)
+    for name in ("backend_adapter.py", "verify_package.py"):
+        shutil.copyfile(ROOT / "deploy/runtime" / name, output / name)
+    locks = output / "locks"
+    locks.mkdir()
+    shutil.copyfile(
+        ROOT / "ml/requirements-wsl-runtime.lock", locks / "linux-py312-runtime.lock"
+    )
+    shutil.copyfile(
+        ROOT / "ml/requirements-windows-runtime.lock", locks / "windows-runtime.lock"
+    )
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ("release", "parent", "verification", "output"):
@@ -86,21 +104,7 @@ def main():
     )
     args.output.mkdir(parents=True)
     shutil.copytree(args.release, args.output / "release")
-    runtime = args.output / "campus_scope_runtime"
-    runtime.mkdir()
-    (runtime / "__init__.py").write_text("", encoding="utf8")
-    for name in ("common.py", "preprocessing.py", "inference.py"):
-        shutil.copyfile(ROOT / "ml/src/recognition" / name, runtime / name)
-    for name in ("backend_adapter.py", "verify_package.py"):
-        shutil.copyfile(ROOT / "deploy/runtime" / name, args.output / name)
-    locks = args.output / "locks"
-    locks.mkdir()
-    shutil.copyfile(
-        ROOT / "ml/requirements-wsl-runtime.lock", locks / "linux-py312-runtime.lock"
-    )
-    shutil.copyfile(
-        ROOT / "ml/requirements-windows-runtime.lock", locks / "windows-runtime.lock"
-    )
+    copy_cpu_runtime(args.output)
     write(
         args.output / "checksums.json",
         {
