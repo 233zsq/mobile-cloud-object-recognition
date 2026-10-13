@@ -3,6 +3,8 @@ package com.mobilecloud.recognition.sync
 import com.mobilecloud.recognition.data.local.RecordEntity
 import com.mobilecloud.recognition.data.remote.CorrectionRequest
 import com.mobilecloud.recognition.data.remote.RecordUploadRequest
+import com.mobilecloud.recognition.data.remote.ScopeUploadEvidence
+import kotlinx.serialization.json.Json
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -25,6 +27,7 @@ object RecordMapper {
         confidence = entity.confidence,
         latencyMs = entity.latencyMs,
         capturedAt = isoTime(entity.capturedAt),
+        scopeDecision = entity.scopeDecisionJson?.let { Json.decodeFromString<ScopeUploadEvidence>(it) },
     )
 
     fun toCorrectionRequest(entity: RecordEntity): CorrectionRequest = CorrectionRequest(

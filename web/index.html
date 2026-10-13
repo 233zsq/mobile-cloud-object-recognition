@@ -26,13 +26,15 @@
       <label>模型版本<select id="model"><option value="">全部模型</option></select></label>
       <label>类别<select id="category"><option value="">全部类别</option></select></label>
       <label>识别来源<select id="source"><option value="">全部来源</option><option value="device">手机离线</option><option value="cloud">云端识别</option></select></label>
+      <label>识别状态<select id="recognition-status"><option value="">全部状态</option><option value="accepted">规则通过</option><option value="uncertain">不确定</option><option value="unavailable">规则未就绪</option><option value="unreported">旧记录未标记</option></select></label>
       <label>类别统计口径<select id="basis"><option value="predicted">原始预测</option><option value="effective">修正后（未修正沿用原预测）</option></select></label>
       <button id="apply" disabled>应用筛选</button><button id="reset" class="secondary" disabled>重置</button>
     </section></details>
     <section class="metrics" aria-label="统计概览">
       <article class="metric"><span>采集记录 / OBSERVATIONS</span><strong id="total">—</strong><small id="sources">手机 — / 云端 —</small></article>
       <article class="metric"><span>人工修正 / CORRECTED</span><strong id="corrected">—</strong><small>原预测始终保留</small></article>
-      <article class="metric"><span>需要确认 / UNCERTAIN</span><strong id="low">—</strong><small>使用每个模型登记的阈值</small></article>
+      <article class="metric"><span>不确定 / UNCERTAIN</span><strong id="uncertain">—</strong><small>原始判断状态，人工确认后仍保留</small></article>
+      <article class="metric"><span>低置信结果 / LOW SCORE</span><strong id="low">—</strong><small>使用每个模型登记的阈值</small></article>
       <article class="metric"><span>平均耗时 / LATENCY</span><strong id="latency">—</strong><small id="latency-range">预处理＋推理，不含网络</small></article>
     </section>
     <div class="charts">

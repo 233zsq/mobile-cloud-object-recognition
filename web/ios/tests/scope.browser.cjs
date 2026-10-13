@@ -10,8 +10,8 @@ const root = path.resolve(__dirname, '..');
 const contract = JSON.parse(fs.readFileSync(path.join(root, 'model-contract.json')));
 const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jV3sAAAAASUVORK5CYII=', 'base64');
 const models = [
-  { ...contract, display_name: '进阶版', description: '当前冻结模型', status: 'frozen', available: true },
-  { ...contract, model_version: 'campus-gpu-v1', model_sha256: 'b'.repeat(64), display_name: '基准版', description: '旧版模型', status: 'frozen', available: true },
+  { ...contract, scope_policy: { ...contract.scope_policy, policy_sha256: contract.scope_policy_sha256 }, display_name: '进阶版', description: '当前冻结模型', status: 'frozen', available: true },
+  { ...contract, scope_policy: null, model_version: 'campus-gpu-v1', model_sha256: 'b'.repeat(64), display_name: '基准版', description: '旧版模型', status: 'frozen', available: true },
 ];
 let server;
 let browser;
@@ -37,7 +37,7 @@ after(async () => {
   if (server) await new Promise((resolve) => server.close(resolve));
 });
 
-async function fixture(t, { scores = [.56, .44, ...Array(8).fill(0)], corruptPolicy = false, width = 390 } = {}) {
+async function fixture(t, { scores = [.56, .44, ...Array(8).fill(0)], corruptPolicy = false, learned = false, width = 390 } = {}) {
   const context = await browser.newContext({ viewport: { width, height: 844 } });
   t.after(() => context.close());
   const page = await context.newPage();
@@ -46,6 +46,11 @@ async function fixture(t, { scores = [.56, .44, ...Array(8).fill(0)], corruptPol
   const posts = [];
   const patches = [];
   const rows = new Map();
+  let catalog = corruptPolicy ? models.map(({ scope_policy, ...legacy }) => legacy) : models;
+  if (learned) catalog = catalog.map((model, i) => i ? model : { ...model, scope_policy: {
+    ...model.scope_policy, policy_version: 'scope-knownness-v1', rule: 'learned_knownness_v1', knownness_threshold: .85,
+    policy_sha256: 'c'.repeat(64),
+  } });
   await page.addInitScript(() => localStorage.setItem('campus-ios-v1', JSON.stringify({
     version: 1, token: 'local-test-only', clientId: 'browser-test', records: [],
   })));
@@ -58,16 +63,19 @@ async function fixture(t, { scores = [.56, .44, ...Array(8).fill(0)], corruptPol
     if (url.pathname === '/api/health') {
       await route.fulfill({ json: { model_loaded: true, model_version: contract.model_version, model_status: 'ready', version: 'local-test' } });
     } else if (url.pathname === '/api/models') {
-      await route.fulfill({ json: { default_model_version: contract.model_version, models } });
+      await route.fulfill({ json: { default_model_version: contract.model_version, models: catalog } });
     } else if (url.pathname === '/api/infer') {
       const multipart = request.postDataBuffer().toString('utf8');
       const field = (name) => new RegExp(`name="${name}"\\r\\n\\r\\n([^\\r]+)`).exec(multipart)[1];
-      const model = models.find((item) => item.model_version === field('model_version'));
+      const model = catalog.find((item) => item.model_version === field('model_version'));
       const top = scores.indexOf(Math.max(...scores));
       await route.fulfill({ json: { request_id: field('request_id'), model_version: model.model_version,
         model_sha256: model.model_sha256, scores, predicted_id: top, label_key: model.labels[top],
         confidence: scores[top], low_confidence: scores[top] < model.low_confidence_threshold,
-        preprocess_ms: 10, inference_ms: 20 } });
+        preprocess_ms: 10, inference_ms: 20, ...(learned ? {
+          recognition_status: 'uncertain', scope_decision: { status: 'uncertain', needs_confirmation: true,
+            policy_version: model.scope_policy.policy_version, policy_sha256: model.scope_policy.policy_sha256, knownness: .429 },
+        } : {}) } });
     } else if (url.pathname === '/api/records' && request.method() === 'POST') {
       const sent = request.postDataJSON();
       posts.push(sent);
@@ -117,6 +125,20 @@ test('uncertain result stays out of storage and upload until the candidate is co
   assert.equal(record.scope_manually_confirmed, true);
   assert.equal(f.posts.length, 1);
   assert.equal(f.patches.length, 0);
+});
+
+test('learned cloud rule rejects a 100 percent class guess and uploads only after manual confirmation', async (t) => {
+  const f = await fixture(t, { learned: true, scores: [...Array(8).fill(0), 1, 0] });
+  await f.choose();
+  assert.equal(await f.page.locator('#ticket-name').textContent(), '暂不确定');
+  assert.equal((await f.saved()).length, 0);
+  assert.equal(f.posts.length, 0);
+  await f.page.locator('#scope-confirm').click();
+  await f.page.waitForFunction(() => document.getElementById('ticket-sync').textContent.includes('已上报'));
+  assert.equal(f.posts[0].predicted_id, 8);
+  assert.equal(f.posts[0].confidence, 1);
+  assert.deepEqual(f.posts[0].scope_decision, { status: 'uncertain', policy_version: 'scope-knownness-v1',
+    policy_sha256: 'c'.repeat(64), knownness: .429, manual_confirmed: true });
 });
 
 test('choosing another category uploads the original prediction and then its correction', async (t) => {

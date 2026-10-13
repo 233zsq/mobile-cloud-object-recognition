@@ -154,7 +154,7 @@
   function validateModels(data, categories) {
     const validVersion = (value) => typeof value === 'string' && /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(value);
     const hash = (value) => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
-    if (categories.length !== 10 || !data || !Array.isArray(data.models) || data.models.length < 1 || data.models.length > 2
+    if (categories.length !== 10 || !data || !Array.isArray(data.models) || data.models.length < 1 || data.models.length > 4
       || new Set(data.models.map((model) => model.model_version)).size !== data.models.length
       || !data.models.some((model) => model.model_version === data.default_model_version)) throw new Error('云端模型列表无效。');
     for (const model of data.models) {
@@ -165,6 +165,8 @@
         || !Number.isFinite(model.low_confidence_threshold) || model.low_confidence_threshold < 0 || model.low_confidence_threshold > 1
         || typeof model.display_name !== 'string' || !model.display_name.length || model.display_name.length > 64
         || typeof model.description !== 'string' || !model.description.length || model.description.length > 160) throw new Error('云端模型规格不兼容。');
+      if (model.scope_policy != null && (!scopePolicyMatches(model, model.scope_policy) || !hash(model.scope_policy.policy_sha256)))
+        throw new Error('云端范围规则与模型不一致。');
     }
     return data;
   }
@@ -190,8 +192,10 @@
   }
 
   function scopePolicyMatches(contract, policy) {
-    return Boolean(contract && policy && policy.policy_version === 'scope-basic-v1'
-      && policy.status === 'experimental' && policy.rule === 'msp_margin_v1'
+    return Boolean(contract && policy && ['experimental', 'frozen'].includes(policy.status)
+      && ((policy.policy_version === 'scope-basic-v1' && policy.rule === 'msp_margin_v1')
+        || (policy.policy_version === 'scope-knownness-v1' && policy.rule === 'learned_knownness_v1'
+          && Number.isFinite(policy.knownness_threshold) && policy.knownness_threshold >= 0 && policy.knownness_threshold <= 1))
       && policy.model_version === contract.model_version && policy.model_sha256 === contract.model_sha256
       && policy.labels_sha256 === contract.labels_sha256 && policy.category_version === contract.category_version
       && policy.preprocessing_version === 'rgb-letterbox-v1'
@@ -206,14 +210,29 @@
       || result.model_version !== contract.model_version || result.model_sha256 !== contract.model_sha256) {
       throw new Error('识别分数或模型身份无效，结果未保存。');
     }
+    if (Object.prototype.hasOwnProperty.call(contract, 'scope_policy')) policy = contract.scope_policy;
     if (!scopePolicyMatches(contract, policy)) {
       return { status: 'unavailable', reason: '当前模型没有匹配的基础规则，请人工确认类别后保存。' };
     }
     const ordered = scores.map(Math.fround).sort((a, b) => b - a);
     const margin = Math.fround(ordered[0] - ordered[1]);
-    const accepted = ordered[0] >= Math.fround(policy.confidence_threshold) && margin >= Math.fround(policy.margin_threshold);
-    return { status: accepted ? 'accepted' : 'uncertain', policy_version: policy.policy_version, margin,
-      reason: accepted ? '' : '分类分数较低或前两类接近，请确认物品类别；也可能不在这10类内。' };
+    const learned = policy.rule === 'learned_knownness_v1';
+    const remote = result.scope_decision;
+    const knownness = learned ? remote?.knownness : null;
+    if (learned && (!Number.isFinite(knownness) || knownness < 0 || knownness > 1)) throw new Error('云端范围判断输出无效，结果未保存。');
+    const accepted = ordered[0] >= Math.fround(policy.confidence_threshold) && margin >= Math.fround(policy.margin_threshold)
+      && (!learned || Math.fround(knownness) >= Math.fround(policy.knownness_threshold));
+    const status = accepted ? 'accepted' : 'uncertain';
+    if (remote && (remote.status !== status || remote.needs_confirmation !== !accepted
+      || remote.policy_version !== policy.policy_version || remote.policy_sha256 !== policy.policy_sha256)) {
+      throw new Error('云端判断与所选模型规则不一致，结果未保存。');
+    }
+    if (result.recognition_status !== undefined && result.recognition_status !== status)
+      throw new Error('云端识别状态不一致，结果未保存。');
+    return { status, policy_version: policy.policy_version, policy_sha256: policy.policy_sha256, margin, knownness,
+      reason: accepted ? '' : (learned && Math.fround(knownness) < Math.fround(policy.knownness_threshold)
+        ? '暂不确定，图片可能不在当前10类范围内，请人工确认。'
+        : '分类分数较低或前两类接近，请确认物品类别；也可能不在这10类内。') };
   }
 
   function confirmScopedRecord(record, categoryId, confirmedAt) {

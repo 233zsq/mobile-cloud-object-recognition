@@ -1,0 +1,2432 @@
+{
+  "kind": "linear",
+  "epochs": 20,
+  "history": {
+    "loss": [
+      0.5538240075111389,
+      0.45770183205604553,
+      0.4341375529766083,
+      0.41782182455062866,
+      0.4045522212982178,
+      0.39300867915153503,
+      0.38260334730148315,
+      0.3730224370956421,
+      0.3640766739845276,
+      0.35564178228378296,
+      0.3476315140724182,
+      0.3399835228919983,
+      0.3326512277126312,
+      0.3255982995033264,
+      0.31879663467407227,
+      0.31222331523895264,
+      0.3058595061302185,
+      0.29968932271003723,
+      0.2936996817588806,
+      0.2878788709640503
+    ],
+    "val_loss": [
+      0.6640139222145081,
+      0.6301998496055603,
+      0.6112498641014099,
+      0.596372663974762,
+      0.5833963751792908,
+      0.5715848207473755,
+      0.5606101155281067,
+      0.5502879619598389,
+      0.5404988527297974,
+      0.5311586260795593,
+      0.5222058892250061,
+      0.5135945677757263,
+      0.5052890181541443,
+      0.4972608983516693,
+      0.4894874691963196,
+      0.48195016384124756,
+      0.47463279962539673,
+      0.4675219655036926,
+      0.46060630679130554,
+      0.4538748264312744
+    ]
+  },
+  "checkpoint_sha256": "bf29481fed29b314e333402ffa60c2caee81c8bd7dc240ddfdd085c87cbc8697",
+  "calibration": {
+    "selected": {
+      "threshold": 0.15000000596046448,
+      "known_count": 609,
+      "known_accepted": 569,
+      "known_coverage": 0.9343185550082101,
+      "known_false_rejection_rate": 0.06568144499178982,
+      "raw_known_accuracy": 0.9146141215106732,
+      "accepted_known_accuracy": 0.929701230228471,
+      "correct_and_accepted_over_all_known": 0.8686371100164204,
+      "unknown_count": 200,
+      "unknown_rejected": 186,
+      "unknown_rejection_rate": 0.93,
+      "unknown_false_acceptance_rate": 0.07,
+      "per_known_class": {
+        "0": {
+          "total": 58,
+          "accepted": 57,
+          "coverage": 0.9827586206896551
+        },
+        "1": {
+          "total": 38,
+          "accepted": 31,
+          "coverage": 0.8157894736842105
+        },
+        "2": {
+          "total": 66,
+          "accepted": 59,
+          "coverage": 0.8939393939393939
+        },
+        "3": {
+          "total": 41,
+          "accepted": 41,
+          "coverage": 1.0
+        },
+        "4": {
+          "total": 66,
+          "accepted": 63,
+          "coverage": 0.9545454545454546
+        },
+        "5": {
+          "total": 67,
+          "accepted": 67,
+          "coverage": 1.0
+        },
+        "6": {
+          "total": 86,
+          "accepted": 79,
+          "coverage": 0.9186046511627907
+        },
+        "7": {
+          "total": 60,
+          "accepted": 55,
+          "coverage": 0.9166666666666666
+        },
+        "8": {
+          "total": 54,
+          "accepted": 50,
+          "coverage": 0.9259259259259259
+        },
+        "9": {
+          "total": 73,
+          "accepted": 67,
+          "coverage": 0.9178082191780822
+        }
+      }
+    },
+    "candidates": [
+      {
+        "threshold": 0.0,
+        "known_count": 609,
+        "known_accepted": 584,
+        "known_coverage": 0.9589490968801314,
+        "known_false_rejection_rate": 0.041050903119868636,
+        "raw_known_accuracy": 0.9146141215106732,
+        "accepted_known_accuracy": 0.9315068493150684,
+        "correct_and_accepted_over_all_known": 0.8932676518883416,
+        "unknown_count": 200,
+        "unknown_rejected": 56,
+        "unknown_rejection_rate": 0.28,
+        "unknown_false_acceptance_rate": 0.72,
+        "per_known_class": {
+          "0": {
+            "total": 58,
+            "accepted": 58,
+            "coverage": 1.0
+          },
+          "1": {
+            "total": 38,
+            "accepted": 37,
+            "coverage": 0.9736842105263158
+          },
+          "2": {
+            "total": 66,
+            "accepted": 61,
+            "coverage": 0.9242424242424242
+          },
+          "3": {
+            "total": 41,
+            "accepted": 41,
+            "coverage": 1.0
+          },
+          "4": {
+            "total": 66,
+            "accepted": 64,
+            "coverage": 0.9696969696969697
+          },
+          "5": {
+            "total": 67,
+            "accepted": 67,
+            "coverage": 1.0
+          },
+          "6": {
+            "total": 86,
+            "accepted": 79,
+            "coverage": 0.9186046511627907
+          },
+          "7": {
+            "total": 60,
+            "accepted": 56,
+            "coverage": 0.9333333333333333
+          },
+          "8": {
+            "total": 54,
+            "accepted": 52,
+            "coverage": 0.9629629629629629
+          },
+          "9": {
+            "total": 73,
+            "accepted": 69,
+            "coverage": 0.9452054794520548
+          }
+        }
+      },
+      {
+        "threshold": 0.05000000074505806,
+        "known_count": 609,
+        "known_accepted": 581,
+        "known_coverage": 0.9540229885057471,
+        "known_false_rejection_rate": 0.04597701149425287,
+        "raw_known_accuracy": 0.9146141215106732,
+        "accepted_known_accuracy": 0.9311531841652324,
+        "correct_and_accepted_over_all_known": 0.8883415435139573,
+        "unknown_count": 200,
+        "unknown_rejected": 139,
+        "unknown_rejection_rate": 0.695,
+        "unknown_false_acceptance_rate": 0.305,
+        "per_known_class": {
+          "0": {
+            "total": 58,
+            "accepted": 58,
+            "coverage": 1.0
+          },
+          "1": {
+            "total": 38,
+            "accepted": 37,
+            "coverage": 0.9736842105263158
+          },
+          "2": {
+            "total": 66,
+            "accepted": 61,
+            "coverage": 0.9242424242424242
+          },
+          "3": {
+            "total": 41,
+            "accepted": 41,
+            "coverage": 1.0
+          },
+          "4": {
+            "total": 66,
+            "accepted": 64,
+            "coverage": 0.9696969696969697
+          },
+          "5": {
+            "total": 67,
+            "accepted": 67,
+            "coverage": 1.0
+          },
+          "6": {
+            "total": 86,
+            "accepted": 79,
+            "coverage": 0.9186046511627907
+          },
+          "7": {
+            "total": 60,
+            "accepted": 56,
+            "coverage": 0.9333333333333333
+          },
+          "8": {
+            "total": 54,
+            "accepted": 51,
+            "coverage": 0.9444444444444444
+          },
+          "9": {
+            "total": 73,
+            "accepted": 67,
+            "coverage": 0.9178082191780822
+          }
+        }
+      },
+      {
+        "threshold": 0.09868035465478897,
+        "known_count": 609,
+        "known_accepted": 577,
+        "known_coverage": 0.9474548440065681,
+        "known_false_rejection_rate": 0.052545155993431854,
+        "raw_known_accuracy": 0.9146141215106732,
+        "accepted_known_accuracy": 0.9306759098786829,
+        "correct_and_accepted_over_all_known": 0.8817733990147784,
+        "unknown_count": 200,
+        "unknown_rejected": 173,
+        "unknown_rejection_rate": 0.865,
+        "unknown_false_acceptance_rate": 0.135,
+        "per_known_class": {
+          "0": {
+            "total": 58,
+            "accepted": 58,
+            "coverage": 1.0
+          },
+          "1": {
+            "total": 38,
+            "accepted": 35,
+            "coverage": 0.9210526315789473
+          },
+          "2": {
+            "total": 66,
+            "accepted": 60,
+            "coverage": 0.9090909090909091
+          },
+          "3": {
+            "total": 41,
+            "accepted": 41,
+            "coverage": 1.0
+          },
+          "4": {
+            "total": 66,
+            "accepted": 64,
+            "coverage": 0.9696969696969697
+          },
+          "5": {
+            "total": 67,
+            "accepted": 67,
+            "coverage": 1.0
+          },
+          "6": {
+            "total": 86,
+            "accepted": 79,
+            "coverage": 0.9186046511627907
+          },
+          "7": {
+            "total": 60,
+            "accepted": 55,
+            "coverage": 0.9166666666666666
+          },
+          "8": {
+            "total": 54,
+            "accepted": 51,
+            "coverage": 0.9444444444444444
+          },
+          "9": {
+            "total": 73,
+            "accepted": 67,
+            "coverage": 0.9178082191780822
+          }
+        }
+      },
+      {
+        "threshold": 0.10000000149011612,
+        "known_count": 609,
+        "known_accepted": 577,
+        "known_coverage": 0.9474548440065681,
+        "known_false_rejection_rate": 0.052545155993431854,
+        "raw_known_accuracy": 0.9146141215106732,
+        "accepted_known_accuracy": 0.9306759098786829,
+        "correct_and_accepted_over_all_known": 0.8817733990147784,
+        "unknown_count": 200,
+        "unknown_rejected": 174,
+        "unknown_rejection_rate": 0.87,
+        "unknown_false_acceptance_rate": 0.13,
+        "per_known_class": {
+          "0": {
+            "total": 58,
+            "accepted": 58,
+            "coverage": 1.0
+          },
+          "1": {
+            "total": 38,
+            "accepted": 35,
+            "coverage": 0.9210526315789473
+          },
+          "2": {
+            "total": 66,
+            "accepted": 60,
+            "coverage": 0.9090909090909091
+          },
+          "3": {
+            "total": 41,
+            "accepted": 41,
+            "coverage": 1.0
+          },
+          "4": {
+            "total": 66,
+            "accepted": 64,
+            "coverage": 0.9696969696969697
+          },
+          "5": {
+            "total": 67,
+            "accepted": 67,
+            "coverage": 1.0
+          },
+          "6": {
+            "total": 86,
+            "accepted": 79,
+            "coverage": 0.9186046511627907
+          },
+          "7": {
+            "total": 60,
+            "accepted": 55,
+            "coverage": 0.9166666666666666
+          },
+          "8": {
+            "total": 54,
+            "accepted": 51,
+            "coverage": 0.9444444444444444
+          },
+          "9": {
+            "total": 73,
+            "accepted": 67,
+            "coverage": 0.9178082191780822
+          }
+        }
+      },
+      {
+        "threshold": 0.14027760922908783,
+        "known_count": 609,
+        "known_accepted": 571,
+        "known_coverage": 0.9376026272577996,
+        "known_false_rejection_rate": 0.06239737274220033,
+        "raw_known_accuracy": 0.9146141215106732,
+        "accepted_known_accuracy": 0.9299474605954466,
+        "correct_and_accepted_over_all_known": 0.8719211822660099,
+        "unknown_count": 200,
+        "unknown_rejected": 185,
+        "unknown_rejection_rate": 0.925,
+        "unknown_false_acceptance_rate": 0.075,
+        "per_known_class": {
+          "0": {
+            "total": 58,
+            "accepted": 58,
+            "coverage": 1.0
+          },
+          "1": {
+            "total": 38,
+            "accepted": 32,
+            "coverage": 0.8421052631578947
+          },
+          "2": {
+            "total": 66,
+            "accepted": 59,
+            "coverage": 0.8939393939393939
+          },
+          "3": {
+            "total": 41,
+            "accepted": 41,
+            "coverage": 1.0
+          },
+          "4": {
+            "total": 66,
+            "accepted": 63,
+            "coverage": 0.9545454545454546
+          },
+          "5": {
+            "total": 67,
+            "accepted": 67,
+            "coverage": 1.0
+          },
+          "6": {
+            "total": 86,
+            "accepted": 79,
+            "coverage": 0.9186046511627907
+          },
+          "7": {
+            "total": 60,
+            "accepted": 55,
+            "coverage": 0.9166666666666666
+          },
+          "8": {
+            "total": 54,
+            "accepted": 50,
+            "coverage": 0.9259259259259259
+          },
+          "9": {
+            "total": 73,
+            "accepted": 67,
+            "coverage": 0.9178082191780822
+          }
+        }
+      },
+      {
+        "threshold": 0.15000000596046448,
+        "known_count": 609,
+        "known_accepted": 569,
+        "known_coverage": 0.9343185550082101,
+        "known_false_rejection_rate": 0.06568144499178982,
+        "raw_known_accuracy": 0.9146141215106732,
+        "accepted_known_accuracy": 0.929701230228471,
+        "correct_and_accepted_over_all_known": 0.8686371100164204,
+        "unknown_count": 200,
+        "unknown_rejected": 186,
+        "unknown_rejection_rate": 0.93,
+        "unknown_false_acceptance_rate": 0.07,
+        "per_known_class": {
+          "0": {
+            "total": 58,
+            "accepted": 57,
+            "coverage": 0.9827586206896551
+          },
+          "1": {
+            "total": 38,
+            "accepted": 31,
+            "coverage": 0.8157894736842105
+          },
+          "2": {
+            "total": 66,
+            "accepted": 59,
+            "coverage": 0.8939393939393939
+          },
+          "3": {
+            "total": 41,
+            "accepted": 41,
+            "coverage": 1.0
+          },
+          "4": {
+            "total": 66,
+            "accepted": 63,
+            "coverage": 0.9545454545454546
+          },
+          "5": {
+            "total": 67,
+            "accepted": 67,
+            "coverage": 1.0
+          },
+          "6": {
+            "total": 86,
+            "accepted": 79,
+            "coverage": 0.9186046511627907
+          },
+          "7": {
+            "total": 60,
+            "accepted": 55,
+            "coverage": 0.9166666666666666
+          },
+          "8": {
+            "total": 54,
+            "accepted": 50,
+            "coverage": 0.9259259259259259
+          },
+          "9": {
+            "total": 73,
+            "accepted": 67,
+            "coverage": 0.9178082191780822
+          }
+        }
+      },
+      {
+        "threshold": 0.16545657813549042,
+        "known_count": 609,
+        "known_accepted": 565,
+        "known_coverage": 0.9277504105090312,
+        "known_false_rejection_rate": 0.0722495894909688,
+        "raw_known_accuracy": 0.9146141215106732,
+        "accepted_known_accuracy": 0.9292035398230089,
+        "correct_and_accepted_over_all_known": 0.8620689655172413,
+        "unknown_count": 200,
+        "unknown_rejected": 191,
+        "unknown_rejection_rate": 0.955,
+        "unknown_false_acceptance_rate": 0.045,
+        "per_known_class": {
+          "0": {
+            "total": 58,
+            "accepted": 55,
+            "coverage": 0.9482758620689655
+          },
+          "1": {
+            "total": 38,
+            "accepted": 30,
+            "coverage": 0.7894736842105263
+          },
+          "2": {
+            "total": 66,
+            "accepted": 59,
+            "coverage": 0.8939393939393939
+          },
+          "3": {
+            "total": 41,
+            "accepted": 41,
+            "coverage": 1.0
+          },
+          "4": {
+            "total": 66,
+            "accepted": 63,
+            "coverage": 0.9545454545454546
+          },
+          "5": {
+            "total": 67,
+            "accepted": 67,
+            "coverage": 1.0
+          },
+          "6": {
+            "total": 86,
+            "accepted": 78,
+            "coverage": 0.9069767441860465
+          },
+          "7": {
+            "total": 60,
+            "accepted": 55,
+            "coverage": 0.9166666666666666
+          },
+          "8": {
+            "total": 54,
+            "accepted": 50,
+            "coverage": 0.9259259259259259
+          },
+          "9": {
+            "total": 73,
+            "accepted": 67,
+            "coverage": 0.9178082191780822
+          }
+        }
+      },
+      {
+        "threshold": 0.20000000298023224,
+        "known_count": 609,
+        "known_accepted": 560,
+        "known_coverage": 0.9195402298850575,
+        "known_false_rejection_rate": 0.08045977011494253,
+        "raw_known_accuracy": 0.9146141215106732,
+        "accepted_known_accuracy": 0.9285714285714286,
+        "correct_and_accepted_over_all_known": 0.8538587848932676,
+        "unknown_count": 200,
+        "unknown_rejected": 194,
+        "unknown_rejection_rate": 0.97,
+        "unknown_false_acceptance_rate": 0.03,
+        "per_known_class": {
+          "0": {
+            "total": 58,
+            "accepted": 55,
+            "coverage": 0.9482758620689655
+          },
+          "1": {
+            "total": 38,
+            "accepted": 29,
+            "coverage": 0.7631578947368421
+          },
+          "2": {
+            "total": 66,
+            "accepted": 59,
+            "coverage": 0.8939393939393939
+          },
+          "3": {
+            "total": 41,
+            "accepted": 41,
+            "coverage": 1.0
+          },
+          "4": {
+            "total": 66,
+            "accepted": 62,
+            "coverage": 0.9393939393939394
+          },
+          "5": {
+            "total": 67,
+            "accepted": 67,
+            "coverage": 1.0
+          },
+          "6": {
+            "total": 86,
+            "accepted": 78,
+            "coverage": 0.9069767441860465
+          },
+          "7": {
+            "total": 60,
+            "accepted": 54,
+            "coverage": 0.9
+          },
+          "8": {
+            "total": 54,
+            "accepted": 49,
+            "coverage": 0.9074074074074074
+          },
+          "9": {
+            "total": 73,
+            "accepted": 66,
+            "coverage": 0.9041095890410958
+          }
+        }
+      },
+      {
+        "threshold": 0.20348255336284637,
+        "known_count": 609,
+        "known_accepted": 560,
+        "known_coverage": 0.9195402298850575,
+        "known_false_rejection_rate": 0.08045977011494253,
+        "raw_known_accuracy": 0.9146141215106732,
+        "accepted_known_accuracy": 0.9285714285714286,
+        "correct_and_accepted_over_all_known": 0.8538587848932676,
+        "unknown_count": 200,
+        "unknown_rejected": 194,
+        "unknown_rejection_rate": 0.97,
+        "unknown_false_acceptance_rate": 0.03,
+        "per_known_class": {
+          "0": {
+            "total": 58,
+            "accepted": 55,
+            "coverage": 0.9482758620689655
+          },
+          "1": {
+            "total": 38,
+            "accepted": 29,
+            "coverage": 0.7631578947368421
+          },
+          "2": {
+            "total": 66,
+            "accepted": 59,
+            "coverage": 0.8939393939393939
+          },
+          "3": {
+            "total": 41,
+            "accepted": 41,
+            "coverage": 1.0
+          },
+          "4": {
+            "total": 66,
+            "accepted": 62,
+            "coverage": 0.9393939393939394
+          },
+          "5": {
+            "total": 67,
+            "accepted": 67,
+            "coverage": 1.0
+          },
+          "6": {
+            "total": 86,
+            "accepted": 78,
+            "coverage": 0.9069767441860465
+          },
+          "7": {
+            "total": 60,
+            "accepted": 54,
+            "coverage": 0.9
+          },
+          "8": {
+            "total": 54,
+            "accepted": 49,
+            "coverage": 0.9074074074074074
+          },
+          "9": {
+            "total": 73,
+            "accepted": 66,
+            "coverage": 0.9041095890410958
+          }
+        }
+      },
+      {
+        "threshold": 0.23019607365131378,
+        "known_count": 609,
+        "known_accepted": 554,
+        "known_coverage": 0.909688013136289,
+        "known_false_rejection_rate": 0.090311986863711,
+        "raw_known_accuracy": 0.9146141215106732,
+        "accepted_known_accuracy": 0.927797833935018,
+        "correct_and_accepted_over_all_known": 0.8440065681444991,
+        "unknown_count": 200,
+        "unknown_rejected": 195,
+        "unknown_rejection_rate": 0.975,
+        "unknown_false_acceptance_rate": 0.025,
+        "per_known_class": {
+          "0": {
+            "total": 58,
+            "accepted": 54,
+            "coverage": 0.9310344827586207
+          },
+          "1": {
+            "total": 38,
+            "accepted": 28,
+            "coverage": 0.7368421052631579
+          },
+          "2": {
+            "total": 66,
+            "accepted": 58,
+            "coverage": 0.8787878787878788
+          },
+          "3": {
+            "total": 41,
+            "accepted": 41,
+            "coverage": 1.0
+          },
+          "4": {
+            "total": 66,
+            "accepted": 62,
+            "coverage": 0.9393939393939394
+          },
+          "5": {
+            "total": 67,
+            "accepted": 66,
+            "coverage": 0.9850746268656716
+          },
+          "6": {
+            "total": 86,
+            "accepted": 78,
+            "coverage": 0.9069767441860465
+          },
+          "7": {
+            "total": 60,
+            "accepted": 54,
+            "coverage": 0.9
+          },
+          "8": {
+            "total": 54,
+            "accepted": 48,
+            "coverage": 0.8888888888888888
+          },
+          "9": {
+            "total": 73,
+            "accepted": 65,
+            "coverage": 0.8904109589041096
+          }
+        }
+      },
+      {
+        "threshold": 0.25,
+        "known_count": 609,
+        "known_accepted": 550,
+        "known_coverage": 0.90311986863711,
+        "known_false_rejection_rate": 0.09688013136288999,
+        "raw_known_accuracy": 0.9146141215106732,
+        "accepted_known_accuracy": 0.9272727272727272,
+        "correct_and_accepted_over_all_known": 0.8374384236453202,
+        "unknown_count": 200,
+        "unknown_rejected": 195,
+        "unknown_rejection_rate": 0.975,
+        "unknown_false_acceptance_rate": 0.025,
+        "per_known_class": {
+          "0": {
+            "total": 58,
+            "accepted": 54,
+            "coverage": 0.9310344827586207
+          },
+          "1": {
+            "total": 38,
+            "accepted": 27,
+            "coverage": 0.7105263157894737
+          },
+          "2": {
+            "total": 66,
+            "accepted": 57,
+            "coverage": 0.8636363636363636
+          },
+          "3": {
+            "total": 41,
+            "accepted": 41,
+            "coverage": 1.0
+          },
+          "4": {
+            "total": 66,
+            "accepted": 62,
+            "coverage": 0.9393939393939394
+          },
+          "5": {
+            "total": 67,
+            "accepted": 66,
+            "coverage": 0.9850746268656716
+          },
+          "6": {
+            "total": 86,
+            "accepted": 78,
+            "coverage": 0.9069767441860465
+          },
+          "7": {
+            "total": 60,
+            "accepted": 53,
+            "coverage": 0.8833333333333333
+          },
+          "8": {
+            "total": 54,
+            "accepted": 48,
+            "coverage": 0.8888888888888888
+          },
+          "9": {
+            "total": 73,
+            "accepted": 64,
+            "coverage": 0.8767123287671232
+          }
+        }
+      },
+      {
+        "threshold": 0.2561730146408081,
+        "known_count": 609,
+        "known_accepted": 548,
+        "known_coverage": 0.8998357963875205,
+        "known_false_rejection_rate": 0.10016420361247948,
+        "raw_known_accuracy": 0.9146141215106732,
+        "accepted_known_accuracy": 0.927007299270073,
+        "correct_and_accepted_over_all_known": 0.8341543513957307,
+        "unknown_count": 200,
+        "unknown_rejected": 196,
+        "unknown_rejection_rate": 0.98,
+        "unknown_false_acceptance_rate": 0.02,
+        "per_known_class": {
+          "0": {
+            "total": 58,
+            "accepted": 54,
+            "coverage": 0.9310344827586207
+          },
+          "1": {
+            "total": 38,
+            "accepted": 27,
+            "coverage": 0.7105263157894737
+          },
+          "2": {
+            "total": 66,
+            "accepted": 57,
+            "coverage": 0.8636363636363636
+          },
+          "3": {
+            "total": 41,
+            "accepted": 41,
+            "coverage": 1.0
+          },
+          "4": {
+            "total": 66,
+            "accepted": 62,
+            "coverage": 0.9393939393939394
+          },
+          "5": {
+            "total": 67,
+            "accepted": 66,
+            "coverage": 0.9850746268656716
+          },
+          "6": {
+            "total": 86,
+            "accepted": 77,
+            "coverage": 0.8953488372093024
+          },
+          "7": {
+            "total": 60,
+            "accepted": 53,
+            "coverage": 0.8833333333333333
+          },
+          "8": {
+            "total": 54,
+            "accepted": 48,
+            "coverage": 0.8888888888888888
+          },
+          "9": {
+            "total": 73,
+            "accepted": 63,
+            "coverage": 0.863013698630137
+          }
+        }
+      },
+      {
+        "threshold": 0.27973833680152893,
+        "known_count": 609,
+        "known_accepted": 542,
+        "known_coverage": 0.8899835796387521,
+        "known_false_rejection_rate": 0.11001642036124795,
+        "raw_known_accuracy": 0.9146141215106732,
+        "accepted_known_accuracy": 0.9317343173431735,
+        "correct_and_accepted_over_all_known": 0.8292282430213465,
+        "unknown_count": 200,
+        "unknown_rejected": 196,
+        "unknown_rejection_rate": 0.98,
+        "unknown_false_acceptance_rate": 0.02,
+        "per_known_class": {
+          "0": {
+            "total": 58,
+            "accepted": 54,
+            "coverage": 0.9310344827586207
+          },
+          "1": {
+            "total": 38,
+            "accepted": 25,
+            "coverage": 0.6578947368421053
+          },
+          "2": {
+            "total": 66,
+            "accepted": 56,
+            "coverage": 0.8484848484848485
+          },
+          "3": {
+            "total": 41,
+            "accepted": 40,
+            "coverage": 0.975609756097561
+          },
+          "4": {
+            "total": 66,
+            "accepted": 61,
+            "coverage": 0.9242424242424242
+          },
+          "5": {
+            "total": 67,
+            "accepted": 65,
+            "coverage": 0.9701492537313433
+          },
+          "6": {
+            "total": 86,
+            "accepted": 77,
+            "coverage": 0.8953488372093024
+          },
+          "7": {
+            "total": 60,
+            "accepted": 53,
+            "coverage": 0.8833333333333333
+          },
+          "8": {
+            "total": 54,
+            "accepted": 48,
+            "coverage": 0.8888888888888888
+          },
+          "9": {
+            "total": 73,
+            "accepted": 63,
+            "coverage": 0.863013698630137
+          }
+        }
+      },
+      {
+        "threshold": 0.30000001192092896,
+        "known_count": 609,
+        "known_accepted": 536,
+        "known_coverage": 0.8801313628899836,
+        "known_false_rejection_rate": 0.11986863711001643,
+        "raw_known_accuracy": 0.9146141215106732,
+        "accepted_known_accuracy": 0.9328358208955224,
+        "correct_and_accepted_over_all_known": 0.8210180623973727,
+        "unknown_count": 200,
+        "unknown_rejected": 197,
+        "unknown_rejection_rate": 0.985,
+        "unknown_false_acceptance_rate": 0.015,
+        "per_known_class": {
+          "0": {
+            "total": 58,
+            "accepted": 54,
+            "coverage": 0.9310344827586207
+          },
+          "1": {
+            "total": 38,
+            "accepted": 25,
+            "coverage": 0.6578947368421053
+          },
+          "2": {
+            "total": 66,
+            "accepted": 56,
+            "coverage": 0.8484848484848485
+          },
+          "3": {
+            "total": 41,
+            "accepted": 40,
+            "coverage": 0.975609756097561
+          },
+          "4": {
+            "total": 66,
+            "accepted": 61,
+            "coverage": 0.9242424242424242
+          },
+          "5": {
+            "total": 67,
+            "accepted": 64,
+            "coverage": 0.9552238805970149
+          },
+          "6": {
+            "total": 86,
+            "accepted": 76,
+            "coverage": 0.8837209302325582
+          },
+          "7": {
+            "total": 60,
+            "accepted": 52,
+            "coverage": 0.8666666666666667
+          },
+          "8": {
+            "total": 54,
+            "accepted": 45,
+            "coverage": 0.8333333333333334
+          },
+          "9": {
+            "total": 73,
+            "accepted": 63,
+            "coverage": 0.863013698630137
+          }
+        }
+      },
+      {
+        "threshold": 0.3021330237388611,
+        "known_count": 609,
+        "known_accepted": 536,
+        "known_coverage": 0.8801313628899836,
+        "known_false_rejection_rate": 0.11986863711001643,
+        "raw_known_accuracy": 0.9146141215106732,
+        "accepted_known_accuracy": 0.9328358208955224,
+        "correct_and_accepted_over_all_known": 0.8210180623973727,
+        "unknown_count": 200,
+        "unknown_rejected": 197,
+        "unknown_rejection_rate": 0.985,
+        "unknown_false_acceptance_rate": 0.015,
+        "per_known_class": {
+          "0": {
+            "total": 58,
+            "accepted": 54,
+            "coverage": 0.9310344827586207
+          },
+          "1": {
+            "total": 38,
+            "accepted": 25,
+            "coverage": 0.6578947368421053
+          },
+          "2": {
+            "total": 66,
+            "accepted": 56,
+            "coverage": 0.8484848484848485
+          },
+          "3": {
+            "total": 41,
+            "accepted": 40,
+            "coverage": 0.975609756097561
+          },
+          "4": {
+            "total": 66,
+            "accepted": 61,
+            "coverage": 0.9242424242424242
+          },
+          "5": {
+            "total": 67,
+            "accepted": 64,
+            "coverage": 0.9552238805970149
+          },
+          "6": {
+            "total": 86,
+            "accepted": 76,
+            "coverage": 0.8837209302325582
+          },
+          "7": {
+            "total": 60,
+            "accepted": 52,
+            "coverage": 0.8666666666666667
+          },
+          "8": {
+            "total": 54,
+            "accepted": 45,
+            "coverage": 0.8333333333333334
+          },
+          "9": {
+            "total": 73,
+            "accepted": 63,
+            "coverage": 0.863013698630137
+          }
+        }
+      },
+      {
+        "threshold": 0.3217332661151886,
+        "known_count": 609,
+        "known_accepted": 530,
+        "known_coverage": 0.8702791461412152,
+        "known_false_rejection_rate": 0.1297208538587849,
+        "raw_known_accuracy": 0.9146141215106732,
+        "accepted_known_accuracy": 0.9358490566037736,
+        "correct_and_accepted_over_all_known": 0.8144499178981938,
+        "unknown_count": 200,
+        "unknown_rejected": 198,
+        "unknown_rejection_rate": 0.99,
+        "unknown_false_acceptance_rate": 0.01,
+        "per_known_class": {
+          "0": {
+            "total": 58,
+            "accepted": 53,
+            "coverage": 0.9137931034482759
+          },
+          "1": {
+            "total": 38,
+            "accepted": 25,
+            "coverage": 0.6578947368421053
+          },
+          "2": {
+            "total": 66,
+            "accepted": 56,
+            "coverage": 0.8484848484848485
+          },
+          "3": {
+            "total": 41,
+            "accepted": 38,
+            "coverage": 0.926829268292683
+          },
+          "4": {
+            "total": 66,
+            "accepted": 59,
+            "coverage": 0.8939393939393939
+          },
+          "5": {
+            "total": 67,
+            "accepted": 64,
+            "coverage": 0.9552238805970149
+          },
+          "6": {
+            "total": 86,
+            "accepted": 76,
+            "coverage": 0.8837209302325582
+          },
+          "7": {
+            "total": 60,
+            "accepted": 52,
+            "coverage": 0.8666666666666667
+          },
+          "8": {
+            "total": 54,
+            "accepted": 45,
+            "coverage": 0.8333333333333334
+          },
+          "9": {
+            "total": 73,
+            "accepted": 62,
+            "coverage": 0.8493150684931506
+          }
+        }
+      },
+      {
+        "threshold": 0.3422401249408722,
+        "known_count": 609,
+        "known_accepted": 524,
+        "known_coverage": 0.8604269293924466,
+        "known_false_rejection_rate": 0.13957307060755336,
+        "raw_known_accuracy": 0.9146141215106732,
+        "accepted_known_accuracy": 0.9351145038167938,
+        "correct_and_accepted_over_all_known": 0.8045977011494253,
+        "unknown_count": 200,
+        "unknown_rejected": 199,
+        "unknown_rejection_rate": 0.995,
+        "unknown_false_acceptance_rate": 0.005,
+        "per_known_class": {
+          "0": {
+            "total": 58,
+            "accepted": 53,
+            "coverage": 0.9137931034482759
+          },
+          "1": {
+            "total": 38,
+            "accepted": 24,
+            "coverage": 0.631578947368421
+          },
+          "2": {
+            "total": 66,
+            "accepted": 55,
+            "coverage": 0.8333333333333334
+          },
+          "3": {
+            "total": 41,
+            "accepted": 38,
+            "coverage": 0.926829268292683
+          },
+          "4": {
+            "total": 66,
+            "accepted": 59,
+            "coverage": 0.8939393939393939
+          },
+          "5": {
+            "total": 67,
+            "accepted": 64,
+            "coverage": 0.9552238805970149
+          },
+          "6": {
+            "total": 86,
+            "accepted": 76,
+            "coverage": 0.8837209302325582
+          },
+          "7": {
+            "total": 60,
+            "accepted": 51,
+            "coverage": 0.85
+          },
+          "8": {
+            "total": 54,
+            "accepted": 42,
+            "coverage": 0.7777777777777778
+          },
+          "9": {
+            "total": 73,
+            "accepted": 62,
+            "coverage": 0.8493150684931506
+          }
+        }
+      },
+      {
+        "threshold": 0.3499999940395355,
+        "known_count": 609,
+        "known_accepted": 520,
+        "known_coverage": 0.8538587848932676,
+        "known_false_rejection_rate": 0.14614121510673234,
+        "raw_known_accuracy": 0.9146141215106732,
+        "accepted_known_accuracy": 0.9384615384615385,
+        "correct_and_accepted_over_all_known": 0.8013136288998358,
+        "unknown_count": 200,
+        "unknown_rejected": 199,
+        "unknown_rejection_rate": 0.995,
+        "unknown_false_acceptance_rate": 0.005,
+        "per_known_class": {
+          "0": {
+            "total": 58,
+            "accepted": 53,
+            "coverage": 0.9137931034482759
+          },
+          "1": {
+            "total": 38,
+            "accepted": 23,
+            "coverage": 0.6052631578947368
+          },
+          "2": {
+            "total": 66,
+            "accepted": 55,
+            "coverage": 0.8333333333333334
+          },
+          "3": {
+            "total": 41,
+            "accepted": 37,
+            "coverage": 0.9024390243902439
+          },
+          "4": {
+            "total": 66,
+            "accepted": 59,
+            "coverage": 0.8939393939393939
+          },
+          "5": {
+            "total": 67,
+            "accepted": 64,
+            "coverage": 0.9552238805970149
+          },
+          "6": {
+            "total": 86,
+            "accepted": 75,
+            "coverage": 0.872093023255814
+          },
+          "7": {
+            "total": 60,
+            "accepted": 50,
+            "coverage": 0.8333333333333334
+          },
+          "8": {
+            "total": 54,
+            "accepted": 42,
+            "coverage": 0.7777777777777778
+          },
+          "9": {
+            "total": 73,
+            "accepted": 62,
+            "coverage": 0.8493150684931506
+          }
+        }
+      },
+      {
+        "threshold": 0.35087910294532776,
+        "known_count": 609,
+        "known_accepted": 519,
+        "known_coverage": 0.8522167487684729,
+        "known_false_rejection_rate": 0.1477832512315271,
+        "raw_known_accuracy": 0.9146141215106732,
+        "accepted_known_accuracy": 0.9383429672447013,
+        "correct_and_accepted_over_all_known": 0.7996715927750411,
+        "unknown_count": 200,
+        "unknown_rejected": 199,
+        "unknown_rejection_rate": 0.995,
+        "unknown_false_acceptance_rate": 0.005,
+        "per_known_class": {
+          "0": {
+            "total": 58,
+            "accepted": 53,
+            "coverage": 0.9137931034482759
+          },
+          "1": {
+            "total": 38,
+            "accepted": 23,
+            "coverage": 0.6052631578947368
+          },
+          "2": {
+            "total": 66,
+            "accepted": 55,
+            "coverage": 0.8333333333333334
+          },
+          "3": {
+            "total": 41,
+            "accepted": 37,
+            "coverage": 0.9024390243902439
+          },
+          "4": {
+            "total": 66,
+            "accepted": 59,
+            "coverage": 0.8939393939393939
+          },
+          "5": {
+            "total": 67,
+            "accepted": 64,
+            "coverage": 0.9552238805970149
+          },
+          "6": {
+            "total": 86,
+            "accepted": 75,
+            "coverage": 0.872093023255814
+          },
+          "7": {
+            "total": 60,
+            "accepted": 50,
+            "coverage": 0.8333333333333334
+          },
+          "8": {
+            "total": 54,
+            "accepted": 41,
+            "coverage": 0.7592592592592593
+          },
+          "9": {
+            "total": 73,
+            "accepted": 62,
+            "coverage": 0.8493150684931506
+          }
+        }
+      },
+      {
+        "threshold": 0.36515071988105774,
+        "known_count": 609,
+        "known_accepted": 513,
+        "known_coverage": 0.8423645320197044,
+        "known_false_rejection_rate": 0.15763546798029557,
+        "raw_known_accuracy": 0.9146141215106732,
+        "accepted_known_accuracy": 0.9376218323586745,
+        "correct_and_accepted_over_all_known": 0.7898193760262726,
+        "unknown_count": 200,
+        "unknown_rejected": 199,
+        "unknown_rejection_rate": 0.995,
+        "unknown_false_acceptance_rate": 0.005,
+        "per_known_class": {
+          "0": {
+            "total": 58,
+            "accepted": 51,
+            "coverage": 0.8793103448275862
+          },
+          "1": {
+            "total": 38,
+            "accepted": 20,
+            "coverage": 0.5263157894736842
+          },
+          "2": {
+            "total": 66,
+            "accepted": 55,
+            "coverage": 0.8333333333333334
+          },
+          "3": {
+            "total": 41,
+            "accepted": 37,
+            "coverage": 0.9024390243902439
+          },
+          "4": {
+            "total": 66,
+            "accepted": 59,
+            "coverage": 0.8939393939393939
+          },
+          "5": {
+            "total": 67,
+            "accepted": 64,
+            "coverage": 0.9552238805970149
+          },
+          "6": {
+            "total": 86,
+            "accepted": 74,
+            "coverage": 0.8604651162790697
+          },
+          "7": {
+            "total": 60,
+            "accepted": 50,
+            "coverage": 0.8333333333333334
+          },
+          "8": {
+            "total": 54,
+            "accepted": 41,
+            "coverage": 0.7592592592592593
+          },
+          "9": {
+            "total": 73,
+            "accepted": 62,
+            "coverage": 0.8493150684931506
+          }
+        }
+      },
+      {
+        "threshold": 0.37676987051963806,
+        "known_count": 609,
+        "known_accepted": 507,
+        "known_coverage": 0.8325123152709359,
+        "known_false_rejection_rate": 0.16748768472906403,
+        "raw_known_accuracy": 0.9146141215106732,
+        "accepted_known_accuracy": 0.9368836291913215,
+        "correct_and_accepted_over_all_known": 0.7799671592775042,
+        "unknown_count": 200,
+        "unknown_rejected": 199,
+        "unknown_rejection_rate": 0.995,
+        "unknown_false_acceptance_rate": 0.005,
+        "per_known_class": {
+          "0": {
+            "total": 58,
+            "accepted": 51,
+            "coverage": 0.8793103448275862
+          },
+          "1": {
+            "total": 38,
+            "accepted": 19,
+            "coverage": 0.5
+          },
+          "2": {
+            "total": 66,
+            "accepted": 53,
+            "coverage": 0.803030303030303
+          },
+          "3": {
+            "total": 41,
+            "accepted": 36,
+            "coverage": 0.8780487804878049
+          },
+          "4": {
+            "total": 66,
+            "accepted": 59,
+            "coverage": 0.8939393939393939
+          },
+          "5": {
+            "total": 67,
+            "accepted": 64,
+            "coverage": 0.9552238805970149
+          },
+          "6": {
+            "total": 86,
+            "accepted": 73,
+            "coverage": 0.8488372093023255
+          },
+          "7": {
+            "total": 60,
+            "accepted": 50,
+            "coverage": 0.8333333333333334
+          },
+          "8": {
+            "total": 54,
+            "accepted": 40,
+            "coverage": 0.7407407407407407
+          },
+          "9": {
+            "total": 73,
+            "accepted": 62,
+            "coverage": 0.8493150684931506
+          }
+        }
+      },
+      {
+        "threshold": 0.38677915930747986,
+        "known_count": 609,
+        "known_accepted": 501,
+        "known_coverage": 0.8226600985221675,
+        "known_false_rejection_rate": 0.17733990147783252,
+        "raw_known_accuracy": 0.9146141215106732,
+        "accepted_known_accuracy": 0.936127744510978,
+        "correct_and_accepted_over_all_known": 0.7701149425287356,
+        "unknown_count": 200,
+        "unknown_rejected": 199,
+        "unknown_rejection_rate": 0.995,
+        "unknown_false_acceptance_rate": 0.005,
+        "per_known_class": {
+          "0": {
+            "total": 58,
+            "accepted": 50,
+            "coverage": 0.8620689655172413
+          },
+          "1": {
+            "total": 38,
+            "accepted": 18,
+            "coverage": 0.47368421052631576
+          },
+          "2": {
+            "total": 66,
+            "accepted": 53,
+            "coverage": 0.803030303030303
+          },
+          "3": {
+            "total": 41,
+            "accepted": 36,
+            "coverage": 0.8780487804878049
+          },
+          "4": {
+            "total": 66,
+            "accepted": 58,
+            "coverage": 0.8787878787878788
+          },
+          "5": {
+            "total": 67,
+            "accepted": 63,
+            "coverage": 0.9402985074626866
+          },
+          "6": {
+            "total": 86,
+            "accepted": 72,
+            "coverage": 0.8372093023255814
+          },
+          "7": {
+            "total": 60,
+            "accepted": 50,
+            "coverage": 0.8333333333333334
+          },
+          "8": {
+            "total": 54,
+            "accepted": 40,
+            "coverage": 0.7407407407407407
+          },
+          "9": {
+            "total": 73,
+            "accepted": 61,
+            "coverage": 0.8356164383561644
+          }
+        }
+      },
+      {
+        "threshold": 0.39216405153274536,
+        "known_count": 609,
+        "known_accepted": 495,
+        "known_coverage": 0.812807881773399,
+        "known_false_rejection_rate": 0.18719211822660098,
+        "raw_known_accuracy": 0.9146141215106732,
+        "accepted_known_accuracy": 0.9373737373737374,
+        "correct_and_accepted_over_all_known": 0.7619047619047619,
+        "unknown_count": 200,
+        "unknown_rejected": 199,
+        "unknown_rejection_rate": 0.995,
+        "unknown_false_acceptance_rate": 0.005,
+        "per_known_class": {
+          "0": {
+            "total": 58,
+            "accepted": 48,
+            "coverage": 0.8275862068965517
+          },
+          "1": {
+            "total": 38,
+            "accepted": 18,
+            "coverage": 0.47368421052631576
+          },
+          "2": {
+            "total": 66,
+            "accepted": 53,
+            "coverage": 0.803030303030303
+          },
+          "3": {
+            "total": 41,
+            "accepted": 35,
+            "coverage": 0.8536585365853658
+          },
+          "4": {
+            "total": 66,
+            "accepted": 57,
+            "coverage": 0.8636363636363636
+          },
+          "5": {
+            "total": 67,
+            "accepted": 63,
+            "coverage": 0.9402985074626866
+          },
+          "6": {
+            "total": 86,
+            "accepted": 71,
+            "coverage": 0.8255813953488372
+          },
+          "7": {
+            "total": 60,
+            "accepted": 50,
+            "coverage": 0.8333333333333334
+          },
+          "8": {
+            "total": 54,
+            "accepted": 40,
+            "coverage": 0.7407407407407407
+          },
+          "9": {
+            "total": 73,
+            "accepted": 60,
+            "coverage": 0.821917808219178
+          }
+        }
+      },
+      {
+        "threshold": 0.4000000059604645,
+        "known_count": 609,
+        "known_accepted": 488,
+        "known_coverage": 0.8013136288998358,
+        "known_false_rejection_rate": 0.1986863711001642,
+        "raw_known_accuracy": 0.9146141215106732,
+        "accepted_known_accuracy": 0.9364754098360656,
+        "correct_and_accepted_over_all_known": 0.7504105090311987,
+        "unknown_count": 200,
+        "unknown_rejected": 199,
+        "unknown_rejection_rate": 0.995,
+        "unknown_false_acceptance_rate": 0.005,
+        "per_known_class": {
+          "0": {
+            "total": 58,
+            "accepted": 47,
+            "coverage": 0.8103448275862069
+          },
+          "1": {
+            "total": 38,
+            "accepted": 17,
+            "coverage": 0.4473684210526316
+          },
+          "2": {
+            "total": 66,
+            "accepted": 53,
+            "coverage": 0.803030303030303
+          },
+          "3": {
+            "total": 41,
+            "accepted": 34,
+            "coverage": 0.8292682926829268
+          },
+          "4": {
+            "total": 66,
+            "accepted": 56,
+            "coverage": 0.8484848484848485
+          },
+          "5": {
+            "total": 67,
+            "accepted": 62,
+            "coverage": 0.9253731343283582
+          },
+          "6": {
+            "total": 86,
+            "accepted": 70,
+            "coverage": 0.813953488372093
+          },
+          "7": {
+            "total": 60,
+            "accepted": 50,
+            "coverage": 0.8333333333333334
+          },
+          "8": {
+            "total": 54,
+            "accepted": 39,
+            "coverage": 0.7222222222222222
+          },
+          "9": {
+            "total": 73,
+            "accepted": 60,
+            "coverage": 0.821917808219178
+          }
+        }
+      },
+      {
+        "threshold": 0.44999998807907104,
+        "known_count": 609,
+        "known_accepted": 451,
+        "known_coverage": 0.7405582922824302,
+        "known_false_rejection_rate": 0.2594417077175698,
+        "raw_known_accuracy": 0.9146141215106732,
+        "accepted_known_accuracy": 0.9379157427937915,
+        "correct_and_accepted_over_all_known": 0.6945812807881774,
+        "unknown_count": 200,
+        "unknown_rejected": 200,
+        "unknown_rejection_rate": 1.0,
+        "unknown_false_acceptance_rate": 0.0,
+        "per_known_class": {
+          "0": {
+            "total": 58,
+            "accepted": 45,
+            "coverage": 0.7758620689655172
+          },
+          "1": {
+            "total": 38,
+            "accepted": 16,
+            "coverage": 0.42105263157894735
+          },
+          "2": {
+            "total": 66,
+            "accepted": 48,
+            "coverage": 0.7272727272727273
+          },
+          "3": {
+            "total": 41,
+            "accepted": 29,
+            "coverage": 0.7073170731707317
+          },
+          "4": {
+            "total": 66,
+            "accepted": 54,
+            "coverage": 0.8181818181818182
+          },
+          "5": {
+            "total": 67,
+            "accepted": 61,
+            "coverage": 0.9104477611940298
+          },
+          "6": {
+            "total": 86,
+            "accepted": 63,
+            "coverage": 0.7325581395348837
+          },
+          "7": {
+            "total": 60,
+            "accepted": 47,
+            "coverage": 0.7833333333333333
+          },
+          "8": {
+            "total": 54,
+            "accepted": 33,
+            "coverage": 0.6111111111111112
+          },
+          "9": {
+            "total": 73,
+            "accepted": 55,
+            "coverage": 0.7534246575342466
+          }
+        }
+      },
+      {
+        "threshold": 0.5,
+        "known_count": 609,
+        "known_accepted": 423,
+        "known_coverage": 0.6945812807881774,
+        "known_false_rejection_rate": 0.3054187192118227,
+        "raw_known_accuracy": 0.9146141215106732,
+        "accepted_known_accuracy": 0.9385342789598109,
+        "correct_and_accepted_over_all_known": 0.6518883415435139,
+        "unknown_count": 200,
+        "unknown_rejected": 200,
+        "unknown_rejection_rate": 1.0,
+        "unknown_false_acceptance_rate": 0.0,
+        "per_known_class": {
+          "0": {
+            "total": 58,
+            "accepted": 41,
+            "coverage": 0.7068965517241379
+          },
+          "1": {
+            "total": 38,
+            "accepted": 15,
+            "coverage": 0.39473684210526316
+          },
+          "2": {
+            "total": 66,
+            "accepted": 45,
+            "coverage": 0.6818181818181818
+          },
+          "3": {
+            "total": 41,
+            "accepted": 26,
+            "coverage": 0.6341463414634146
+          },
+          "4": {
+            "total": 66,
+            "accepted": 51,
+            "coverage": 0.7727272727272727
+          },
+          "5": {
+            "total": 67,
+            "accepted": 59,
+            "coverage": 0.8805970149253731
+          },
+          "6": {
+            "total": 86,
+            "accepted": 58,
+            "coverage": 0.6744186046511628
+          },
+          "7": {
+            "total": 60,
+            "accepted": 43,
+            "coverage": 0.7166666666666667
+          },
+          "8": {
+            "total": 54,
+            "accepted": 32,
+            "coverage": 0.5925925925925926
+          },
+          "9": {
+            "total": 73,
+            "accepted": 53,
+            "coverage": 0.726027397260274
+          }
+        }
+      },
+      {
+        "threshold": 0.550000011920929,
+        "known_count": 609,
+        "known_accepted": 375,
+        "known_coverage": 0.6157635467980296,
+        "known_false_rejection_rate": 0.3842364532019704,
+        "raw_known_accuracy": 0.9146141215106732,
+        "accepted_known_accuracy": 0.9413333333333334,
+        "correct_and_accepted_over_all_known": 0.5796387520525451,
+        "unknown_count": 200,
+        "unknown_rejected": 200,
+        "unknown_rejection_rate": 1.0,
+        "unknown_false_acceptance_rate": 0.0,
+        "per_known_class": {
+          "0": {
+            "total": 58,
+            "accepted": 37,
+            "coverage": 0.6379310344827587
+          },
+          "1": {
+            "total": 38,
+            "accepted": 14,
+            "coverage": 0.3684210526315789
+          },
+          "2": {
+            "total": 66,
+            "accepted": 44,
+            "coverage": 0.6666666666666666
+          },
+          "3": {
+            "total": 41,
+            "accepted": 25,
+            "coverage": 0.6097560975609756
+          },
+          "4": {
+            "total": 66,
+            "accepted": 44,
+            "coverage": 0.6666666666666666
+          },
+          "5": {
+            "total": 67,
+            "accepted": 54,
+            "coverage": 0.8059701492537313
+          },
+          "6": {
+            "total": 86,
+            "accepted": 49,
+            "coverage": 0.5697674418604651
+          },
+          "7": {
+            "total": 60,
+            "accepted": 33,
+            "coverage": 0.55
+          },
+          "8": {
+            "total": 54,
+            "accepted": 27,
+            "coverage": 0.5
+          },
+          "9": {
+            "total": 73,
+            "accepted": 48,
+            "coverage": 0.6575342465753424
+          }
+        }
+      },
+      {
+        "threshold": 0.6000000238418579,
+        "known_count": 609,
+        "known_accepted": 336,
+        "known_coverage": 0.5517241379310345,
+        "known_false_rejection_rate": 0.4482758620689655,
+        "raw_known_accuracy": 0.9146141215106732,
+        "accepted_known_accuracy": 0.9404761904761905,
+        "correct_and_accepted_over_all_known": 0.5188834154351396,
+        "unknown_count": 200,
+        "unknown_rejected": 200,
+        "unknown_rejection_rate": 1.0,
+        "unknown_false_acceptance_rate": 0.0,
+        "per_known_class": {
+          "0": {
+            "total": 58,
+            "accepted": 35,
+            "coverage": 0.603448275862069
+          },
+          "1": {
+            "total": 38,
+            "accepted": 13,
+            "coverage": 0.34210526315789475
+          },
+          "2": {
+            "total": 66,
+            "accepted": 40,
+            "coverage": 0.6060606060606061
+          },
+          "3": {
+            "total": 41,
+            "accepted": 22,
+            "coverage": 0.5365853658536586
+          },
+          "4": {
+            "total": 66,
+            "accepted": 41,
+            "coverage": 0.6212121212121212
+          },
+          "5": {
+            "total": 67,
+            "accepted": 49,
+            "coverage": 0.7313432835820896
+          },
+          "6": {
+            "total": 86,
+            "accepted": 41,
+            "coverage": 0.47674418604651164
+          },
+          "7": {
+            "total": 60,
+            "accepted": 28,
+            "coverage": 0.4666666666666667
+          },
+          "8": {
+            "total": 54,
+            "accepted": 23,
+            "coverage": 0.42592592592592593
+          },
+          "9": {
+            "total": 73,
+            "accepted": 44,
+            "coverage": 0.6027397260273972
+          }
+        }
+      },
+      {
+        "threshold": 0.6499999761581421,
+        "known_count": 609,
+        "known_accepted": 270,
+        "known_coverage": 0.4433497536945813,
+        "known_false_rejection_rate": 0.5566502463054187,
+        "raw_known_accuracy": 0.9146141215106732,
+        "accepted_known_accuracy": 0.937037037037037,
+        "correct_and_accepted_over_all_known": 0.4154351395730706,
+        "unknown_count": 200,
+        "unknown_rejected": 200,
+        "unknown_rejection_rate": 1.0,
+        "unknown_false_acceptance_rate": 0.0,
+        "per_known_class": {
+          "0": {
+            "total": 58,
+            "accepted": 27,
+            "coverage": 0.46551724137931033
+          },
+          "1": {
+            "total": 38,
+            "accepted": 11,
+            "coverage": 0.2894736842105263
+          },
+          "2": {
+            "total": 66,
+            "accepted": 31,
+            "coverage": 0.4696969696969697
+          },
+          "3": {
+            "total": 41,
+            "accepted": 20,
+            "coverage": 0.4878048780487805
+          },
+          "4": {
+            "total": 66,
+            "accepted": 38,
+            "coverage": 0.5757575757575758
+          },
+          "5": {
+            "total": 67,
+            "accepted": 36,
+            "coverage": 0.5373134328358209
+          },
+          "6": {
+            "total": 86,
+            "accepted": 33,
+            "coverage": 0.38372093023255816
+          },
+          "7": {
+            "total": 60,
+            "accepted": 23,
+            "coverage": 0.38333333333333336
+          },
+          "8": {
+            "total": 54,
+            "accepted": 14,
+            "coverage": 0.25925925925925924
+          },
+          "9": {
+            "total": 73,
+            "accepted": 37,
+            "coverage": 0.5068493150684932
+          }
+        }
+      },
+      {
+        "threshold": 0.699999988079071,
+        "known_count": 609,
+        "known_accepted": 218,
+        "known_coverage": 0.3579638752052545,
+        "known_false_rejection_rate": 0.6420361247947455,
+        "raw_known_accuracy": 0.9146141215106732,
+        "accepted_known_accuracy": 0.9403669724770642,
+        "correct_and_accepted_over_all_known": 0.3366174055829228,
+        "unknown_count": 200,
+        "unknown_rejected": 200,
+        "unknown_rejection_rate": 1.0,
+        "unknown_false_acceptance_rate": 0.0,
+        "per_known_class": {
+          "0": {
+            "total": 58,
+            "accepted": 22,
+            "coverage": 0.3793103448275862
+          },
+          "1": {
+            "total": 38,
+            "accepted": 9,
+            "coverage": 0.23684210526315788
+          },
+          "2": {
+            "total": 66,
+            "accepted": 28,
+            "coverage": 0.42424242424242425
+          },
+          "3": {
+            "total": 41,
+            "accepted": 16,
+            "coverage": 0.3902439024390244
+          },
+          "4": {
+            "total": 66,
+            "accepted": 27,
+            "coverage": 0.4090909090909091
+          },
+          "5": {
+            "total": 67,
+            "accepted": 25,
+            "coverage": 0.373134328358209
+          },
+          "6": {
+            "total": 86,
+            "accepted": 29,
+            "coverage": 0.3372093023255814
+          },
+          "7": {
+            "total": 60,
+            "accepted": 21,
+            "coverage": 0.35
+          },
+          "8": {
+            "total": 54,
+            "accepted": 11,
+            "coverage": 0.2037037037037037
+          },
+          "9": {
+            "total": 73,
+            "accepted": 30,
+            "coverage": 0.410958904109589
+          }
+        }
+      },
+      {
+        "threshold": 0.75,
+        "known_count": 609,
+        "known_accepted": 161,
+        "known_coverage": 0.26436781609195403,
+        "known_false_rejection_rate": 0.735632183908046,
+        "raw_known_accuracy": 0.9146141215106732,
+        "accepted_known_accuracy": 0.9440993788819876,
+        "correct_and_accepted_over_all_known": 0.24958949096880131,
+        "unknown_count": 200,
+        "unknown_rejected": 200,
+        "unknown_rejection_rate": 1.0,
+        "unknown_false_acceptance_rate": 0.0,
+        "per_known_class": {
+          "0": {
+            "total": 58,
+            "accepted": 15,
+            "coverage": 0.25862068965517243
+          },
+          "1": {
+            "total": 38,
+            "accepted": 5,
+            "coverage": 0.13157894736842105
+          },
+          "2": {
+            "total": 66,
+            "accepted": 23,
+            "coverage": 0.3484848484848485
+          },
+          "3": {
+            "total": 41,
+            "accepted": 10,
+            "coverage": 0.24390243902439024
+          },
+          "4": {
+            "total": 66,
+            "accepted": 19,
+            "coverage": 0.2878787878787879
+          },
+          "5": {
+            "total": 67,
+            "accepted": 16,
+            "coverage": 0.23880597014925373
+          },
+          "6": {
+            "total": 86,
+            "accepted": 21,
+            "coverage": 0.2441860465116279
+          },
+          "7": {
+            "total": 60,
+            "accepted": 17,
+            "coverage": 0.2833333333333333
+          },
+          "8": {
+            "total": 54,
+            "accepted": 7,
+            "coverage": 0.12962962962962962
+          },
+          "9": {
+            "total": 73,
+            "accepted": 28,
+            "coverage": 0.3835616438356164
+          }
+        }
+      },
+      {
+        "threshold": 0.800000011920929,
+        "known_count": 609,
+        "known_accepted": 107,
+        "known_coverage": 0.17569786535303777,
+        "known_false_rejection_rate": 0.8243021346469622,
+        "raw_known_accuracy": 0.9146141215106732,
+        "accepted_known_accuracy": 0.9252336448598131,
+        "correct_and_accepted_over_all_known": 0.1625615763546798,
+        "unknown_count": 200,
+        "unknown_rejected": 200,
+        "unknown_rejection_rate": 1.0,
+        "unknown_false_acceptance_rate": 0.0,
+        "per_known_class": {
+          "0": {
+            "total": 58,
+            "accepted": 12,
+            "coverage": 0.20689655172413793
+          },
+          "1": {
+            "total": 38,
+            "accepted": 4,
+            "coverage": 0.10526315789473684
+          },
+          "2": {
+            "total": 66,
+            "accepted": 13,
+            "coverage": 0.19696969696969696
+          },
+          "3": {
+            "total": 41,
+            "accepted": 7,
+            "coverage": 0.17073170731707318
+          },
+          "4": {
+            "total": 66,
+            "accepted": 12,
+            "coverage": 0.18181818181818182
+          },
+          "5": {
+            "total": 67,
+            "accepted": 8,
+            "coverage": 0.11940298507462686
+          },
+          "6": {
+            "total": 86,
+            "accepted": 16,
+            "coverage": 0.18604651162790697
+          },
+          "7": {
+            "total": 60,
+            "accepted": 10,
+            "coverage": 0.16666666666666666
+          },
+          "8": {
+            "total": 54,
+            "accepted": 5,
+            "coverage": 0.09259259259259259
+          },
+          "9": {
+            "total": 73,
+            "accepted": 20,
+            "coverage": 0.273972602739726
+          }
+        }
+      },
+      {
+        "threshold": 0.8500000238418579,
+        "known_count": 609,
+        "known_accepted": 51,
+        "known_coverage": 0.08374384236453201,
+        "known_false_rejection_rate": 0.916256157635468,
+        "raw_known_accuracy": 0.9146141215106732,
+        "accepted_known_accuracy": 0.9411764705882353,
+        "correct_and_accepted_over_all_known": 0.07881773399014778,
+        "unknown_count": 200,
+        "unknown_rejected": 200,
+        "unknown_rejection_rate": 1.0,
+        "unknown_false_acceptance_rate": 0.0,
+        "per_known_class": {
+          "0": {
+            "total": 58,
+            "accepted": 5,
+            "coverage": 0.08620689655172414
+          },
+          "1": {
+            "total": 38,
+            "accepted": 1,
+            "coverage": 0.02631578947368421
+          },
+          "2": {
+            "total": 66,
+            "accepted": 5,
+            "coverage": 0.07575757575757576
+          },
+          "3": {
+            "total": 41,
+            "accepted": 3,
+            "coverage": 0.07317073170731707
+          },
+          "4": {
+            "total": 66,
+            "accepted": 4,
+            "coverage": 0.06060606060606061
+          },
+          "5": {
+            "total": 67,
+            "accepted": 3,
+            "coverage": 0.04477611940298507
+          },
+          "6": {
+            "total": 86,
+            "accepted": 8,
+            "coverage": 0.09302325581395349
+          },
+          "7": {
+            "total": 60,
+            "accepted": 6,
+            "coverage": 0.1
+          },
+          "8": {
+            "total": 54,
+            "accepted": 4,
+            "coverage": 0.07407407407407407
+          },
+          "9": {
+            "total": 73,
+            "accepted": 12,
+            "coverage": 0.1643835616438356
+          }
+        }
+      },
+      {
+        "threshold": 0.8999999761581421,
+        "known_count": 609,
+        "known_accepted": 17,
+        "known_coverage": 0.027914614121510674,
+        "known_false_rejection_rate": 0.9720853858784894,
+        "raw_known_accuracy": 0.9146141215106732,
+        "accepted_known_accuracy": 1.0,
+        "correct_and_accepted_over_all_known": 0.027914614121510674,
+        "unknown_count": 200,
+        "unknown_rejected": 200,
+        "unknown_rejection_rate": 1.0,
+        "unknown_false_acceptance_rate": 0.0,
+        "per_known_class": {
+          "0": {
+            "total": 58,
+            "accepted": 0,
+            "coverage": 0.0
+          },
+          "1": {
+            "total": 38,
+            "accepted": 1,
+            "coverage": 0.02631578947368421
+          },
+          "2": {
+            "total": 66,
+            "accepted": 1,
+            "coverage": 0.015151515151515152
+          },
+          "3": {
+            "total": 41,
+            "accepted": 1,
+            "coverage": 0.024390243902439025
+          },
+          "4": {
+            "total": 66,
+            "accepted": 2,
+            "coverage": 0.030303030303030304
+          },
+          "5": {
+            "total": 67,
+            "accepted": 1,
+            "coverage": 0.014925373134328358
+          },
+          "6": {
+            "total": 86,
+            "accepted": 3,
+            "coverage": 0.03488372093023256
+          },
+          "7": {
+            "total": 60,
+            "accepted": 2,
+            "coverage": 0.03333333333333333
+          },
+          "8": {
+            "total": 54,
+            "accepted": 1,
+            "coverage": 0.018518518518518517
+          },
+          "9": {
+            "total": 73,
+            "accepted": 5,
+            "coverage": 0.0684931506849315
+          }
+        }
+      },
+      {
+        "threshold": 0.949999988079071,
+        "known_count": 609,
+        "known_accepted": 0,
+        "known_coverage": 0.0,
+        "known_false_rejection_rate": 1.0,
+        "raw_known_accuracy": 0.9146141215106732,
+        "accepted_known_accuracy": null,
+        "correct_and_accepted_over_all_known": 0.0,
+        "unknown_count": 200,
+        "unknown_rejected": 200,
+        "unknown_rejection_rate": 1.0,
+        "unknown_false_acceptance_rate": 0.0,
+        "per_known_class": {
+          "0": {
+            "total": 58,
+            "accepted": 0,
+            "coverage": 0.0
+          },
+          "1": {
+            "total": 38,
+            "accepted": 0,
+            "coverage": 0.0
+          },
+          "2": {
+            "total": 66,
+            "accepted": 0,
+            "coverage": 0.0
+          },
+          "3": {
+            "total": 41,
+            "accepted": 0,
+            "coverage": 0.0
+          },
+          "4": {
+            "total": 66,
+            "accepted": 0,
+            "coverage": 0.0
+          },
+          "5": {
+            "total": 67,
+            "accepted": 0,
+            "coverage": 0.0
+          },
+          "6": {
+            "total": 86,
+            "accepted": 0,
+            "coverage": 0.0
+          },
+          "7": {
+            "total": 60,
+            "accepted": 0,
+            "coverage": 0.0
+          },
+          "8": {
+            "total": 54,
+            "accepted": 0,
+            "coverage": 0.0
+          },
+          "9": {
+            "total": 73,
+            "accepted": 0,
+            "coverage": 0.0
+          }
+        }
+      }
+    ],
+    "selection_source": "known validation and unknown calibration only"
+  }
+}

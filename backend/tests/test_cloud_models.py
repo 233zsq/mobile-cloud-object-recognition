@@ -1,6 +1,7 @@
 import io
 import json
 from uuid import uuid4
+from pathlib import Path
 
 import pytest
 
@@ -13,7 +14,7 @@ def entry(version='campus-gpu-v1'):
     return {'model_version': version, 'model_sha256': 'a' * 64, 'labels_sha256': 'b' * 64,
             'category_version': 'campus-10-v4', 'labels': LABELS, 'status': 'frozen',
             'display_name': '基准版', 'description': '固定基准', 'low_confidence_threshold': .6,
-            'package': '/managed/models/' + version}
+            'package': str(Path('/managed/models').resolve() / version)}
 
 
 def test_registry_requires_unique_approved_compatible_models(tmp_path):

@@ -1,0 +1,384 @@
+{
+  "model_version": "campus-evolve-v3",
+  "model_sha256": "4fe5b74300c0c9e384822c9a00b8f256a76776d5f818c64a8d50b6c1e9e72623",
+  "policy_sha256": "6a4844173ed1b3aede51b02eb6fa1c18ecbcb131eabed8d4cf0adb411c7a90b3",
+  "runtime": {
+    "python": "3.13.0",
+    "platform": "Windows-11-10.0.26300-SP0",
+    "ai_edge_litert": "2.2.0",
+    "threads": 1
+  },
+  "metrics": {
+    "known_count": 609,
+    "known_accepted": 556,
+    "known_coverage": 0.9129720853858785,
+    "known_false_rejection_rate": 0.08702791461412152,
+    "raw_known_accuracy": 0.9146141215106732,
+    "accepted_known_accuracy": 0.9316546762589928,
+    "correct_and_accepted_over_all_known": 0.8505747126436781,
+    "unknown_count": 400,
+    "unknown_rejected": 391,
+    "unknown_rejection_rate": 0.9775,
+    "unknown_false_acceptance_rate": 0.0225,
+    "per_known_class": {
+      "0": {
+        "total": 58,
+        "accepted": 55,
+        "coverage": 0.9482758620689655
+      },
+      "1": {
+        "total": 38,
+        "accepted": 33,
+        "coverage": 0.868421052631579
+      },
+      "2": {
+        "total": 66,
+        "accepted": 59,
+        "coverage": 0.8939393939393939
+      },
+      "3": {
+        "total": 41,
+        "accepted": 41,
+        "coverage": 1.0
+      },
+      "4": {
+        "total": 66,
+        "accepted": 60,
+        "coverage": 0.9090909090909091
+      },
+      "5": {
+        "total": 67,
+        "accepted": 66,
+        "coverage": 0.9850746268656716
+      },
+      "6": {
+        "total": 86,
+        "accepted": 76,
+        "coverage": 0.8837209302325582
+      },
+      "7": {
+        "total": 60,
+        "accepted": 54,
+        "coverage": 0.9
+      },
+      "8": {
+        "total": 54,
+        "accepted": 45,
+        "coverage": 0.8333333333333334
+      },
+      "9": {
+        "total": 73,
+        "accepted": 67,
+        "coverage": 0.9178082191780822
+      }
+    }
+  },
+  "baseline_same_samples": {
+    "known_accepted": 584,
+    "unknown_rejected": 130,
+    "unknown_count": 400
+  },
+  "per_unknown_class": {
+    "nautilus": {
+      "count": 20,
+      "rejected": 19
+    },
+    "octopus": {
+      "count": 20,
+      "rejected": 20
+    },
+    "okapi": {
+      "count": 20,
+      "rejected": 20
+    },
+    "panda": {
+      "count": 20,
+      "rejected": 20
+    },
+    "pigeon": {
+      "count": 20,
+      "rejected": 20
+    },
+    "pizza": {
+      "count": 20,
+      "rejected": 17
+    },
+    "platypus": {
+      "count": 20,
+      "rejected": 20
+    },
+    "rhino": {
+      "count": 20,
+      "rejected": 20
+    },
+    "rooster": {
+      "count": 20,
+      "rejected": 20
+    },
+    "scorpion": {
+      "count": 20,
+      "rejected": 20
+    },
+    "sea_horse": {
+      "count": 20,
+      "rejected": 20
+    },
+    "starfish": {
+      "count": 20,
+      "rejected": 20
+    },
+    "stegosaurus": {
+      "count": 20,
+      "rejected": 20
+    },
+    "stop_sign": {
+      "count": 20,
+      "rejected": 19
+    },
+    "strawberry": {
+      "count": 20,
+      "rejected": 19
+    },
+    "sunflower": {
+      "count": 20,
+      "rejected": 20
+    },
+    "tick": {
+      "count": 20,
+      "rejected": 20
+    },
+    "watch": {
+      "count": 20,
+      "rejected": 18
+    },
+    "wheelchair": {
+      "count": 20,
+      "rejected": 19
+    },
+    "windsor_chair": {
+      "count": 20,
+      "rejected": 20
+    }
+  },
+  "raw_known_macro_f1": 0.9125969649591514,
+  "classification_report": {
+    "cup": {
+      "precision": 0.9661016949152542,
+      "recall": 0.9827586206896551,
+      "f1": 0.9743589743589743,
+      "support": 58
+    },
+    "umbrella": {
+      "precision": 0.8372093023255814,
+      "recall": 0.9473684210526315,
+      "f1": 0.8888888888888888,
+      "support": 38
+    },
+    "book": {
+      "precision": 0.9523809523809523,
+      "recall": 0.9090909090909091,
+      "f1": 0.9302325581395349,
+      "support": 66
+    },
+    "pencil_case": {
+      "precision": 0.9047619047619048,
+      "recall": 0.926829268292683,
+      "f1": 0.9156626506024096,
+      "support": 41
+    },
+    "mouse": {
+      "precision": 0.8769230769230769,
+      "recall": 0.8636363636363636,
+      "f1": 0.8702290076335878,
+      "support": 66
+    },
+    "keyboard": {
+      "precision": 0.9545454545454546,
+      "recall": 0.9402985074626866,
+      "f1": 0.9473684210526316,
+      "support": 67
+    },
+    "earphones": {
+      "precision": 0.9411764705882353,
+      "recall": 0.9302325581395349,
+      "f1": 0.935672514619883,
+      "support": 86
+    },
+    "charger": {
+      "precision": 0.847457627118644,
+      "recall": 0.8333333333333334,
+      "f1": 0.8403361344537815,
+      "support": 60
+    },
+    "key": {
+      "precision": 0.8909090909090909,
+      "recall": 0.9074074074074074,
+      "f1": 0.8990825688073394,
+      "support": 54
+    },
+    "backpack": {
+      "precision": 0.9305555555555556,
+      "recall": 0.9178082191780822,
+      "f1": 0.9241379310344828,
+      "support": 73
+    }
+  },
+  "confusion_matrix": [
+    [
+      57,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      36,
+      0,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1
+    ],
+    [
+      1,
+      1,
+      60,
+      0,
+      0,
+      0,
+      0,
+      1,
+      2,
+      1
+    ],
+    [
+      0,
+      0,
+      2,
+      38,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1
+    ],
+    [
+      0,
+      0,
+      0,
+      1,
+      57,
+      0,
+      0,
+      5,
+      2,
+      1
+    ],
+    [
+      0,
+      1,
+      0,
+      0,
+      1,
+      63,
+      1,
+      1,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      3,
+      0,
+      80,
+      2,
+      0,
+      1
+    ],
+    [
+      1,
+      0,
+      0,
+      1,
+      1,
+      2,
+      3,
+      50,
+      2,
+      0
+    ],
+    [
+      0,
+      2,
+      0,
+      0,
+      1,
+      1,
+      1,
+      0,
+      49,
+      0
+    ],
+    [
+      0,
+      3,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      0,
+      67
+    ]
+  ],
+  "unchanged_classifier": {
+    "max_score_error": 0.0,
+    "top1_changes": 0
+  },
+  "gecko_development_diagnostic": {
+    "image_sha256": "49c39e8a0f29cb3e4bebae4c8be5d0e224f864f504919cd1e07682e373c027e5",
+    "scores": [
+      1.2621034329640679e-05,
+      3.3215863368241116e-05,
+      5.243228770268615e-06,
+      7.463641260585518e-09,
+      4.2185558157825653e-08,
+      3.438824194290646e-07,
+      1.7988842273553018e-06,
+      2.602309177746065e-05,
+      0.9999141693115234,
+      6.613627192564309e-06
+    ],
+    "knownness": 0.42909547686576843,
+    "accepted": false,
+    "used_for_training_or_selection": false
+  },
+  "benchmark": {
+    "warmup": 20,
+    "measurements": 100,
+    "inference_p50_ms": 9.89280000794679,
+    "inference_p95_ms": 10.226009976759087,
+    "preprocess_and_inference_p50_ms": 26.85695000400301,
+    "preprocess_and_inference_p95_ms": 28.17790998815326,
+    "device_scope": "Windows development CPU, not phone"
+  },
+  "limitations": [
+    "Known validation participated in policy selection.",
+    "Unknown holdout comes from one public source, not an independent phone acceptance set.",
+    "Gecko is a development diagnostic, not a holdout estimate."
+  ]
+}

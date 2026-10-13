@@ -35,15 +35,16 @@ object ConsistencyReport {
         val tensorFile: String? = null,
         /** reference_tensor 模式必填：实际喂入字节的 SHA-256 */
         val tensorSha256: String? = null,
+        val knownness: Float? = null,
     ) {
         // FloatArray 的 equals/hashCode 需显式覆写，避免误用引用比较
         override fun equals(other: Any?): Boolean =
             other is SampleReport && sampleId == other.sampleId && scores.contentEquals(other.scores) &&
-                tensorFile == other.tensorFile && tensorSha256 == other.tensorSha256
+                tensorFile == other.tensorFile && tensorSha256 == other.tensorSha256 && knownness == other.knownness
 
         override fun hashCode(): Int =
             ((sampleId.hashCode() * 31 + scores.contentHashCode()) * 31 + (tensorFile?.hashCode() ?: 0)) * 31 +
-                (tensorSha256?.hashCode() ?: 0)
+                (tensorSha256?.hashCode() ?: 0) + (knownness?.hashCode() ?: 0)
     }
 
     fun build(
@@ -55,6 +56,7 @@ object ConsistencyReport {
         labelsSha256: String,
         inputContract: JsonElement,
         samples: List<SampleReport>,
+        scopePolicySha256: String? = null,
     ): JsonObject {
         require(mode == MODE_REFERENCE_TENSOR || mode == MODE_IMAGE_CHAIN) { "mode 非法：$mode" }
         return buildJsonObject {
@@ -65,6 +67,7 @@ object ConsistencyReport {
             put("model_sha256", modelSha256)
             put("labels_sha256", labelsSha256)
             put("input_contract", inputContract)
+            scopePolicySha256?.let { put("scope_policy_sha256", it) }
             putJsonArray("samples") {
                 samples.forEach { sample ->
                     addJsonObject {
@@ -72,6 +75,7 @@ object ConsistencyReport {
                         putJsonArray("scores") { sample.scores.forEach { add(it) } }
                         sample.tensorFile?.let { put("tensor_file", it) }
                         sample.tensorSha256?.let { put("tensor_sha256", it) }
+                        sample.knownness?.let { put("knownness", it) }
                     }
                 }
             }

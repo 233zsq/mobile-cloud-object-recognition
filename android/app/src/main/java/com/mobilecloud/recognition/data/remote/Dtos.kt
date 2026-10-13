@@ -23,6 +23,25 @@ data class RecordUploadRequest(
     @SerialName("latency_ms") val latencyMs: Long,
     /** 采集时间，ISO-8601 含时区 */
     @SerialName("captured_at") val capturedAt: String,
+    @SerialName("scope_decision") val scopeDecision: ScopeUploadEvidence? = null,
+)
+
+@Serializable
+data class ScopeUploadEvidence(
+    val status: String,
+    @SerialName("policy_version") val policyVersion: String? = null,
+    @SerialName("policy_sha256") val policySha256: String? = null,
+    val knownness: Float? = null,
+    @SerialName("manual_confirmed") val manualConfirmed: Boolean,
+)
+
+@Serializable
+data class CloudScopeDecision(
+    val status: String,
+    @SerialName("needs_confirmation") val needsConfirmation: Boolean,
+    @SerialName("policy_version") val policyVersion: String? = null,
+    @SerialName("policy_sha256") val policySha256: String? = null,
+    val knownness: Float? = null,
 )
 
 @Serializable
@@ -63,6 +82,7 @@ data class InferResponse(
     @SerialName("preprocess_ms") val preprocessMs: Double,
     @SerialName("inference_ms") val inferenceMs: Double,
     @SerialName("low_confidence") val lowConfidence: Boolean? = null,
+    @SerialName("scope_decision") val scopeDecision: CloudScopeDecision? = null,
 )
 
 @Serializable
@@ -83,4 +103,5 @@ data class CloudModelOption(
     val labels: List<String>,
     @SerialName("low_confidence_threshold") val threshold: Float,
     val available: Boolean,
+    @SerialName("scope_policy") val scopePolicy: com.mobilecloud.recognition.inference.ScopePolicy? = null,
 )

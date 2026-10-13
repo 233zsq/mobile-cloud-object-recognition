@@ -180,7 +180,7 @@ test('web model contract matches the frozen release and Android label order', ()
 });
 
 test('catalog accepts two separately pinned models and retains availability', () => {
-  const model = { ...contract, labels_sha256: 'a'.repeat(64), display_name: '进阶版', description: '已冻结的版本', status: 'frozen', available: true };
+  const model = { ...contract, scope_policy: null, labels_sha256: 'a'.repeat(64), display_name: '进阶版', description: '已冻结的版本', status: 'frozen', available: true };
   const baseline = { ...model, model_version: 'campus-gpu-v1', model_sha256: 'b'.repeat(64), low_confidence_threshold: .6, available: false };
   const data = core.validateModels({ default_model_version: model.model_version, models: [model, baseline] }, categories);
   assert.equal(data.models[1].available, false);
@@ -227,9 +227,9 @@ test('missing policy and another model always require manual confirmation', () =
   const changes = [{ model_sha256: 'b'.repeat(64) }, { labels_sha256: 'b'.repeat(64) },
     { category_version: 'different' }, { preprocessing_version: 'different' }, { confidence_threshold: NaN }];
   for (const change of changes) {
-    assert.equal(core.scopeDecision(inference(), contract, { ...contract.scope_policy, ...change }).status, 'unavailable');
+    assert.equal(core.scopeDecision(inference(), { ...contract, scope_policy: { ...contract.scope_policy, ...change } }, null).status, 'unavailable');
   }
-  assert.equal(core.scopeDecision(inference(), contract, null).status, 'unavailable');
+  assert.equal(core.scopeDecision(inference(), { ...contract, scope_policy: null }, null).status, 'unavailable');
   const alternate = { ...contract, model_version: 'campus-gpu-v1', model_sha256: 'b'.repeat(64) };
   assert.equal(core.scopeDecision({ ...inference(), model_version: alternate.model_version, model_sha256: alternate.model_sha256 },
     alternate, contract.scope_policy).status, 'unavailable');

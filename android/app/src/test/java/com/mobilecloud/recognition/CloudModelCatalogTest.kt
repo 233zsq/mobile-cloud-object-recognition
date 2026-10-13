@@ -20,8 +20,11 @@ class CloudModelCatalogTest {
     }
     @Test fun duplicateMissingDefaultOrUnboundedCatalogIsRejected() {
         listOf(CloudModelsResponse(v2.version, listOf(v2, v2)), CloudModelsResponse("missing", listOf(v2)),
-            CloudModelsResponse(v2.version, emptyList()), CloudModelsResponse(v2.version, listOf(v2, v1, v2.copy(version = "other"))))
+            CloudModelsResponse(v2.version, emptyList()), CloudModelsResponse(v2.version, (1..5).map { v2.copy(version = "model-$it") }))
             .forEach { assertThrows(IllegalArgumentException::class.java) { it.validated(labels) } }
+    }
+    @Test fun thirdApprovedModelCanCoexistWithV2AndV1() {
+        assertEquals(3, CloudModelsResponse(v2.version, listOf(v2, v1, v2.copy(version = "campus-evolve-v3"))).validated(labels).models.size)
     }
     @Test fun mismatchedHashLabelsThresholdOrUnapprovedModelIsRejected() {
         listOf(v2.copy(sha256 = "wrong"), v2.copy(labelsSha256 = "0".repeat(64)), v2.copy(labels = labels.reversed()),

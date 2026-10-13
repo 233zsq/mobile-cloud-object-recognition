@@ -70,8 +70,9 @@ def pointer(release):
     temporary.replace(BASE / 'current')
 
 
-def registry_for(packages, cpu_python):
-    names = {'campus-evolve-v2': ('进阶版 v2', '当前推荐版本，加入审核后的补充照片。'),
+def registry_for(packages, cpu_python, default_version='campus-evolve-v2'):
+    names = {'campus-evolve-v3': ('范围判断 v3', '增加类别外判断，不确定时先人工确认。'),
+             'campus-evolve-v2': ('进阶版 v2', '原10类模型，供对比和回退使用。'),
              'campus-gpu-v1': ('基准版 v1', '最初 GPU 模型，采用较早的类别口径，供对比使用。')}
     models = []
     for package in packages:
@@ -82,14 +83,20 @@ def registry_for(packages, cpu_python):
         meta = json.loads((package / 'release/metadata.json').read_text())
         version = meta['model_version']
         if version not in names or verified['model_sha256'] != meta['sha256'] or not verified['passed']:
-            raise ValueError('Only approved baseline v1 and evolve v2 are supported')
+            raise ValueError('Unknown or unapproved model package')
         models.append({'model_version': version, 'model_sha256': meta['sha256'], 'category_version': meta['category_version'],
             'labels_sha256': meta['labels_sha256'], 'labels': [item['label_key'] for item in meta['categories']],
             'low_confidence_threshold': meta['low_confidence_threshold'], 'status': meta['status'],
             'display_name': names[version][0], 'description': names[version][1], 'package': str(package)})
-    if {m['model_version'] for m in models} != set(names) or len(models) != 2:
-        raise ValueError('Exactly two distinct approved packages are required')
-    return {'schema_version': 1, 'default_model_version': 'campus-evolve-v2', 'models': models}
+        if meta.get('scope_policy_file'):
+            policy_path=package/'release'/meta['scope_policy_file']
+            if hashlib.sha256(policy_path.read_bytes()).hexdigest()!=meta.get('scope_policy_sha256'):
+                raise ValueError('Scope policy changed')
+            models[-1]['scope_policy']=dict(json.loads(policy_path.read_text()),policy_sha256=meta['scope_policy_sha256'])
+    versions={m['model_version'] for m in models}
+    if not 1<=len(models)<=4 or len(versions)!=len(models) or default_version not in versions:
+        raise ValueError('Need distinct approved packages and a matching default')
+    return {'schema_version': 1, 'default_model_version': default_version, 'models': models}
 
 
 def register_packages(python, backend, models):
@@ -121,11 +128,12 @@ def activate(args):
     cpu_python = Path(old_command[0])
     if not cpu_python.is_file() or not cpu_python.is_relative_to(BASE / 'models'):
         raise ValueError('Expected the existing CPU environment')
-    registry = registry_for(args.package, cpu_python)
+    registry = registry_for(args.package, cpu_python, args.default_model_version)
     env_values = dict(line.split('=', 1) for line in old_env.decode().splitlines() if line and not line.startswith('#'))
     default = next(model for model in registry['models'] if model['model_version'] == registry['default_model_version'])
-    if (env_values.get('INFERENCE_MODEL_VERSION'), env_values.get('INFERENCE_MODEL_SHA256')) != (default['model_version'], default['model_sha256']):
-        raise ValueError('Keep the existing default model pinned; activate it separately first')
+    if not any((env_values.get('INFERENCE_MODEL_VERSION'),env_values.get('INFERENCE_MODEL_SHA256')) ==
+               (model['model_version'],model['model_sha256']) for model in registry['models']):
+        raise ValueError('Keep the previous default available for rollback')
     release = BASE / 'releases' / (args.revision[:12] + '-cloud-models')
     release.mkdir(mode=0o755)
     for name, data in files.items():
@@ -142,6 +150,17 @@ def activate(args):
     backend = release / 'backend'
     run([str(python), '-m', 'pytest', 'tests/test_infer.py', 'tests/test_cloud_models.py', '-q'], cwd=backend)
     run([str(cpu_python), 'test_server.py'], cwd=backend / 'inference_service')
+    # Additive migration leaves all original rows untouched. On source rollback
+    # the extra table can remain; the previous backend does not read it.
+    migration=("from app import create_app; from app.extensions import db; from sqlalchemy import inspect; "
+               "a=create_app(); ctx=a.app_context(); ctx.push(); "
+               "exists=inspect(db.engine).has_table('inference_decision'); "
+               "script=open('../database/schema/002_inference_decision.sql').read(); "
+               "script='\\n'.join(l for l in script.splitlines() if not l.lstrip().startswith('--')); "
+               "c=db.engine.connect(); [c.exec_driver_sql(s) for s in script.split(';') if s.strip()] if not exists else None; "
+               "c.commit(); c.close(); print('scope schema ready')")
+    if args.default_model_version=='campus-evolve-v3':
+        run([str(python),'-B','-c',migration],cwd=backend)
     register_packages(python, backend, registry['models'])
     stamp = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
     backup = BASE / 'shared/model-rollbacks' / (stamp + '-multi-model')
@@ -152,10 +171,18 @@ def activate(args):
     if old_registry is not None:
         (backup / 'registry.json').write_bytes(old_registry)
     env_lines = [line for line in old_env.decode().splitlines(keepends=True) if not line.startswith('INFERENCE_REGISTRY=')]
+    replacements={'INFERENCE_MODEL_VERSION':default['model_version'],'INFERENCE_MODEL_SHA256':default['model_sha256']}
+    for key,value in replacements.items():
+        if sum(line.startswith(key+'=') for line in env_lines)!=1:
+            raise ValueError('Missing or repeated model configuration')
+        env_lines=[key+'='+value+'\n' if line.startswith(key+'=') else line for line in env_lines]
     new_env = (''.join(env_lines).rstrip('\n') + '\nINFERENCE_REGISTRY=' + str(REGISTRY) + '\n').encode()
     if '--registry' in old_command:
         index = old_command.index('--registry')
         del old_command[index:index+2]
+    for flag,value in [('--package',default['package']),('--model-version',default['model_version']),('--model-sha256',default['model_sha256'])]:
+        index=old_command.index(flag)
+        old_command[index+1]=value
     new_unit = re.sub(r'^ExecStart=.*$', lambda _: 'ExecStart=' + shlex.join(old_command + ['--registry', str(REGISTRY)]), old_unit.decode(), flags=re.MULTILINE)
     try:
         atomic(REGISTRY, (json.dumps(registry, ensure_ascii=False, indent=2) + '\n').encode(), 0o640)
@@ -178,8 +205,8 @@ def activate(args):
         run(['systemctl', 'restart', 'mobile-cloud-backend'])
         probe = ("import json, urllib.request; from app import create_app; a=create_app(); "
             "r=urllib.request.Request('https://49.232.195.47/api/models',headers={'Authorization':'Bearer '+a.config['API_TOKEN']}); "
-            "d=json.load(urllib.request.urlopen(r,timeout=5)); assert len(d['models'])==2 and all(m['available'] for m in d['models']); "
-            "assert {m['model_version'] for m in d['models']}=={'campus-gpu-v1','campus-evolve-v2'}; print(json.dumps(d,ensure_ascii=False))")
+            "d=json.load(urllib.request.urlopen(r,timeout=5)); assert all(m['available'] for m in d['models']); "
+            "assert {m['model_version'] for m in d['models']}=="+repr({m['model_version'] for m in registry['models']})+"; print(json.dumps(d,ensure_ascii=False))")
         for attempt in range(30):
             try:
                 public = json.loads(run([str(python), '-B', '-c', probe], cwd=backend))
@@ -201,7 +228,7 @@ def activate(args):
         raise RuntimeError('Activation failed; restored previous source, configuration and worker') from None
     report = {'source_commit': args.revision, 'release': str(release), 'previous_release': str(previous),
         'rollback_directory': str(backup), 'models': public, 'credentials_preserved': True,
-        'tls_ports_and_static_ios_changed': False, 'database_schema_changed': False}
+        'tls_ports_and_static_ios_changed': False, 'database_schema_changed': args.default_model_version=='campus-evolve-v3'}
     atomic(BASE / 'shared/cloud-models-activation.json', (json.dumps(report, ensure_ascii=False, indent=2) + '\n').encode())
     print(json.dumps(report, ensure_ascii=False))
 
@@ -212,6 +239,7 @@ def main():
     parser.add_argument('--sha256', required=True)
     parser.add_argument('--revision', required=True)
     parser.add_argument('--package', required=True, action='append', type=Path)
+    parser.add_argument('--default-model-version',default='campus-evolve-v2',choices=['campus-evolve-v2','campus-evolve-v3'])
     args = parser.parse_args()
     if os.geteuid() != 0:
         raise PermissionError('Run with sudo')

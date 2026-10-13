@@ -413,7 +413,8 @@ async function recognize(file) {
     const record = recordFromResult(result, totalMs);
     record.captured_at = capturedAt;
     record.scope_decision = Core.scopeDecision(result, contract, state.scopePolicy);
-    if (record.scope_decision.status !== 'unavailable') record.scope_decision.policy_sha256 = state.scopePolicySha256;
+    if (record.scope_decision.status !== 'unavailable' && !record.scope_decision.policy_sha256)
+      record.scope_decision.policy_sha256 = state.scopePolicySha256;
     if (record.scope_decision.status === 'accepted') rememberRecord(record);
     else state.pendingConfirmation = record;
     state.ticket = record;
@@ -505,7 +506,7 @@ function discardPending() {
 
 /* ---------------- 上报与纠错 ---------------- */
 function uploadPayload(record) {
-  return {
+  const payload = {
     record_id: record.record_id,
     client_id: state.clientId,
     inference_source: record.inference_source,
@@ -515,6 +516,12 @@ function uploadPayload(record) {
     latency_ms: record.latency_ms,
     captured_at: record.captured_at,
   };
+  if (record.scope_decision) payload.scope_decision = {
+    status: record.scope_decision.status, policy_version: record.scope_decision.policy_version ?? null,
+    policy_sha256: record.scope_decision.policy_sha256 ?? null, knownness: record.scope_decision.knownness ?? null,
+    manual_confirmed: record.scope_manually_confirmed === true,
+  };
+  return payload;
 }
 
 function isPending(record) {
@@ -894,6 +901,7 @@ function appendRows(target, rows) {
 
 function renderModelInfo() {
   const contract = state.contract;
+  const policy = contract && Object.prototype.hasOwnProperty.call(contract, 'scope_policy') ? contract.scope_policy : state.scopePolicy;
   dom.modelSummary.textContent = contract ? contract.model_version : '请选择云端模型';
   appendRows(dom.connectionMeta, [
     ['服务地址', location.origin], ['默认云端模型', state.health?.model_version || '尚未连接'],
@@ -905,10 +913,10 @@ function renderModelInfo() {
     ['模型 SHA-256', contract.model_sha256], ['低置信阈值', percent(contract.low_confidence_threshold)],
     ['输入规格', 'RGB 224 × 224 · 模型内部归一化'],
     ['传输副本', '最长边 2048 · JPEG · 灰底 · 清除 EXIF'],
-    ['基础确认规则', Core.scopePolicyMatches(contract, state.scopePolicy)
-      ? `试验规则：最高分 ≥${percent(state.scopePolicy.confidence_threshold)}，前两名相差 ≥${Math.round(state.scopePolicy.margin_threshold * 100)} 个百分点`
+    ['确认规则', Core.scopePolicyMatches(contract, policy)
+      ? `最高分 ≥${percent(policy.confidence_threshold)}，前两名相差 ≥${Math.round(policy.margin_threshold * 100)} 个百分点${policy.rule === 'learned_knownness_v1' ? `，范围分数 ≥${percent(policy.knownness_threshold)}` : ''}`
       : '无匹配规则，识别结果需人工确认'],
-    ['规则 SHA-256', state.scopePolicySha256 || '未加载'],
+    ['规则 SHA-256', policy?.policy_sha256 || state.scopePolicySha256 || '未加载'],
   ] : [['当前选择', '请在识别页选择云端模型']]);
   dom.connectShortcut.hidden = Boolean(state.token);
   dom.connectionHint.textContent = !state.token ? '首次使用，请先保存组内访问口令。'

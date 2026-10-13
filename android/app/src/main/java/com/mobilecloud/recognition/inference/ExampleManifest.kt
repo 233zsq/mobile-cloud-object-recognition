@@ -18,6 +18,7 @@ data class ExampleSample(
     @SerialName("image_sha256") val imageSha256: String? = null,
     /** 模型在参考张量上的 golden 分数（10 类 softmax） */
     val scores: List<Double> = emptyList(),
+    val knownness: Double? = null,
     @SerialName("predicted_id") val predictedId: Int = -1,
     @SerialName("category_id") val categoryId: Int = -1,
 ) {

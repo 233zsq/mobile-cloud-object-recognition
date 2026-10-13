@@ -1,0 +1,27 @@
+{
+  "source_commit": "8985fc7398de5061d8bb68b91419212121e0d752",
+  "model_version": "campus-evolve-v3",
+  "model_sha256": "4fe5b74300c0c9e384822c9a00b8f256a76776d5f818c64a8d50b6c1e9e72623",
+  "policy_sha256": "6a4844173ed1b3aede51b02eb6fa1c18ecbcb131eabed8d4cf0adb411c7a90b3",
+  "apk_version_name": "1.0",
+  "apk_version_code": 3,
+  "apk_sha256": "e33a70c0a07dfb6d34ab1a78a7926a0e65fbab444fcbab0a5f49f6d2c1ec63a1",
+  "apk_bytes": 76001051,
+  "public_site_files_verified": 7,
+  "cloud_default": "campus-evolve-v3",
+  "legacy_records_preserved": 116,
+  "mysql_backend_tests": {
+    "passed": 156,
+    "skipped": 7
+  },
+  "ml_tests": {
+    "passed": 142,
+    "integration_deselected": 6
+  },
+  "android_unit_tests": 124,
+  "web_tests": 29,
+  "final_native_and_real_api_tests": 4,
+  "physical_phone_acceptance": "pending",
+  "independent_field_acceptance": "pending",
+  "pr": "https://github.com/233zsq/mobile-cloud-object-recognition/pull/14"
+}

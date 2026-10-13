@@ -1,0 +1,210 @@
+{
+  "scope": "ACTUAL_TENCENT_CLOUD_CPU",
+  "at_utc": "2026-10-13T08:08:06+00:00",
+  "cpu": "Intel(R) Xeon(R) Gold 6148 CPU @ 2.40GHz",
+  "os": "Linux-7.0.0-14-generic-x86_64-with-glibc2.43",
+  "runtime": {
+    "ai-edge-litert": "2.2.0",
+    "numpy": "2.1.3",
+    "Pillow": "12.3.0",
+    "python": "3.12.15",
+    "threads": 1
+  },
+  "package_integrity": {
+    "passed": true,
+    "checked_files": 62,
+    "model_version": "campus-evolve-v3",
+    "model_sha256": "4fe5b74300c0c9e384822c9a00b8f256a76776d5f818c64a8d50b6c1e9e72623"
+  },
+  "tensorflow_imported": false,
+  "comparisons": [
+    {
+      "sample_id": "oi-30d38acdacfe06d0",
+      "max_tensor_score_difference": 0.0,
+      "max_image_score_difference": 0.0,
+      "max_input_difference": 0.0,
+      "max_knownness_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-101801303",
+      "max_tensor_score_difference": 0.0,
+      "max_image_score_difference": 0.0,
+      "max_input_difference": 0.0,
+      "max_knownness_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-142628717",
+      "max_tensor_score_difference": 0.0,
+      "max_image_score_difference": 0.0,
+      "max_input_difference": 0.0,
+      "max_knownness_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-170447402",
+      "max_tensor_score_difference": 0.0,
+      "max_image_score_difference": 0.0,
+      "max_input_difference": 0.0,
+      "max_knownness_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-19912806",
+      "max_tensor_score_difference": 0.0,
+      "max_image_score_difference": 0.0,
+      "max_input_difference": 0.0,
+      "max_knownness_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-2987257",
+      "max_tensor_score_difference": 0.0,
+      "max_image_score_difference": 0.0,
+      "max_input_difference": 0.0,
+      "max_knownness_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "oi-6b784b107eaa3126",
+      "max_tensor_score_difference": 0.0,
+      "max_image_score_difference": 0.0,
+      "max_input_difference": 0.0,
+      "max_knownness_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "oi-10dd651ae86b43b3",
+      "max_tensor_score_difference": 0.0,
+      "max_image_score_difference": 0.0,
+      "max_input_difference": 0.0,
+      "max_knownness_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-176030688",
+      "max_tensor_score_difference": 0.0,
+      "max_image_score_difference": 0.0,
+      "max_input_difference": 0.0,
+      "max_knownness_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-176030689",
+      "max_tensor_score_difference": 0.0,
+      "max_image_score_difference": 0.0,
+      "max_input_difference": 0.0,
+      "max_knownness_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-109930862",
+      "max_tensor_score_difference": 0.0,
+      "max_image_score_difference": 0.0,
+      "max_input_difference": 0.0,
+      "max_knownness_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-144261318",
+      "max_tensor_score_difference": 0.0,
+      "max_image_score_difference": 0.0,
+      "max_input_difference": 0.0,
+      "max_knownness_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-14723373",
+      "max_tensor_score_difference": 0.0,
+      "max_image_score_difference": 0.0,
+      "max_input_difference": 0.0,
+      "max_knownness_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-72283140",
+      "max_tensor_score_difference": 0.0,
+      "max_image_score_difference": 0.0,
+      "max_input_difference": 0.0,
+      "max_knownness_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-192911358",
+      "max_tensor_score_difference": 0.0,
+      "max_image_score_difference": 0.0,
+      "max_input_difference": 0.0,
+      "max_knownness_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-13640856",
+      "max_tensor_score_difference": 0.0,
+      "max_image_score_difference": 0.0,
+      "max_input_difference": 0.0,
+      "max_knownness_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-79672988",
+      "max_tensor_score_difference": 0.0,
+      "max_image_score_difference": 0.0,
+      "max_input_difference": 0.0,
+      "max_knownness_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-71474663",
+      "max_tensor_score_difference": 0.0,
+      "max_image_score_difference": 0.0,
+      "max_input_difference": 0.0,
+      "max_knownness_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "commons-7151563",
+      "max_tensor_score_difference": 0.0,
+      "max_image_score_difference": 0.0,
+      "max_input_difference": 0.0,
+      "max_knownness_difference": 0.0,
+      "passed": true
+    },
+    {
+      "sample_id": "oi-2fdfbd153b29517b",
+      "max_tensor_score_difference": 0.0,
+      "max_image_score_difference": 0.0,
+      "max_input_difference": 0.0,
+      "max_knownness_difference": 0.0,
+      "passed": true
+    }
+  ],
+  "benchmark": {
+    "warmup": 20,
+    "measured": 100,
+    "unit": "ms",
+    "includes_network": false,
+    "preprocess_ms": {
+      "min": 6.866749958135188,
+      "mean": 18.3760118635837,
+      "median": 13.715965498704463,
+      "p95": 40.14121100772172,
+      "max": 57.14052694384009
+    },
+    "inference_ms": {
+      "min": 10.112201096490026,
+      "mean": 11.307389974826947,
+      "median": 10.5999365914613,
+      "p95": 15.001980005763471,
+      "max": 16.160503961145878
+    },
+    "model_call_ms": {
+      "min": 17.138952971436083,
+      "mean": 29.688097785692662,
+      "median": 25.626805960200727,
+      "p95": 50.73857703246176,
+      "max": 71.94815098773688
+    }
+  },
+  "passed": true
+}

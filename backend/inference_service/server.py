@@ -1,6 +1,7 @@
 """Independent Python 3.12 CPU worker. The public Flask app uses a private socket."""
 
 import argparse
+import importlib.util
 from http.server import BaseHTTPRequestHandler
 import json
 import os
@@ -15,6 +16,19 @@ import warnings
 
 MAX_IMAGE_BYTES = 8 * 1024 * 1024
 MAX_IMAGE_PIXELS = 12_600_000
+
+
+def package_engine(package):
+    """Each approved package chooses its adapter; old and new runtimes may coexist."""
+    package = Path(package).resolve(strict=True)
+    sys.path.insert(0, str(package))
+    try:
+        spec = importlib.util.spec_from_file_location('adapter_' + package.name.replace('-', '_'), package / 'backend_adapter.py')
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module.CpuModelService(package / 'release', threads=1)
+    finally:
+        sys.path.remove(str(package))
 
 
 class ImageError(Exception):
@@ -132,7 +146,6 @@ def main():
     warnings.filterwarnings("error", category=Image.DecompressionBombWarning)
     sys.path.insert(0, str(args.package.resolve(strict=True)))
     from verify_package import verify_package
-    from backend_adapter import CpuModelService
     entries = [{'package': str(args.package), 'model_version': args.model_version, 'model_sha256': args.model_sha256}]
     if args.registry:
         sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -158,7 +171,10 @@ def main():
             expected = (entry['category_version'], entry['labels_sha256'], entry['low_confidence_threshold'], entry['labels'])
             if actual != expected:
                 raise ValueError('Registry contract differs from frozen package')
-        engine = CpuModelService(package / 'release', threads=1)
+        engine = package_engine(package)
+        policy = engine.runner.scope_policy if hasattr(engine.runner, 'scope_policy') else None
+        if args.registry and entry.get('scope_policy') is not None and entry['scope_policy'] != policy:
+            raise ValueError('Registry scope policy differs from verified package')
         for _ in range(20):
             engine.runner.predict_tensor(np.full((224,224,3),128,dtype=np.float32))
         engines[engine.model_version] = engine

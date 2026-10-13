@@ -1,0 +1,131 @@
+{
+  "created_at": "2026-10-13T14:51:49+08:00",
+  "status": "experimental",
+  "selection_sha256": "227f8d1f5a2c6aba1fe5b68ce7bc74eb7b5f28d0b4625c5298b5b67e34011a2b",
+  "selected_candidate": "mlp64",
+  "validation_and_unknown_holdout": {
+    "known_count": 609,
+    "known_accepted": 556,
+    "known_coverage": 0.9129720853858785,
+    "known_false_rejection_rate": 0.08702791461412152,
+    "raw_known_accuracy": 0.9146141215106732,
+    "accepted_known_accuracy": 0.9316546762589928,
+    "correct_and_accepted_over_all_known": 0.8505747126436781,
+    "unknown_count": 400,
+    "unknown_rejected": 391,
+    "unknown_rejection_rate": 0.9775,
+    "unknown_false_acceptance_rate": 0.0225,
+    "per_known_class": {
+      "0": {
+        "total": 58,
+        "accepted": 55,
+        "coverage": 0.9482758620689655
+      },
+      "1": {
+        "total": 38,
+        "accepted": 33,
+        "coverage": 0.868421052631579
+      },
+      "2": {
+        "total": 66,
+        "accepted": 59,
+        "coverage": 0.8939393939393939
+      },
+      "3": {
+        "total": 41,
+        "accepted": 41,
+        "coverage": 1.0
+      },
+      "4": {
+        "total": 66,
+        "accepted": 60,
+        "coverage": 0.9090909090909091
+      },
+      "5": {
+        "total": 67,
+        "accepted": 66,
+        "coverage": 0.9850746268656716
+      },
+      "6": {
+        "total": 86,
+        "accepted": 76,
+        "coverage": 0.8837209302325582
+      },
+      "7": {
+        "total": 60,
+        "accepted": 54,
+        "coverage": 0.9
+      },
+      "8": {
+        "total": 54,
+        "accepted": 45,
+        "coverage": 0.8333333333333334
+      },
+      "9": {
+        "total": 73,
+        "accepted": 67,
+        "coverage": 0.9178082191780822
+      }
+    }
+  },
+  "development_gecko": {
+    "knownness": 0.4290880560874939,
+    "accepted": false,
+    "scores": [
+      1.2621385394595563e-05,
+      3.321631083963439e-05,
+      5.243277882982511e-06,
+      7.463811790842101e-09,
+      4.2186769633190124e-08,
+      3.4388929748274677e-07,
+      1.7989185607802938e-06,
+      2.602366657811217e-05,
+      0.9999141693115234,
+      6.6137158682977315e-06
+    ],
+    "image_sha256": "49c39e8a0f29cb3e4bebae4c8be5d0e224f864f504919cd1e07682e373c027e5",
+    "used_for_training_or_selection": false
+  },
+  "artifact": {
+    "model_sha256": "4fe5b74300c0c9e384822c9a00b8f256a76776d5f818c64a8d50b6c1e9e72623",
+    "model_bytes": 9531856,
+    "input": {
+      "version": "rgb-letterbox-v1",
+      "orientation": "EXIF transpose",
+      "color_order": "RGB",
+      "shape": [
+        1,
+        224,
+        224,
+        3
+      ],
+      "dtype": "float32",
+      "pixel_range": [
+        0,
+        255
+      ],
+      "crop": "none",
+      "resize": "bilinear half_pixel_centers; antialias=false; round half up",
+      "padding": "center; RGB 128; odd remainder right/bottom",
+      "normalization": "inside model: x / 127.5 - 1",
+      "byte_order": "little-endian"
+    },
+    "score_output_tensor_index": 183,
+    "knownness_output_tensor_index": 189,
+    "score_output_position": 1,
+    "knownness_output_position": 0
+  },
+  "consistency": {
+    "known_validation_count": 609,
+    "max_score_error": 9.119510650634766e-06,
+    "max_knownness_error": 1.633167266845703e-05,
+    "category_changes": 0
+  },
+  "development_targets_met": true,
+  "seconds": 424.749201828,
+  "limitations": [
+    "Known validation participates in calibration; it is not independent field acceptance.",
+    "Unknown holdout contains previously unseen source classes from one public dataset.",
+    "Phone OOD accuracy, iPhone Safari behavior and physical performance remain separate."
+  ]
+}

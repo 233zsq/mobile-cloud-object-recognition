@@ -126,6 +126,8 @@ def compare_external(release,report_path):
         raise ValueError('External model/labels SHA-256 mismatch')
     if report.get('input_contract')!=meta['input']:
         raise ValueError('External preprocessing/type/normalization contract differs')
+    if meta.get('scope_output') and report.get('scope_policy_sha256')!=meta['scope_policy_sha256']:
+        raise ValueError('External scope policy SHA-256 mismatch')
     mode=report.get('mode')
     if mode not in ('reference_tensor','image_chain'):
         raise ValueError('External mode must be reference_tensor or image_chain')
@@ -158,6 +160,10 @@ def compare_external(release,report_path):
             input_passed=input_difference<=.001
             actual_tensor_sha256=digest(path)
         difference=float(np.max(np.abs(scores-golden['scores'])))
+        if meta.get('scope_output'):
+            value=sample.get('knownness')
+            if type(value) not in (int,float) or not np.isfinite(value) or not 0<=value<=1 or abs(value-golden['knownness'])>.001:
+                raise ValueError('External scope output differs from golden reference')
         same=int(scores.argmax())==golden['predicted_id']
         comparisons.append({'sample_id':sample['sample_id'],'actual_tensor_sha256':actual_tensor_sha256,'reference_tensor_sha256':golden['tensor_sha256'],'input_passed':input_passed,'max_input_difference':input_difference,'top1_same':same,'max_score_difference':difference,'passed':bool(input_passed and same and difference<=.001)})
     result={'at':now(),'run_id':run_id,'mode':mode,'device':report.get('device'),'runtime':report.get('runtime'),'model_sha256':meta['sha256'],'labels_sha256':meta['labels_sha256'],'submitted_report_sha256':digest(report_path),'passed':all(c['passed'] for c in comparisons),'comparisons':comparisons}
@@ -191,10 +197,20 @@ def verify(release,external_report=None,*,_annex_recovery=None):
     if len(examples)<20 or any(sum(e["category_id"]==i for e in examples)<2 for i in range(10)):
         raise ValueError("Handover examples need at least two per class and twenty total")
     max_difference=0
+    max_knownness_difference=0
     for example in examples:
         path=release/"examples"/example["tensor"]
         array=np.fromfile(path,dtype="<f4").reshape(224,224,3)
-        scores=runner.predict_tensor(array)
+        outputs=runner.predict_outputs(array) if runner.metadata.get('scope_output') else {'scores':runner.predict_tensor(array)}
+        scores=outputs['scores']
+        if runner.metadata.get('scope_output'):
+            expected=example.get('knownness')
+            if type(expected) not in (int,float) or not np.isfinite(expected) or not 0<=expected<=1:
+                raise ValueError('Golden knownness is missing or invalid')
+            scope_diff=abs(outputs['knownness']-expected)
+            max_knownness_difference=max(max_knownness_difference,scope_diff)
+            if scope_diff>.001:
+                raise ValueError('Golden scope prediction mismatch')
         diff=float(np.max(np.abs(scores-example["scores"])))
         max_difference=max(max_difference,diff)
         if scores.argmax()!=example["predicted_id"] or diff>.001:
@@ -202,6 +218,8 @@ def verify(release,external_report=None,*,_annex_recovery=None):
         if not np.array_equal(preprocess(release/"examples"/example["image"]),array):
             raise ValueError("Golden image preprocessing differs")
     result={"passed":True,"example_count":len(examples),"max_score_difference":max_difference,"runtime":"ai-edge-litert", "model_status":runner.metadata["status"]}
+    if runner.metadata.get('scope_output'):
+        result['max_knownness_difference']=max_knownness_difference
     if external_report:result['external']=compare_external(release,external_report)
     return result
 

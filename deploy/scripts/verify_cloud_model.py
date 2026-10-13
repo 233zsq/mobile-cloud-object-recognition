@@ -36,7 +36,10 @@ def main():
     sys.path.insert(0, str(package))
     import numpy as np
     from backend_adapter import CpuModelService
-    from campus_cpu_runtime.preprocessing import preprocess
+    if (package/'campus_scope_runtime').is_dir():
+        from campus_scope_runtime.preprocessing import preprocess
+    else:
+        from campus_cpu_runtime.preprocessing import preprocess
     from verify_package import verify_package
     integrity = verify_package(package)
     engine = CpuModelService(package / "release", threads=1)
@@ -49,7 +52,10 @@ def main():
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid4().hex[:8]
     reports = {}
     for mode in ("reference_tensor", "image_chain"):
-        value = json.loads((package / ("results/cloud-"+mode+".template.json")).read_text(encoding="utf-8"))
+        meta=engine.runner.metadata
+        value={'mode':mode,'model_sha256':meta['sha256'],'labels_sha256':meta['labels_sha256'],'input_contract':meta['input']}
+        if meta.get('scope_output'):
+            value['scope_policy_sha256']=meta['scope_policy_sha256']
         value.update(run_id="tencent-cloud-"+stamp+"-"+mode.replace("_","-"),
                      device=cpu+"; "+platform.platform(), runtime=json.dumps(runtime,sort_keys=True), scope=args.scope)
         value["samples"] = []
@@ -63,23 +69,31 @@ def main():
         reference = np.frombuffer(reference_bytes, dtype="<f4").reshape(224,224,3).copy()
         image_path = package / "release/examples" / entry["image"]
         generated = preprocess(image_path)
-        tensor_scores = engine.runner.predict_tensor(reference)
+        tensor_outputs = engine.runner.predict_outputs(reference) if hasattr(engine.runner,'predict_outputs') else {'scores':engine.runner.predict_tensor(reference)}
+        tensor_scores = tensor_outputs['scores']
         image_result = engine.predict_image(image_path)
         tensor_difference = float(np.max(np.abs(tensor_scores-entry["scores"])))
         image_difference = float(np.max(np.abs(np.asarray(image_result["scores"])-entry["scores"])))
         pixel_difference = float(np.max(np.abs(generated-reference)))
         passed = (tensor_difference<=0.001 and image_difference<=0.001 and pixel_difference<=0.001
                   and int(tensor_scores.argmax())==entry["predicted_id"] and image_result["predicted_id"]==entry["predicted_id"])
+        scope_error = None
+        if 'knownness' in entry:
+            scope_error=max(abs(tensor_outputs['knownness']-entry['knownness']),abs(image_result['knownness']-entry['knownness']))
+            passed=passed and scope_error<=.001
         if not passed:
             raise ValueError("Actual host consistency failed: "+sample_id)
         reports["reference_tensor"]["samples"].append({"sample_id":sample_id, "scores":tensor_scores.tolist(),
-                             "tensor_sha256":hashlib.sha256(reference.astype("<f4").tobytes()).hexdigest()})
+                             "tensor_sha256":hashlib.sha256(reference.astype("<f4").tobytes()).hexdigest(),
+                             **({'knownness':tensor_outputs['knownness']} if 'knownness' in tensor_outputs else {})})
         relative = "image_chain_inputs/"+sample_id+".bin"
         with (output/relative).open("xb") as stream:
             stream.write(generated.astype("<f4").tobytes())
-        reports["image_chain"]["samples"].append({"sample_id":sample_id,"scores":image_result["scores"],"tensor_file":relative})
+        reports["image_chain"]["samples"].append({"sample_id":sample_id,"scores":image_result["scores"],"tensor_file":relative,
+            **({'knownness':image_result['knownness']} if 'knownness' in image_result else {})})
         comparisons.append({"sample_id":sample_id,"max_tensor_score_difference":tensor_difference,
-                            "max_image_score_difference":image_difference,"max_input_difference":pixel_difference,"passed":passed})
+                            "max_image_score_difference":image_difference,"max_input_difference":pixel_difference,
+                            "max_knownness_difference":scope_error,"passed":passed})
     for mode,report in reports.items():
         write_new(output/("cloud-"+mode+".json"),report)
     first_image = package / "release/examples" / examples[0]["image"]

@@ -24,7 +24,8 @@ class TfliteClassifier(private val bundle: ModelBundle) {
         val input = LetterboxEncoder.encode(source, bundle.inputSize, bundle.normalization)
         val inputReady = SystemClock.elapsedRealtime()
 
-        val scores = runInterpreter(input)
+        val outputs = runOutputs(input)
+        val scores = outputs.scores
         require(scores.size == bundle.outputClasses && scores.all { it.isFinite() && it in 0f..1f } &&
             kotlin.math.abs(scores.sum()-1f) <= .0001f) { "模型分数无效，请重新校验模型" }
         val endAll = SystemClock.elapsedRealtime()
@@ -49,14 +50,28 @@ class TfliteClassifier(private val bundle: ModelBundle) {
             totalMs = endAll - startAll,
             modelVersion = bundle.modelVersion,
             scores = completeScores,
-            scopeDecision = bundle.scopePolicy.evaluate(completeScores),
+            scopeDecision = bundle.scopePolicy.evaluate(completeScores, outputs.knownness),
         )
     }
 
     /** 对已编码的契约输入执行推理；供一致性自检复用（与推理链路同一张量入口） */
     fun runInterpreter(input: ByteBuffer): FloatArray {
+        return runOutputs(input).scores
+    }
+
+    data class Outputs(val scores: FloatArray, val knownness: Float?)
+
+    fun runOutputs(input: ByteBuffer): Outputs {
         val output = Array(1) { FloatArray(bundle.outputClasses) }
-        bundle.interpreter.run(input, output)
-        return output[0]
+        val scope = bundle.metadata.scopeOutput
+        if (scope == null) {
+            bundle.interpreter.run(input, output)
+            return Outputs(output[0], null)
+        }
+        val knownness = Array(1) { FloatArray(1) }
+        bundle.interpreter.runForMultipleInputsOutputs(arrayOf(input),
+            mapOf(bundle.metadata.scoreOutputIndex to output, scope.index to knownness))
+        require(knownness[0][0].isFinite() && knownness[0][0] in 0f..1f) { "范围判断输出无效" }
+        return Outputs(output[0], knownness[0][0])
     }
 }

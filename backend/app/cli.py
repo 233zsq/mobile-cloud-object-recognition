@@ -29,6 +29,8 @@ def render_mysql_schema():
     ]
     dialect = mysql.dialect()
     for table in db.metadata.sorted_tables:
+        if table.name == 'inference_decision':
+            continue  # Added by migration 002; keep the original 001 snapshot immutable.
         lines.append(str(CreateTable(table).compile(dialect=dialect)).strip() + ";")
         for index in sorted(table.indexes, key=lambda item: item.name):
             lines.append(str(CreateIndex(index).compile(dialect=dialect)).strip() + ";")

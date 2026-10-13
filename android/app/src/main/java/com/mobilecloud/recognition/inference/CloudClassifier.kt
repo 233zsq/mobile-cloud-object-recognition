@@ -14,7 +14,8 @@ import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 
 /** Identity and scores must match the bundled contract before a result can be adopted. */
-data class CloudModelContract(val version: String, val sha256: String, val labels: List<String>, val threshold: Float) {
+data class CloudModelContract(val version: String, val sha256: String, val labels: List<String>, val threshold: Float,
+    val scopePolicy: ScopePolicy? = null) {
     fun validate(response: InferResponse, requestId: String): Prediction {
         require(response.requestId == requestId) { "云端响应编号不匹配，请重试" }
         require(response.modelVersion == version && response.modelSha256 == sha256) { "端云模型版本或哈希不一致，请联系管理员" }
@@ -24,15 +25,25 @@ data class CloudModelContract(val version: String, val sha256: String, val label
         require(response.predictedId == index && response.labelKey == labels[index] && response.confidence == scores[index]) { "云端类别与分数不一致" }
         require(listOf(response.preprocessMs, response.inferenceMs).all { it.isFinite() && it >= 0 && it < 60_000 }) { "云端耗时无效" }
         require(response.lowConfidence == (response.confidence < threshold)) { "云端阈值与选定模型不一致" }
+        val scope = if (scopePolicy == null || response.scopeDecision == null) {
+            ScopeDecision(ScopeVerdict.UNAVAILABLE, null, null, "云端未提供可核验的范围判断，请人工确认")
+        } else {
+            val remote = response.scopeDecision
+            val expected = ScopePolicyState(scopePolicy, scopePolicy.declaredSha256).evaluate(scores, remote.knownness)
+            require(remote.policyVersion == expected.policyVersion && remote.policySha256 == expected.policySha256
+                && remote.status == expected.verdict.name.lowercase(java.util.Locale.ROOT)
+                && remote.needsConfirmation == expected.needsConfirmation) { "云端范围判断与模型规则不一致" }
+            expected
+        }
         return Prediction(index, response.confidence, response.labelKey,
             response.preprocessMs.roundToLong(), response.inferenceMs.roundToLong(),
-            (response.preprocessMs + response.inferenceMs).roundToLong(), response.modelVersion, scores = scores.toList())
+            (response.preprocessMs + response.inferenceMs).roundToLong(), response.modelVersion, scores = scores.toList(), scopeDecision = scope)
     }
 }
 
 /** The authenticated HTTPS catalog pins a separate contract for each cloud model. */
 fun CloudModelsResponse.validated(expectedLabels: List<String>): CloudModelsResponse {
-    require(models.size in 1..2 && models.map { it.version }.distinct().size == models.size) { "云端模型清单无效" }
+    require(models.size in 1..4 && models.map { it.version }.distinct().size == models.size) { "云端模型清单无效" }
     require(models.any { it.version == defaultModelVersion }) { "缺少默认云端模型" }
     models.forEach { model ->
         require(model.version.matches(Regex("[A-Za-z0-9][A-Za-z0-9._-]{0,63}"))
@@ -44,11 +55,15 @@ fun CloudModelsResponse.validated(expectedLabels: List<String>): CloudModelsResp
             && model.displayName.length in 1..64 && model.description.length in 1..160) { "云端模型规格不兼容" }
         val labelsBytes = (model.labels.joinToString("\n") + "\n").toByteArray(Charsets.UTF_8)
         require(com.mobilecloud.recognition.util.ShaUtil.sha256Hex(labelsBytes) == model.labelsSha256) { "云端标签哈希不一致" }
+        model.scopePolicy?.let { policy ->
+            require(policy.declaredSha256?.matches(Regex("[0-9a-f]{64}")) == true) { "云端范围规则缺少哈希" }
+            policy.validate(ScopeIdentity(model.version, model.sha256, model.labelsSha256, model.categoryVersion, "rgb-letterbox-v1"))
+        }
     }
     return this
 }
 
-fun CloudModelOption.contract() = CloudModelContract(version, sha256, labels, threshold)
+fun CloudModelOption.contract() = CloudModelContract(version, sha256, labels, threshold, scopePolicy)
 
 class CloudClassifier(private val api: ApiService) {
     suspend fun classify(file: File, contract: CloudModelContract): Prediction {

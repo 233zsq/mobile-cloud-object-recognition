@@ -30,6 +30,7 @@ class ModelBundle private constructor(
     /** 解释器实际线程数，报告 runtime 字段使用 */
     val numThreads: Int,
     val scopePolicy: ScopePolicyState,
+    val assetDirectory: String,
 ) {
     /** 正方形输入边长（如 224），预处理直接使用 */
     val inputSize: Int = inputShape[1]
@@ -44,9 +45,9 @@ class ModelBundle private constructor(
     companion object {
         /** 兜底阈值；正式包由 metadata.low_confidence_threshold 提供（契约 campus-gpu-v1 为 0.5） */
         const val DEFAULT_THRESHOLD = 0.5f
-        private const val MODEL_DIR = "models"
-
-        fun load(assets: AssetManager): ModelBundle {
+        fun load(assets: AssetManager, directory: String = "models"): ModelBundle {
+            require(directory == "models" || directory == "models/campus-evolve-v2")
+            val MODEL_DIR = directory
             val metadataText = readAssetText(assets, "$MODEL_DIR/metadata.json")
             val metadata = ModelMetadata.parse(metadataText)
             val inputContract = runCatching {
@@ -82,8 +83,23 @@ class ModelBundle private constructor(
                 throw ModelLoadException("模型初始化失败，文件可能损坏：${e.message}", e)
             }
 
+            try {
+                require(interpreter.inputTensorCount == 1) { "模型必须只有一个输入" }
+                val count = interpreter.outputTensorCount
+                require(metadata.scoreOutputIndex in 0 until count) { "分类输出位置无效" }
+                metadata.scopeOutput?.let { scope ->
+                    require(count == 2 && scope.index in 0 until count && scope.index != metadata.scoreOutputIndex &&
+                        scope.shape == listOf(1, 1) && scope.dtype == "float32" && scope.interpretation == "knownness") { "范围输出契约无效" }
+                    val tensor = interpreter.getOutputTensor(scope.index)
+                    require(tensor.shape().contentEquals(intArrayOf(1, 1)) && dtypeName(tensor.dataType()) == "float32") { "范围输出张量不符" }
+                } ?: require(count == 1 && metadata.scoreOutputIndex == 0) { "存在未声明的模型输出" }
+                require(dtypeName(interpreter.getOutputTensor(metadata.scoreOutputIndex).dataType()) == "float32") { "分类输出必须为 float32" }
+            } catch (e: Exception) {
+                interpreter.close()
+                throw ModelLoadException("模型输出校验失败：${e.message}", e)
+            }
             val inputTensor = interpreter.getInputTensor(0)
-            val outputTensor = interpreter.getOutputTensor(0)
+            val outputTensor = interpreter.getOutputTensor(metadata.scoreOutputIndex)
             val inputShape = inputTensor.shape()
             val outputShape = outputTensor.shape()
 
@@ -115,9 +131,13 @@ class ModelBundle private constructor(
                 normalization = normalization,
                 inputContract = inputContract,
                 numThreads = threadCount,
+                assetDirectory = directory,
                 scopePolicy = try {
-                    ScopePolicyState.parse(readAsset(assets, "scope/scope-policy.json"),
-                        readAssetText(assets, "scope/scope-policy.sha256"),
+                    val policyFile = metadata.scopePolicyFile
+                    require(policyFile == null || policyFile.matches(Regex("[A-Za-z0-9._-]+")))
+                    val policyPath = if (policyFile == null) "scope/scope-policy.json" else "$MODEL_DIR/$policyFile"
+                    ScopePolicyState.parse(readAsset(assets, policyPath),
+                        metadata.scopePolicySha256 ?: readAssetText(assets, "scope/scope-policy.sha256"),
                         ScopeIdentity(metadata.modelVersion!!, modelSha, labelsSha, metadata.categoryVersion, metadata.input.version))
                 } catch (_: Exception) { ScopePolicyState.unavailable },
             )
@@ -127,11 +147,6 @@ class ModelBundle private constructor(
             text.lines().map { it.trim() }.filter { it.isNotEmpty() }
 
         fun dtypeName(dataType: Any?): String = dataType?.toString()?.lowercase() ?: "unknown"
-
-        private fun readMetadata(assets: AssetManager): ModelMetadata {
-            val text = readAssetText(assets, "$MODEL_DIR/metadata.json")
-            return ModelMetadata.parse(text)
-        }
 
         private fun readAsset(assets: AssetManager, path: String): ByteArray = try {
             assets.open(path).use { it.readBytes() }

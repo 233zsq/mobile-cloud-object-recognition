@@ -103,7 +103,7 @@ fun CaptureScreen(catalog: CategoryCatalog, viewModel: CaptureViewModel = viewMo
             }
             InferenceModeSelector(state.mode, !state.capturing && state.confirmation == null, viewModel::selectMode)
             if (state.mode == InferenceMode.CLOUD) {
-                Surface(onClick = { modelSheet = true }, enabled = !state.capturing,
+                Surface(onClick = { modelSheet = true }, enabled = !state.capturing && state.confirmation == null,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 22.dp, vertical = 9.dp).testTag("cloud-model-picker"),
                     color = MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(14.dp),
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
@@ -118,6 +118,8 @@ fun CaptureScreen(catalog: CategoryCatalog, viewModel: CaptureViewModel = viewMo
                     }
                 }
             } else {
+                val selectedLocal = (state.modelState as? ModelState.Ready)?.info?.modelVersion
+                LocalModelChoices(selectedLocal, enabled, viewModel::selectLocalModel)
                 val localVersion = (state.modelState as? ModelState.Ready)?.info?.modelVersion?.substringAfterLast('-') ?: "准备中"
                 LiveRecognitionControl(state.liveEnabled, permission && enabled && state.liveCameraReady,
                     localVersion, viewModel::setLiveEnabled)
@@ -192,7 +194,7 @@ fun CaptureScreen(catalog: CategoryCatalog, viewModel: CaptureViewModel = viewMo
         }
     }
     if (modelSheet) ModalBottomSheet(onDismissRequest = { modelSheet = false }, containerColor = MaterialTheme.colorScheme.background) {
-        CloudModelChoices(state.cloudModels, state.cloudModelVersion, !state.capturing) { version ->
+        CloudModelChoices(state.cloudModels, state.cloudModelVersion, !state.capturing && state.confirmation == null) { version ->
             viewModel.selectCloudModel(version); modelSheet = false
         }
         if (state.cloudModels.isEmpty()) {
@@ -211,6 +213,20 @@ fun CaptureScreen(catalog: CategoryCatalog, viewModel: CaptureViewModel = viewMo
                 row.forEach { item -> AssistChip(onClick = { viewModel.applyCorrection(item.id, item.displayName) }, label = { Text(item.displayName) }) }
             } }
             Spacer(Modifier.height(24.dp))
+        }
+    }
+}
+
+@Composable
+internal fun LocalModelChoices(selected: String?, enabled: Boolean, onSelect: (String) -> Unit) {
+    Row(Modifier.fillMaxWidth().padding(horizontal = 24.dp), verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("本地模型", Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
+        listOf("v2", "v3").forEach { version ->
+            val full = "campus-evolve-$version"
+            FilterChip(selected = selected == full, enabled = enabled,
+                onClick = { onSelect(full) }, modifier = Modifier.testTag("local-model-$version"),
+                label = { Text(if (version == "v3") "v3 范围判断" else "v2 基础版") })
         }
     }
 }

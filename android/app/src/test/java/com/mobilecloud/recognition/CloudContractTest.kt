@@ -2,6 +2,9 @@ package com.mobilecloud.recognition
 
 import com.mobilecloud.recognition.inference.CloudModelContract
 import com.mobilecloud.recognition.data.remote.InferResponse
+import com.mobilecloud.recognition.data.remote.CloudScopeDecision
+import com.mobilecloud.recognition.inference.ScopePolicy
+import com.mobilecloud.recognition.inference.ScopeVerdict
 import org.junit.Assert.*
 import org.junit.Test
 
@@ -32,4 +35,24 @@ class CloudContractTest {
         rejected(valid.copy(confidence = .8f))
     }
     @Test fun invalidTimingIsRejected() { rejected(valid.copy(preprocessMs = Double.POSITIVE_INFINITY)); rejected(valid.copy(inferenceMs = -1.0)) }
+
+    @Test fun cloudLearnedRulePreservesCandidateButRequiresConfirmationAndRejectsContradictoryResponse() {
+        val hash = "c".repeat(64)
+        val policy = ScopePolicy("scope-knownness-v1", "experimental", "learned_knownness_v1", contract.version,
+            contract.sha256, "b".repeat(64), "campus-10-v4", "rgb-letterbox-v1", .55f, .20f, .85f, hash)
+        val selected = contract.copy(scopePolicy = policy)
+        val evidence = CloudScopeDecision("uncertain", true, policy.version, hash, .429f)
+        val response = valid.copy(scores = listOf(1f)+List(9){0f}, confidence = 1f, scopeDecision = evidence)
+        val prediction = selected.validate(response, "request-1")
+        assertEquals(ScopeVerdict.UNCERTAIN, prediction.scopeDecision!!.verdict)
+        assertEquals("cup", prediction.label)
+        listOf(evidence.copy(status = "accepted", needsConfirmation = false), evidence.copy(policySha256 = "d".repeat(64))).forEach {
+            try { selected.validate(response.copy(scopeDecision = it), "request-1"); fail("Contradictory scope adopted") }
+            catch (_: IllegalArgumentException) { }
+        }
+    }
+
+    @Test fun legacyCloudWithoutScopeEvidenceAlwaysNeedsConfirmation() {
+        assertEquals(ScopeVerdict.UNAVAILABLE, contract.validate(valid, "request-1").scopeDecision!!.verdict)
+    }
 }
