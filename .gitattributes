@@ -19,5 +19,7 @@ ml/*.lock -text
 shared/categories.json -text
 shared/category-versions/*.json -text
 shared/device-results/*.json -text
+shared/policies/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+android/app/src/main/assets/scope/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 models/releases/** -text
-experiments/reports/** -text
+experiments/reports/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol

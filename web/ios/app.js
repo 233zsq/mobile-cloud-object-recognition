@@ -41,6 +41,9 @@ const state = {
   previewUrl: '',
   previewRecordId: '',
   inferController: null,
+  scopePolicy: null,
+  scopePolicySha256: '',
+  pendingConfirmation: null,
 };
 
 const dom = {};
@@ -247,7 +250,7 @@ async function refreshHealth() {
 }
 
 async function refreshModels() {
-  if (state.busy || state.modelsLoading || !state.token || state.categories.length !== 10) return;
+  if (state.busy || state.pendingConfirmation || state.modelsLoading || !state.token || state.categories.length !== 10) return;
   state.modelsLoading = true;
   dom.cloudModel.disabled = true;
   dom.refreshModels.disabled = true;
@@ -282,8 +285,8 @@ async function refreshModels() {
     dom.cloudModelStatus.textContent = error.message;
   } finally {
     state.modelsLoading = false;
-    dom.cloudModel.disabled = state.busy || !state.cloudModels.length;
-    dom.refreshModels.disabled = state.busy;
+    dom.cloudModel.disabled = state.busy || Boolean(state.pendingConfirmation) || !state.cloudModels.length;
+    dom.refreshModels.disabled = state.busy || Boolean(state.pendingConfirmation);
     renderModelInfo();
   }
 }
@@ -363,7 +366,7 @@ async function inferOnce(blob, signal, contract) {
 }
 
 async function recognize(file) {
-  if (state.busy) return;
+  if (state.busy || state.pendingConfirmation) return;
   state.lastFile = file;
   if (state.categories.length !== 10) {
     setStatus(dom.captureStatus, '模型规格尚未加载，请刷新页面重试。', true);
@@ -409,16 +412,21 @@ async function recognize(file) {
     const totalMs = Date.now() - started;
     const record = recordFromResult(result, totalMs);
     record.captured_at = capturedAt;
-    rememberRecord(record);
+    record.scope_decision = Core.scopeDecision(result, contract, state.scopePolicy);
+    if (record.scope_decision.status !== 'unavailable') record.scope_decision.policy_sha256 = state.scopePolicySha256;
+    if (record.scope_decision.status === 'accepted') rememberRecord(record);
+    else state.pendingConfirmation = record;
     state.ticket = record;
     state.previewRecordId = record.record_id;
     state.lastFile = null;
     renderTicket();
-    setStatus(dom.captureStatus, `识别完成，用时 ${durationText(totalMs)}。${state.storageError ? '本机保存失败，请立即同步或导出。' : ''}`, Boolean(state.storageError));
+    setStatus(dom.captureStatus, state.pendingConfirmation
+      ? '暂不确定：请确认类别，或不保存并重新拍摄。本次结果尚未保存和上报。'
+      : `识别完成，用时 ${durationText(totalMs)}。${state.storageError ? '本机保存失败，请立即同步或导出。' : ''}`, Boolean(state.storageError));
     if (state.view === 'capture' && window.innerWidth < 700) {
       dom.ticket.scrollIntoView({ block: 'start', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
     }
-    syncAll({ silent: true });
+    if (!state.pendingConfirmation) syncAll({ silent: true });
   } catch (error) {
     if (controller.signal.aborted) error = new ApiFailure('CANCELLED', '本次识别已取消，未保存识别记录。', 0);
     setStatus(dom.captureStatus, `${error.message} ${error.code === 'CANCELLED' ? '可重新选择图片或重试。' : '可以点「再试一次」重发这张图片。'}`, error.code !== 'CANCELLED');
@@ -443,6 +451,7 @@ function recordFromResult(result, totalMs) {
     // 仅本机展示与同步状态
     label_key: result.label_key,
     low_confidence: result.low_confidence === true,
+    scores: result.scores.slice(),
     preprocess_ms: result.preprocess_ms,
     inference_ms: result.inference_ms,
     total_ms: totalMs,
@@ -465,6 +474,33 @@ function rememberRecord(record) {
 
 function findRecord(recordId) {
   return state.records.find((record) => record.record_id === recordId) || null;
+}
+
+function confirmPending(categoryId) {
+  const pending = state.pendingConfirmation;
+  if (!pending || state.busy) return;
+  const record = Core.confirmScopedRecord(pending, categoryId, new Date().toISOString());
+  state.pendingConfirmation = null;
+  state.ticket = record;
+  state.lastFile = null;
+  dom.correction.hidden = true;
+  rememberRecord(record);
+  renderTicket();
+  setBusy(false);
+  setStatus(dom.captureStatus, state.storageError || '已人工确认并保存，正在上报记录。', Boolean(state.storageError));
+  syncAll({ silent: true });
+}
+
+function discardPending() {
+  if (!state.pendingConfirmation || state.busy) return;
+  state.pendingConfirmation = null;
+  state.ticket = null;
+  state.lastFile = null;
+  dom.correction.hidden = true;
+  setPreview(null);
+  renderTicket();
+  setBusy(false);
+  setStatus(dom.captureStatus, '本次结果未保存和上报，可以重新拍摄或选择图片。', false);
 }
 
 /* ---------------- 上报与纠错 ---------------- */
@@ -553,15 +589,16 @@ function setStatus(node, message, isError) {
 
 function setBusy(busy, message) {
   state.busy = busy;
-  dom.inputCamera.disabled = busy;
-  dom.inputLibrary.disabled = busy;
-  dom.btnCamera.classList.toggle('busy', busy);
-  dom.btnLibrary.classList.toggle('busy', busy);
+  const blocked = busy || Boolean(state.pendingConfirmation);
+  dom.inputCamera.disabled = blocked;
+  dom.inputLibrary.disabled = blocked;
+  dom.btnCamera.classList.toggle('busy', blocked);
+  dom.btnLibrary.classList.toggle('busy', blocked);
   dom.cancelInfer.hidden = !busy;
   dom.processingSteps.hidden = !busy;
   dom.ticketAgain.disabled = busy;
-  dom.cloudModel.disabled = busy || state.modelsLoading || !state.cloudModels.length;
-  dom.refreshModels.disabled = busy || state.modelsLoading;
+  dom.cloudModel.disabled = blocked || state.modelsLoading || !state.cloudModels.length;
+  dom.refreshModels.disabled = blocked || state.modelsLoading;
   dom.clearStorage.disabled = busy || state.syncing;
   if (message) setStatus(dom.captureStatus, message, false);
 }
@@ -611,13 +648,22 @@ function renderTicket() {
     return;
   }
   dom.ticket.hidden = false;
+  const pending = state.pendingConfirmation === ticket;
+  dom.scopeActions.hidden = !pending;
+  dom.ticketActions.hidden = pending;
   const shownId = ticket.corrected_id !== null && ticket.corrected_id !== undefined
     ? ticket.corrected_id
     : ticket.predicted_id;
-  dom.ticketName.textContent = categoryName(shownId, ticket.label_key);
+  dom.ticketName.textContent = pending ? '暂不确定' : categoryName(shownId, ticket.label_key);
   dom.ticketConfidence.textContent = percent(ticket.confidence);
-  dom.ticketFlag.hidden = !ticket.low_confidence;
-  if (ticket.corrected_id !== null && ticket.corrected_id !== undefined) {
+  dom.ticketFlag.hidden = !pending && !ticket.low_confidence && !ticket.scope_manually_confirmed;
+  dom.ticketFlag.textContent = pending ? ticket.scope_decision.reason
+    : (ticket.scope_manually_confirmed ? '已人工确认；原始分类分数保留。' : '低于模型阈值，需要确认');
+  if (pending) {
+    dom.ticketOriginal.hidden = false;
+    dom.ticketOriginal.textContent = `候选：${categoryName(ticket.predicted_id, ticket.label_key)} · 上方为候选分数`;
+    dom.scopeConfirm.textContent = `确认是${categoryName(ticket.predicted_id, ticket.label_key)}并保存`;
+  } else if (ticket.corrected_id !== null && ticket.corrected_id !== undefined) {
     dom.ticketOriginal.hidden = false;
     dom.ticketOriginal.textContent = `原预测：${categoryName(ticket.predicted_id, ticket.label_key)}（已保留）`;
   } else {
@@ -644,6 +690,11 @@ function renderTicket() {
 function updateTicketSync() {
   const ticket = state.ticket;
   if (!ticket) return;
+  if (state.pendingConfirmation === ticket) {
+    dom.ticketConflictActions.hidden = true;
+    setStatus(dom.ticketSync, '等待人工确认，未生成识别记录。刷新或关闭页面会放弃本次待确认结果。', false);
+    return;
+  }
   const record = findRecord(ticket.record_id) || ticket;
   dom.ticketConflictActions.hidden = !record.correction_conflict;
   if (record.correction_conflict) {
@@ -661,6 +712,8 @@ function updateTicketSync() {
 
 function renderCorrectionGrid(ticket) {
   dom.categoryGrid.textContent = '';
+  const pending = state.pendingConfirmation === ticket;
+  dom.correctionHint.textContent = pending ? '选择实际类别并保存；原预测和分数会保留。' : '选择正确类别；原预测会保留。';
   const current = ticket.corrected_id !== null && ticket.corrected_id !== undefined
     ? ticket.corrected_id
     : ticket.predicted_id;
@@ -668,6 +721,7 @@ function renderCorrectionGrid(ticket) {
     const button = el('button', category.id === current ? 'current' : null, category.display_name);
     button.type = 'button';
     button.addEventListener('click', () => {
+      if (pending) { confirmPending(category.id); return; }
       if (category.id === current) return;
       correctRecord(ticket.record_id, category.id);
     });
@@ -696,13 +750,21 @@ function recordRow(record) {
     badges.appendChild(el('span', 'tag fixed', record.correction_synced && !record.correction_conflict ? '修正已上报' : '修正待上报'));
   }
   if (record.correction_conflict) badges.appendChild(el('span', 'tag pending', '修订冲突'));
-  if (record.low_confidence) badges.appendChild(el('span', 'tag pending', '需要确认'));
+  if (record.low_confidence && !record.scope_manually_confirmed) badges.appendChild(el('span', 'tag pending', '需要确认'));
+  if (record.scope_manually_confirmed) badges.appendChild(el('span', 'tag fixed', '已人工确认'));
   item.appendChild(badges);
 
   const actions = el('div', 'row-actions');
   const correctButton = el('button', 'secondary', record.correction_conflict ? '处理冲突' : '纠正类别');
   correctButton.type = 'button';
   correctButton.addEventListener('click', () => {
+    if (state.pendingConfirmation) {
+      state.ticket = state.pendingConfirmation;
+      showView('capture');
+      renderTicket();
+      setStatus(dom.captureStatus, '请先确认或放弃这张照片，再修改历史记录。', false);
+      return;
+    }
     state.ticket = record;
     showView('capture');
     dom.correction.hidden = false;
@@ -843,6 +905,10 @@ function renderModelInfo() {
     ['模型 SHA-256', contract.model_sha256], ['低置信阈值', percent(contract.low_confidence_threshold)],
     ['输入规格', 'RGB 224 × 224 · 模型内部归一化'],
     ['传输副本', '最长边 2048 · JPEG · 灰底 · 清除 EXIF'],
+    ['基础确认规则', Core.scopePolicyMatches(contract, state.scopePolicy)
+      ? `试验规则：最高分 ≥${percent(state.scopePolicy.confidence_threshold)}，前两名相差 ≥${Math.round(state.scopePolicy.margin_threshold * 100)} 个百分点`
+      : '无匹配规则，识别结果需人工确认'],
+    ['规则 SHA-256', state.scopePolicySha256 || '未加载'],
   ] : [['当前选择', '请在识别页选择云端模型']]);
   dom.connectShortcut.hidden = Boolean(state.token);
   dom.connectionHint.textContent = !state.token ? '首次使用，请先保存组内访问口令。'
@@ -925,6 +991,19 @@ async function loadCategories() {
     || !Array.isArray(contract.labels) || !categories.every((category, index) => category.id === index && category.label_key === contract.labels[index])
     || !/^[a-f0-9]{64}$/.test(contract.model_sha256) || !Number.isFinite(contract.low_confidence_threshold)) throw new Error('模型与类别规格不一致');
   state.categories = categories;
+  // The frozen shared/Android policy uses CRLF; preserve its exact byte hash.
+  // A missing or damaged policy disables automatic saving, not inference.
+  state.scopePolicy = null;
+  state.scopePolicySha256 = '';
+  try {
+    const serialized = (JSON.stringify(contract.scope_policy, null, 2) + '\n').replace(/\n/g, '\r\n');
+    const bytes = new TextEncoder().encode(serialized);
+    const hash = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)), (value) => value.toString(16).padStart(2, '0')).join('');
+    if (contract.scope_policy_newline === 'CRLF' && hash === contract.scope_policy_sha256 && Core.scopePolicyMatches(contract, contract.scope_policy)) {
+      state.scopePolicy = contract.scope_policy;
+      state.scopePolicySha256 = hash;
+    }
+  } catch (error) { /* Keep manual confirmation available without a valid rule. */ }
   state.contract = contract;
   if (!state.modelVersion) state.modelVersion = contract.model_version;
   dom.filterCategory.replaceChildren(new Option('全部类别', ''));
@@ -940,7 +1019,7 @@ async function loadCategories() {
 function bindEvents() {
   dom.refreshModels.addEventListener('click', refreshModels);
   dom.cloudModel.addEventListener('change', () => {
-    if (state.busy || state.modelsLoading) return;
+    if (state.busy || state.pendingConfirmation || state.modelsLoading) return;
     const model = state.cloudModels.find((item) => item.model_version === dom.cloudModel.value && item.available);
     if (!model) return;
     state.contract = model;
@@ -967,6 +1046,9 @@ function bindEvents() {
   dom.ticketCorrect.addEventListener('click', () => {
     dom.correction.hidden = !dom.correction.hidden;
   });
+  dom.scopeConfirm.addEventListener('click', () => confirmPending(state.pendingConfirmation?.predicted_id));
+  dom.scopeChoose.addEventListener('click', () => { dom.correction.hidden = !dom.correction.hidden; });
+  dom.scopeDiscard.addEventListener('click', discardPending);
 
   dom.syncNow.addEventListener('click', () => syncAll({ silent: false }));
   dom.cancelInfer.addEventListener('click', () => state.inferController?.abort());
@@ -993,11 +1075,13 @@ function bindEvents() {
     if (!window.confirm(confirmText)) return;
     state.records = [];
     state.ticket = null;
+    state.pendingConfirmation = null;
     state.lastFile = null;
     setPreview(null);
     saveState();
     renderRecords();
     renderTicket();
+    setBusy(false);
     setStatus(dom.recordsStatus, '本机记录已清空，云端记录不受影响。', false);
   });
 
@@ -1053,6 +1137,7 @@ function bindEvents() {
     dom.cloudModel.disabled = true;
     state.records = [];
     state.ticket = null;
+    state.pendingConfirmation = null;
     state.lastFile = null;
     setPreview(null);
     state.clientId = clientId;
@@ -1061,6 +1146,7 @@ function bindEvents() {
     renderRecords();
     renderTicket();
     renderModelInfo();
+    setBusy(false);
     setStatus(dom.settingsStatus, state.storageError || '本机数据已清除。', Boolean(state.storageError));
   });
 
@@ -1145,6 +1231,8 @@ function cacheDom() {
     connectionMeta: 'connection-meta', modelCategories: 'model-categories', connectionHint: 'connection-hint',
     connectShortcut: 'connect-shortcut',
     cloudModel: 'cloud-model', cloudModelStatus: 'cloud-model-status', refreshModels: 'refresh-models',
+    scopeActions: 'scope-actions', scopeConfirm: 'scope-confirm', scopeChoose: 'scope-choose', scopeDiscard: 'scope-discard',
+    ticketActions: 'ticket-actions', correctionHint: 'correction-hint',
   })) dom[key] = document.getElementById(id);
   dom.settingsPages = Array.from(document.querySelectorAll('[data-settings-page]'));
 }

@@ -1,0 +1,21 @@
+{
+  "policy_version": "scope-basic-v1",
+  "status": "experimental",
+  "rule": "msp_margin_v1",
+  "model_version": "campus-evolve-v2",
+  "model_sha256": "7e2387600303333f714533aac1a0c1e4260425b06154dd7fa4ed920d01bef691",
+  "labels_sha256": "3148fcb53e5859041bf7f6af5acbfb952a9d3fbd52a4fd334525b7d3af6a1064",
+  "category_version": "campus-10-v4",
+  "preprocessing_version": "rgb-letterbox-v1",
+  "confidence_threshold": 0.55,
+  "margin_threshold": 0.2,
+  "calibration": {
+    "data_version": "campus-evolve-data-v2",
+    "manifest_sha256": "54ff3df454d9a7e72965696bdf7bdbcc2bd0ef96232290ce54fe4882cc322e01",
+    "known_samples": 609,
+    "known_coverage": 0.9589490968801314,
+    "unknown_samples": 0,
+    "unknown_rejection_rate": null,
+    "status": "known_validation_only"
+  }
+}

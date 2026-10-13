@@ -198,3 +198,68 @@ test('a response must match the selected alternate model, not just the server de
   assert.equal(core.validateInference({ ...inference(), model_version: alternate.model_version, model_sha256: alternate.model_sha256 },
     { ...expected, contract: alternate }).model_version, alternate.model_version);
 });
+
+test('web policy is byte-identical to the shared and Android policy', () => {
+  const root = path.resolve(__dirname, '../../..');
+  const canonical = (JSON.stringify(contract.scope_policy, null, 2) + '\n').replace(/\n/g, '\r\n');
+  assert.equal(contract.scope_policy_newline, 'CRLF');
+  const shared = fs.readFileSync(path.join(root, 'shared/policies/scope-basic-v1/scope-policy.json'), 'utf8');
+  const android = fs.readFileSync(path.join(root, 'android/app/src/main/assets/scope/scope-policy.json'), 'utf8');
+  assert.equal(canonical, shared);
+  assert.equal(canonical, android);
+  assert.equal(require('node:crypto').createHash('sha256').update(canonical).digest('hex'), contract.scope_policy_sha256);
+  assert.equal(core.scopePolicyMatches(contract, contract.scope_policy), true);
+});
+
+test('basic rule checks both confidence and the float32 top-two margin', () => {
+  const check = (scores) => core.scopeDecision({ ...inference(), scores }, contract, contract.scope_policy).status;
+  assert.equal(check([.56, .44, ...Array(8).fill(0)]), 'uncertain');
+  assert.equal(check([.54, .3, .16, ...Array(7).fill(0)]), 'uncertain');
+  assert.equal(check([.55, .35, .1, ...Array(7).fill(0)]), 'accepted');
+  assert.equal(check([.7, .3, ...Array(8).fill(0)]), 'accepted');
+  // Score gates cannot identify a high-confidence unknown from scores alone.
+  assert.equal(check([.9999, .0001, ...Array(8).fill(0)]), 'accepted');
+  assert.throws(() => check([NaN, ...Array(9).fill(0)]));
+  assert.throws(() => check(Array(10).fill(.2)));
+});
+
+test('missing policy and another model always require manual confirmation', () => {
+  const changes = [{ model_sha256: 'b'.repeat(64) }, { labels_sha256: 'b'.repeat(64) },
+    { category_version: 'different' }, { preprocessing_version: 'different' }, { confidence_threshold: NaN }];
+  for (const change of changes) {
+    assert.equal(core.scopeDecision(inference(), contract, { ...contract.scope_policy, ...change }).status, 'unavailable');
+  }
+  assert.equal(core.scopeDecision(inference(), contract, null).status, 'unavailable');
+  const alternate = { ...contract, model_version: 'campus-gpu-v1', model_sha256: 'b'.repeat(64) };
+  assert.equal(core.scopeDecision({ ...inference(), model_version: alternate.model_version, model_sha256: alternate.model_sha256 },
+    alternate, contract.scope_policy).status, 'unavailable');
+});
+
+test('confirming the candidate keeps the raw prediction and does not invent a correction', () => {
+  const original = record({ scope_decision: { status: 'uncertain' }, confidence: .56, scores: [.56, .44, ...Array(8).fill(0)] });
+  const confirmed = core.confirmScopedRecord(original, 0, new Date().toISOString());
+  assert.equal(confirmed.scope_manually_confirmed, true);
+  assert.equal(confirmed.predicted_id, 0);
+  assert.equal(confirmed.corrected_id, null);
+  assert.equal(confirmed.revision, 0);
+  assert.equal(original.scope_manually_confirmed, undefined);
+  assert.deepEqual(confirmed.scores, original.scores);
+  assert.throws(() => core.confirmScopedRecord(original, 10, new Date().toISOString()));
+});
+
+test('selecting an actual category preserves raw scores and uploads the original then correction', async () => {
+  const original = record({ synced: false, confidence: .56, model_version: contract.model_version, scope_decision: { status: 'uncertain' } });
+  const confirmed = core.confirmScopedRecord(original, 4, new Date().toISOString());
+  const methods = [];
+  await core.syncRecord(confirmed, { uploadPayload: (item) => ({ predicted_id: item.predicted_id }), request: async (_, options) => {
+    methods.push(options.method);
+    if (options.method === 'POST') return response(original);
+    return response(original, options.body);
+  } });
+  assert.deepEqual(methods, ['POST', 'PATCH']);
+  assert.equal(confirmed.predicted_id, 0);
+  assert.equal(confirmed.corrected_id, 4);
+  assert.equal(confirmed.confidence, .56);
+  assert.equal(confirmed.model_version, contract.model_version);
+  assert.equal(confirmed.correction_synced, true);
+});

@@ -26,7 +26,7 @@ data class CloudModelContract(val version: String, val sha256: String, val label
         require(response.lowConfidence == (response.confidence < threshold)) { "云端阈值与选定模型不一致" }
         return Prediction(index, response.confidence, response.labelKey,
             response.preprocessMs.roundToLong(), response.inferenceMs.roundToLong(),
-            (response.preprocessMs + response.inferenceMs).roundToLong(), response.modelVersion)
+            (response.preprocessMs + response.inferenceMs).roundToLong(), response.modelVersion, scores = scores.toList())
     }
 }
 

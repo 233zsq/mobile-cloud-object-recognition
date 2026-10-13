@@ -529,6 +529,7 @@ h2 {
 
 .verdict {
   display:flex;
+  flex-wrap:wrap;
   align-items:baseline;
   justify-content:space-between;
   gap:12px;
@@ -594,6 +595,20 @@ h2 {
   margin-top:16px;
   border-top:1px solid var(--line);
   padding-top:12px
+}
+
+.scope-actions {
+  display:grid;
+  gap:10px;
+  margin:18px 0;
+  padding:16px;
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:var(--paper)
+}
+
+.scope-actions .hint {
+  margin:0 0 4px
 }
 
 .grid {

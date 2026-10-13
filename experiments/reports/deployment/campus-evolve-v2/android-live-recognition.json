@@ -1,0 +1,80 @@
+{
+  "verified_on": "2026-10-13",
+  "feature": "android_local_live_preview",
+  "source_base_commit": "8da29d8f52106de8c7132c918174d411dfa037b7",
+  "source_state": "working_tree",
+  "source_manifest": "source-files.json in local delivery folder",
+  "apk": {
+    "file": "campus-recognition-live-preview-debug.apk",
+    "bytes": 57177828,
+    "sha256": "fca96806ce449a33fe416de08a22ecb9f5b5eba0cf0fa7666d5ce77ad8700e36",
+    "version_name": "0.1.0",
+    "signing": "existing debug key",
+    "local_tflite_count": 1,
+    "model_version": "campus-evolve-v2",
+    "model_sha256": "7e2387600303333f714533aac1a0c1e4260425b06154dd7fa4ed920d01bef691"
+  },
+  "checks": {
+    "assemble_debug": "passed",
+    "assemble_debug_android_test": "passed",
+    "unit_tests": {
+      "passed": 114,
+      "failed": 0,
+      "errors": 0
+    },
+    "mumu": {
+      "resolution": [
+        1220,
+        2656
+      ],
+      "density_dpi": 280,
+      "android_api": 32,
+      "device_checks_passed": 9,
+      "includes_actual_camerax_frames": true,
+      "includes_background_resume_navigation_and_repeated_toggles": true,
+      "preview_record_delta": 0,
+      "preview_photo_delta": 0,
+      "existing_records_and_settings_preserved": true,
+      "credentials_written": false
+    },
+    "standard_emulator": {
+      "resolution": [
+        1080,
+        2400
+      ],
+      "density_dpi": 420,
+      "android_api": 37,
+      "model_crop_rotation_and_lock_checks_passed": 3,
+      "actual_preview_scores_observed": true,
+      "visual_check": "passed; controls and live overlay visible",
+      "ui_automation": "ADB layout and screenshot; Compose UI tests run on MuMu"
+    },
+    "continuous_preview": {
+      "status": "passed",
+      "elapsed_device_uptime_seconds": 388.99,
+      "app_alive_at_end": true,
+      "actual_scores_visible_at_end": true,
+      "total_pss_kib_start_mid_end": [
+        199260,
+        211360,
+        208015
+      ],
+      "note": "Emulator observation with endpoint checks, not a physical-phone battery or memory-leak guarantee."
+    }
+  },
+  "behavior": {
+    "default_enabled": false,
+    "maximum_start_frequency_hz": 2,
+    "stable_frames": 3,
+    "stale_result_ms": 2500,
+    "preview_storage_or_upload": false,
+    "snapshot_reinferred_from_saved_photo": true,
+    "unknown_object_detection": false
+  },
+  "limits": [
+    "Emulator checks do not establish physical-phone accuracy, performance, heat or battery acceptance.",
+    "A stable prediction is temporal agreement, not proof of correctness or membership in the ten known classes.",
+    "Physical-phone timing and longer camera/battery checks remain to be performed."
+  ],
+  "source_manifest_sha256": "d427abfe84b68b3941319d52d685816b9ed9edab0d1fee7a218e09a34f4445d3"
+}

@@ -29,6 +29,7 @@ class ModelBundle private constructor(
     val inputContract: kotlinx.serialization.json.JsonElement?,
     /** 解释器实际线程数，报告 runtime 字段使用 */
     val numThreads: Int,
+    val scopePolicy: ScopePolicyState,
 ) {
     /** 正方形输入边长（如 224），预处理直接使用 */
     val inputSize: Int = inputShape[1]
@@ -114,6 +115,11 @@ class ModelBundle private constructor(
                 normalization = normalization,
                 inputContract = inputContract,
                 numThreads = threadCount,
+                scopePolicy = try {
+                    ScopePolicyState.parse(readAsset(assets, "scope/scope-policy.json"),
+                        readAssetText(assets, "scope/scope-policy.sha256"),
+                        ScopeIdentity(metadata.modelVersion!!, modelSha, labelsSha, metadata.categoryVersion, metadata.input.version))
+                } catch (_: Exception) { ScopePolicyState.unavailable },
             )
         }
 

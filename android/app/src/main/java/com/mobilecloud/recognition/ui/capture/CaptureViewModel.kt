@@ -12,6 +12,11 @@ import com.mobilecloud.recognition.inference.contract
 import com.mobilecloud.recognition.data.remote.CloudModelOption
 import com.mobilecloud.recognition.data.settings.ServerConfig
 import android.os.SystemClock
+import androidx.camera.core.ImageProxy
+import com.mobilecloud.recognition.camera.PreviewFrameBitmap
+import com.mobilecloud.recognition.inference.LiveObservation
+import com.mobilecloud.recognition.inference.LiveRecognitionSession
+import com.mobilecloud.recognition.inference.LiveResultTracker
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CancellationException
@@ -41,7 +46,12 @@ data class CaptureResult(
     val source: InferenceMode = InferenceMode.DEVICE,
     val elapsedMs: Long = prediction.totalMs,
     val correctedDisplayName: String? = null,
+    val manuallyConfirmed: Boolean = false,
 )
+
+data class PhotoConfirmation(val prediction: Prediction, val displayName: String, val elapsedMs: Long,
+    val lowConfidenceThreshold: Float = com.mobilecloud.recognition.inference.ModelBundle.DEFAULT_THRESHOLD,
+    val photoPath: String? = null)
 
 data class CaptureUiState(
     val modelState: ModelState = ModelState.Loading,
@@ -56,13 +66,22 @@ data class CaptureUiState(
     val cloudModelVersion: String? = null,
     val cloudModelsLoading: Boolean = false,
     val cloudModelsError: String? = null,
+    val liveEnabled: Boolean = false,
+    val liveActive: Boolean = false,
+    val liveCameraReady: Boolean = false,
+    val liveObservation: LiveObservation? = null,
+    val liveError: String? = null,
+    val confirmation: PhotoConfirmation? = null,
 )
 
 /**
  * 采集页状态：模型加载、拍照识别、结果展示与人工纠错。
  * 推理在 viewModelScope 后台线程执行，不阻塞相机预览。
  */
-class CaptureViewModel : ViewModel() {
+class CaptureViewModel(
+    private val insertRecord: suspend (RecordEntity) -> Unit = { AppGraph.recordDao.insert(it) },
+    private val requestRecordSync: () -> Unit = { AppGraph.syncScheduler.requestSync() },
+) : ViewModel() {
 
     private val _state = MutableStateFlow(CaptureUiState())
     val state: StateFlow<CaptureUiState> = _state.asStateFlow()
@@ -72,12 +91,15 @@ class CaptureViewModel : ViewModel() {
     private var capturedAt = 0L
     private var modelsJob: Job? = null
     private var catalogConfig: ServerConfig? = null
+    private val liveSession = LiveRecognitionSession()
+    private val liveTracker = LiveResultTracker()
 
     init {
         loadModel()
     }
 
     fun loadModel() {
+        setLivePreviewActive(false)
         _state.update { it.copy(modelState = ModelState.Loading) }
         viewModelScope.launch {
             try {
@@ -90,7 +112,8 @@ class CaptureViewModel : ViewModel() {
 
     /** 拍照保存回调：解码直立图 → 端侧推理 → 写入 Room → 触发上报（F02/F03/F04） */
     fun selectMode(mode: InferenceMode) {
-        if (_state.value.capturing) return
+        if (_state.value.capturing || _state.value.confirmation != null) return
+        if (mode != _state.value.mode) setLivePreviewActive(false)
         _state.update { it.copy(mode = mode) }
         if (mode == InferenceMode.CLOUD) refreshCloudModels()
     }
@@ -128,10 +151,88 @@ class CaptureViewModel : ViewModel() {
         }
     }
 
-    fun onCaptureStarted() { capturedAt = System.currentTimeMillis(); _state.update { it.copy(capturing = true) } }
+    fun onCaptureStarted() {
+        setLivePreviewActive(false)
+        capturedAt = System.currentTimeMillis()
+        _state.update { it.copy(capturing = true) }
+    }
+
+    fun setLiveEnabled(enabled: Boolean) {
+        if (_state.value.capturing || _state.value.mode != InferenceMode.DEVICE) return
+        setLivePreviewActive(false)
+        _state.update { it.copy(liveEnabled = enabled, liveError = null) }
+    }
+
+    fun setLiveCameraReady(ready: Boolean) {
+        if (!ready) setLivePreviewActive(false)
+        _state.update { it.copy(liveCameraReady = ready) }
+    }
+
+    fun onLiveCameraUnavailable() {
+        setLivePreviewActive(false)
+        _state.update { it.copy(liveEnabled = false, liveCameraReady = false,
+            message = "此设备暂不支持实时观察，仍可拍照或选择图片识别。") }
+    }
+
+    /** Main-thread lifecycle changes invalidate results already being computed on the analyzer thread. */
+    fun setLivePreviewActive(requested: Boolean) {
+        val current = _state.value
+        val active = requested && current.liveEnabled && current.liveCameraReady &&
+            current.mode == InferenceMode.DEVICE && current.modelState is ModelState.Ready &&
+            !current.capturing && current.confirmation == null
+        if (liveSession.setActive(active)) {
+            liveTracker.reset()
+            _state.update { it.copy(liveActive = active, liveObservation = null, liveError = null) }
+        }
+    }
+
+    /** Called on CameraX's single analyzer executor. No file, database or network access. */
+    suspend fun analyzePreviewFrame(image: ImageProxy) {
+        var bitmap: android.graphics.Bitmap? = null
+        val ticket = liveSession.begin(SystemClock.elapsedRealtime())
+        try {
+            if (ticket == null || !liveSession.isCurrent(ticket)) return
+            bitmap = PreviewFrameBitmap.upright(image)
+            val prediction = AppGraph.modelRepository.tryClassifyPreview(bitmap)
+            withContext(Dispatchers.Main.immediate) {
+                val now = SystemClock.elapsedRealtime()
+                if (liveSession.finish(ticket, now) && prediction != null) {
+                    val threshold = (_state.value.modelState as? ModelState.Ready)?.info?.lowConfidenceThreshold
+                        ?: return@withContext
+                    val observation = liveTracker.observe(prediction, threshold, now)
+                    _state.update { it.copy(liveObservation = observation, liveError = null) }
+                }
+            }
+        } catch (e: CancellationException) { throw e }
+        catch (e: Exception) {
+            withContext(Dispatchers.Main.immediate) {
+                if (ticket != null && liveSession.finish(ticket, SystemClock.elapsedRealtime())) {
+                    liveTracker.reset()
+                    _state.update { it.copy(liveObservation = null, liveError = "实时观察暂不可用，请关闭后重试。") }
+                }
+            }
+        } finally {
+            if (ticket != null) liveSession.finish(ticket, SystemClock.elapsedRealtime())
+            bitmap?.recycle()
+            image.close()
+        }
+    }
+
+    fun expireLiveObservation() {
+        val observation = _state.value.liveObservation ?: return
+        if (SystemClock.elapsedRealtime() - observation.observedAt > LiveResultTracker.FRESHNESS_MS) {
+            liveTracker.reset()
+            _state.update { it.copy(liveObservation = null) }
+        }
+    }
+
+    override fun onCleared() {
+        liveSession.setActive(false)
+        super.onCleared()
+    }
 
     fun onPhotoSaved(file: File) {
-        if (recognitionJob?.isActive == true) { file.delete(); return }
+        if (recognitionJob?.isActive == true || _state.value.confirmation != null) { file.delete(); return }
         replacePending(file)
         startRecognition()
     }
@@ -140,7 +241,7 @@ class CaptureViewModel : ViewModel() {
         pendingPhoto?.takeIf { it != file }?.delete()
         pendingPhoto = file
         cloudPrepared = false
-        _state.update { it.copy(failedPhoto = false, failure = null) }
+        _state.update { it.copy(failedPhoto = false, failure = null, confirmation = null) }
     }
 
     fun retryPhoto(useLocal: Boolean = false) {
@@ -151,6 +252,7 @@ class CaptureViewModel : ViewModel() {
 
     private fun startRecognition() {
         val file = pendingPhoto ?: return
+        setLivePreviewActive(false)
         val mode = _state.value.mode
         _state.update { it.copy(capturing = true, failedPhoto = false, failure = null) }
         recognitionJob = viewModelScope.launch { recognizeAndRecord(file, mode) }
@@ -162,7 +264,8 @@ class CaptureViewModel : ViewModel() {
      * 使用系统图片选择器，不需要存储权限。
      */
     fun onPhotoImport(uri: android.net.Uri) {
-        if (_state.value.capturing) return
+        if (_state.value.capturing || _state.value.confirmation != null) return
+        setLivePreviewActive(false)
         _state.update { it.copy(capturing = true) }
         capturedAt = System.currentTimeMillis()
         recognitionJob = viewModelScope.launch {
@@ -222,8 +325,31 @@ class CaptureViewModel : ViewModel() {
                 CloudClassifier(AppGraph.apiClient.api).classify(file, contract)
             }
             val elapsed = SystemClock.elapsedRealtime() - started
+            if (mode == InferenceMode.DEVICE && prediction.scopeDecision?.needsConfirmation == true) {
+                _state.update { it.copy(capturing = false, failedPhoto = false, failure = null,
+                    confirmation = PhotoConfirmation(prediction,
+                        AppGraph.categoryCatalog.displayNameForLabel(prediction.label), elapsed, threshold, file.absolutePath)) }
+                return
+            }
+            savePrediction(file, prediction, threshold, mode, elapsed)
+        } catch (e: CancellationException) { throw e }
+        catch (e: Exception) {
+            _state.update { current ->
+                current.copy(
+                    capturing = false,
+                    failedPhoto = true,
+                    failure = "识别失败：${e.message ?: e.javaClass.simpleName}",
+                )
+            }
+        } finally { bitmap?.recycle() }
+    }
+
+    private suspend fun savePrediction(file: File, prediction: Prediction, threshold: Float, mode: InferenceMode,
+        elapsed: Long, confirmedCategory: Int? = null) {
             val clientId = AppGraph.settings.ensureClientId()
             val now = System.currentTimeMillis()
+            val corrected = confirmedCategory?.takeIf { it != prediction.index }
+            val correctedLabel = corrected?.let { id -> AppGraph.categoryCatalog.categories.single { it.id == id }.labelKey }
             val record = RecordEntity(
                 recordId = java.util.UUID.randomUUID().toString(),
                 clientId = clientId,
@@ -235,13 +361,19 @@ class CaptureViewModel : ViewModel() {
                 latencyMs = prediction.totalMs,
                 capturedAt = capturedAt.takeIf { it > 0 } ?: now,
                 photoPath = file.absolutePath,
+                correctedIndex = corrected,
+                correctedLabel = correctedLabel,
+                revision = if (corrected != null) 1 else 0,
+                correctedAt = if (corrected != null) now else null,
+                correctionPending = corrected != null,
                 updatedAt = now,
             )
-            AppGraph.recordDao.insert(record)
+            insertRecord(record)
             pendingPhoto = null
             _state.update { current ->
                 current.copy(
                     capturing = false,
+                    confirmation = null,
                     lastResult = CaptureResult(
                         recordId = record.recordId,
                         prediction = prediction,
@@ -249,22 +381,36 @@ class CaptureViewModel : ViewModel() {
                         lowConfidence = prediction.isLowConfidence(threshold),
                         source = mode,
                         elapsedMs = elapsed,
+                        correctedDisplayName = correctedLabel?.let(AppGraph.categoryCatalog::displayNameForLabel),
+                        manuallyConfirmed = confirmedCategory != null,
                     ),
                 )
             }
-            runCatching { AppGraph.syncScheduler.requestSync() }.onFailure {
+            runCatching { requestRecordSync() }.onFailure {
                 _state.update { it.copy(message = "识别已保存，可到记录页手动同步") }
             }
-        } catch (e: CancellationException) { throw e }
-        catch (e: Exception) {
-            _state.update { current ->
-                current.copy(
-                    capturing = false,
-                    failedPhoto = true,
-                    failure = "识别失败：${e.message ?: e.javaClass.simpleName}",
-                )
-            }
-        } finally { bitmap?.recycle() }
+    }
+
+    fun confirmPhoto(categoryId: Int) {
+        val candidate = _state.value.confirmation ?: return
+        val file = pendingPhoto ?: return
+        if (_state.value.capturing || AppGraph.categoryCatalog.categories.none { it.id == categoryId }) return
+        setLivePreviewActive(false)
+        _state.update { it.copy(capturing = true) }
+        recognitionJob = viewModelScope.launch {
+            try { savePrediction(file, candidate.prediction, candidate.lowConfidenceThreshold,
+                InferenceMode.DEVICE, candidate.elapsedMs, categoryId) }
+            catch (e: CancellationException) { throw e }
+            catch (_: Exception) { _state.update { it.copy(capturing = false, message = "记录保存失败，照片已保留，请重试。") } }
+        }
+    }
+
+    fun discardConfirmation() {
+        if (_state.value.capturing || _state.value.confirmation == null) return
+        pendingPhoto?.delete()
+        pendingPhoto = null
+        cloudPrepared = false
+        _state.update { it.copy(confirmation = null, lastResult = null) }
     }
 
     fun onCaptureError(message: String) {
