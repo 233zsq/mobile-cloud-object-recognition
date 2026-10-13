@@ -2,6 +2,25 @@
 
 负责人：模型训练负责人。采用 TensorFlow/Keras 与 MobileNetV2 迁移学习。
 
+共用清单 I/O 位于 `src/recognition/manifest_io.py`，旧采集兼容逻辑位于 `recognition.legacy_data`。正式划分与独立测试规则继续由 `recognition.data` / `recognition.evolution` 管理，见 [工具说明](../tools/README.md)。自动检查通过 `python scripts/check-project.py --group ml-data`（不加载训练框架）和 `--group ml-integration`（训练环境）分别运行，依赖与 CI 范围见 [测试说明](../tests/README.md)。
+
+## 命令与业务模块
+
+原 `scripts/` 命令继续使用相同参数；实现移入可安全导入的模块，参数解析在 `main()` 中进行。可选依赖在执行时加载，因此检查 `--help` 不会启动采集、加载 GPU 或修改文件。
+
+| 原入口 | 业务实现 |
+| --- | --- |
+| `run-ml-campaign.py` | `recognition.campaign`：阶段调参、复核、导出与验证编排 |
+| `check-local-runtime.py` | `recognition.runtime_check`：独立 CPU 运行时验收 |
+| `make-handover-report.py`、`record-source-commit.py`、`package-ml-delivery.py` | `recognition.handover`、`source_provenance`、`delivery` |
+| `collect-evolution-candidates.py`、`collect-product-candidates.py` | `recognition.collect_increment`、`product_cli` |
+| `prepare-open-set-data.py`、`probe-open-set.py`、`train-open-set.py`、`recheck-open-set-seed.py` | `recognition.scope_data`、`scope_features`、`scope_training`、`scope_recheck` |
+| `package-open-set.py`、`prepare-open-set-handover.py`、`verify-open-set.py`、`probe-scope-policy.py` | `recognition.scope_release`、`scope_handover`、`scope_verification`、`scope_cli` |
+| `make_placeholder_model.py`、`verify-official-model.py` | `recognition.placeholder`、`official_model` |
+| `check_manifest.py`、`split_dataset.py` | `recognition.legacy_data`：保留旧采集规则 |
+
+也可在安装后的环境执行 `python -m recognition.campaign --help` 等模块入口。新的业务源码参与已有的源码快照和提交一致性校验；已冻结实验与模型继续使用它们自己的历史快照，不回写旧身份。范围实验保存的 `source-script.py` 来自实际业务模块，入口转发文件不作为训练实现证据。
+
 已实现可安装的 `recognition` 包及以下训练、采集、审核、评估与交接入口。Windows CPU和WSL2/Ubuntu24.04 GPU工具链已实测；GPU预跑、完整FP32数值检查及小样本链路均通过。实际状态见 `experiments/reports/implementation-status.json`，GPU版本锁为 `requirements-wsl-gpu.lock`、独立运行时锁为 `requirements-wsl-runtime.lock`。
 
 实际配置模板为 `configs/baseline.json`；`configs/pilot-cpu.json` 显式引用首个真实照片试验集。旧的 `baseline.example.json` 保留作原始模板，不作为实际运行配置。
@@ -149,6 +168,13 @@ python -m recognition benchmark --release models/releases/campus-v1 --threads 1
 并分析差异；export另外提供--additional-reproduction指向seed44结果。
 使用新的模型版本保存发布，不覆盖旧包。
 低置信阈值只由验证集决定；模型输出Softmax分数不等于经过校准的正确率。
+
+实验章节使用统一报告入口 `python scripts/write-report.py --profile <类型>`，类型为
+`pilot-cpu`、`expanded-cpu` 或 `gpu`。CPU 类型固定保留历史实验，GPU 类型必须另传
+`--campaign <ID> --version <模型版本>`；可加 `--output <路径>.md` 保存副本。
+原命令 `write-ml-report.py`、`write-expanded-ml-report.py` 和 `write-gpu-ml-report.py` 继续兼容，共用
+`recognition.reports` 的读取与指标渲染逻辑，仅依赖标准库，不运行训练或改变模型选择。
+各类型输入、输出与回归命令见[脚本说明](../scripts/README.md)。
 
 快速完整验证：`python -m recognition smoke --id <unique-id> --epochs 1`。
 该命令生成明确标记的合成fixture，训练、保存、转换、同图验证和CPU测速；

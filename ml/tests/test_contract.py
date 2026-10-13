@@ -1,4 +1,3 @@
-import json
 from pathlib import Path
 import numpy as np
 import pytest
@@ -9,24 +8,8 @@ from recognition.training import threshold
 
 
 @pytest.fixture
-def workspace(tmp_path,monkeypatch):
-    original=common.categories()
-    monkeypatch.setattr(common,"ROOT",tmp_path)
-    monkeypatch.setattr(data,"ROOT",tmp_path)
-    common.write_json(tmp_path/"shared/categories.json",original)
-    rows=[]
-    rng=np.random.default_rng(123)
-    for c in range(10):
-        for i in range(4):
-            path=tmp_path/f"data/raw/c{c}-{i}.png"
-            path.parent.mkdir(parents=True,exist_ok=True)
-            Image.fromarray(rng.integers(0,256,(150,200,3),dtype=np.uint8)).save(path)
-            row={k:"" for k in common.FIELDS}
-            row.update(sample_id=f"c{c}-{i}",image_path=path.relative_to(tmp_path).as_posix(),image_sha256=common.digest(path),category_id=str(c),group_id=f"c{c}-g{i//2}",review_status="approved")
-            rows.append(row)
-    manifest=tmp_path/"data/manifests/samples.csv"
-    common.write_csv(manifest,rows)
-    return tmp_path,manifest,rows
+def workspace(data_workspace):
+    return data_workspace
 
 
 def test_letterbox_preserves_long_subject_and_padding(tmp_path):

@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "label_order_category_version": "campus-10-v1",
+  "categories": {
+    "campus-10-v1": {
+      "file": "shared/category-versions/campus-10-v1.json",
+      "sha256": "88ba78e01d888ee61880c556f44dfd198b0335ca9727fb453ac4bd7fe1c2a988"
+    },
+    "campus-10-v2": {
+      "file": "shared/category-versions/campus-10-v2.json",
+      "sha256": "b008bd5e1224a58430292ebf71d01a9e736de8cef73f5c0e6ebbe62929b44dc9"
+    },
+    "campus-10-v3": {
+      "file": "shared/category-versions/campus-10-v3.json",
+      "sha256": "6bd338424711f4dd41f5c7d726366544549650da3b5fdd2c506f22bcb229d3f4"
+    },
+    "campus-10-v4": {
+      "file": "shared/category-versions/campus-10-v4.json",
+      "sha256": "8ec72dd73036014c597deb9da17273f63cead49ced874cd3e3f7f5f893aaea0b"
+    }
+  },
+  "models": {
+    "campus-gpu-v1": {
+      "metadata_file": "models/releases/campus-gpu-v1/metadata.json",
+      "metadata_sha256": "27fa51999fb9a83ef728b170f29aa106fc2fe3337850654588152c28fd0c5071",
+      "labels_file": "models/releases/campus-gpu-v1/labels.txt",
+      "labels_sha256": "3148fcb53e5859041bf7f6af5acbfb952a9d3fbd52a4fd334525b7d3af6a1064",
+      "policy_version": null
+    },
+    "campus-evolve-v2": {
+      "metadata_file": "models/releases/campus-evolve-v2/metadata.json",
+      "metadata_sha256": "61b6f399706aff25f355b04c954512453bdb37882d10754938a167526fc67866",
+      "labels_file": "models/releases/campus-evolve-v2/labels.txt",
+      "labels_sha256": "3148fcb53e5859041bf7f6af5acbfb952a9d3fbd52a4fd334525b7d3af6a1064",
+      "policy_version": "scope-basic-v1"
+    },
+    "campus-evolve-v3": {
+      "metadata_file": "models/releases/campus-evolve-v3/metadata.json",
+      "metadata_sha256": "a9d7ec19946ba0707e66398c0830c67fa147cf2ad6c0c56cc5b21f78f42ec9b4",
+      "labels_file": "models/releases/campus-evolve-v3/labels.txt",
+      "labels_sha256": "3148fcb53e5859041bf7f6af5acbfb952a9d3fbd52a4fd334525b7d3af6a1064",
+      "policy_version": "scope-knownness-v1"
+    }
+  },
+  "policies": {
+    "scope-basic-v1": {
+      "file": "shared/policies/scope-basic-v1/scope-policy.json",
+      "sha256": "3011b2f0b71a0592d17e598693af6f57b8155a05350afc43d521dc6df98bd842",
+      "checksum_file": "shared/policies/scope-basic-v1/scope-policy.sha256"
+    },
+    "scope-knownness-v1": {
+      "file": "shared/policies/scope-knownness-v1/scope-policy.json",
+      "sha256": "6a4844173ed1b3aede51b02eb6fa1c18ecbcb131eabed8d4cf0adb411c7a90b3",
+      "checksum_file": "shared/policies/scope-knownness-v1/scope-policy.sha256"
+    }
+  },
+  "bindings": {
+    "legacy": {
+      "category_version": "campus-10-v2"
+    },
+    "database": {
+      "category_version": "campus-10-v2"
+    },
+    "android": {
+      "category_version": "campus-10-v4",
+      "policy_version": "scope-basic-v1"
+    },
+    "backend": {
+      "policy_version": "scope-basic-v1"
+    },
+    "web": {
+      "model_version": "campus-evolve-v2",
+      "policy_version": "scope-basic-v1"
+    }
+  }
+}

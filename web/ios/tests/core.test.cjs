@@ -1,8 +1,9 @@
-const { test } = require('node:test');
+const { test, before } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const core = require('../core.js');
+let core;
+before(async () => { core = await import('../core.js'); });
 
 const record = (extra = {}) => ({ record_id: 'record-1', predicted_id: 0, corrected_id: null,
   corrected_at: null, revision: 0, synced: true, correction_synced: true, ...extra });
@@ -201,7 +202,7 @@ test('a response must match the selected alternate model, not just the server de
 
 test('web policy is byte-identical to the shared and Android policy', () => {
   const root = path.resolve(__dirname, '../../..');
-  const canonical = (JSON.stringify(contract.scope_policy, null, 2) + '\n').replace(/\n/g, '\r\n');
+  const canonical = core.scopePolicyText(contract.scope_policy, contract.scope_policy_newline);
   assert.equal(contract.scope_policy_newline, 'CRLF');
   const shared = fs.readFileSync(path.join(root, 'shared/policies/scope-basic-v1/scope-policy.json'), 'utf8');
   const android = fs.readFileSync(path.join(root, 'android/app/src/main/assets/scope/scope-policy.json'), 'utf8');
@@ -209,6 +210,19 @@ test('web policy is byte-identical to the shared and Android policy', () => {
   assert.equal(canonical, android);
   assert.equal(require('node:crypto').createHash('sha256').update(canonical).digest('hex'), contract.scope_policy_sha256);
   assert.equal(core.scopePolicyMatches(contract, contract.scope_policy), true);
+});
+
+test('the v3 policy retains its LF bytes and frozen model identity', () => {
+  const root = path.resolve(__dirname, '../../..');
+  const bytes = fs.readFileSync(path.join(root, 'shared/policies/scope-knownness-v1/scope-policy.json'));
+  const policy = JSON.parse(bytes);
+  const metadata = JSON.parse(fs.readFileSync(path.join(root, 'models/releases/campus-evolve-v3/metadata.json')));
+  assert.equal(core.scopePolicyText(policy, 'LF'), bytes.toString('utf8'));
+  assert.equal(require('node:crypto').createHash('sha256').update(core.scopePolicyText(policy, 'LF')).digest('hex'), metadata.scope_policy_sha256);
+  assert.equal(core.scopePolicyMatches({ model_version: metadata.model_version, model_sha256: metadata.sha256,
+    labels_sha256: metadata.labels_sha256, category_version: metadata.category_version }, policy), true);
+  assert.throws(() => core.scopePolicyText(policy, 'unknown'));
+  assert.throws(() => core.scopePolicyText(null, 'LF'));
 });
 
 test('basic rule checks both confidence and the float32 top-two margin', () => {

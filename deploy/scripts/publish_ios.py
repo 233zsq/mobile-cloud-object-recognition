@@ -9,13 +9,16 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import sys
 import tarfile
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from deploy.ios_assets import FILES  # noqa: E402
 
 WWW = Path('/var/www/mobile-cloud-ios')
 RELEASES = Path('/var/www/mobile-cloud-ios-releases')
 SHARED = Path('/home/gongyi/apps/mobile-cloud-backend/shared')
 LOCK = Path('/var/lib/campus-review-acme/operation.lock')
-FILES = {'index.html', 'app.css', 'app.js', 'core.js', 'categories.json', 'model-contract.json', 'manifest.webmanifest'}
 
 
 def bundle_files(archive, expected):
@@ -42,6 +45,11 @@ def publish(archive, expected):
     release.mkdir(mode=0o755)
     for name, value in content.items():
         target = release / name
+        directory = release
+        for part in Path(name).parts[:-1]:
+            directory /= part
+            directory.mkdir(mode=0o755, exist_ok=True)
+            directory.chmod(0o755)
         target.write_bytes(value)
         target.chmod(0o644)
     if WWW.is_symlink():

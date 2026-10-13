@@ -22,6 +22,14 @@ shared/device-results/*.json -text
 shared/policies/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 android/app/src/main/assets/scope/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 backend/policies/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+
+# Distributed configuration copies are checked against exact source bytes.
+android/app/src/main/assets/categories.json -text
+web/ios/categories.json -text
+web/ios/model-contract.json -text
+database/seeds/categories.*.json -text
 data/ood/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 models/releases/** -text
 experiments/reports/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+tests/fixtures/data-tools/**/*.csv -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+tests/fixtures/data-tools/source.csv -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol

@@ -1,0 +1,23 @@
+[
+  "index.html",
+  "app.css",
+  "app.js",
+  "core.js",
+  "categories.json",
+  "model-contract.json",
+  "manifest.webmanifest",
+  "modules/state.js",
+  "modules/format.js",
+  "modules/storage.js",
+  "modules/api.js",
+  "modules/images.js",
+  "modules/models.js",
+  "modules/records.js",
+  "modules/capture.js",
+  "modules/events.js",
+  "modules/views/page.js",
+  "modules/views/capture.js",
+  "modules/views/records.js",
+  "modules/views/settings.js",
+  "modules/views/dom.js"
+]

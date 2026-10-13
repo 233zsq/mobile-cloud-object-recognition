@@ -1,14 +1,13 @@
-"""Readonly validation probe. Use the independent LiteRT CPU environment."""
-import argparse
-import json
+"""Compatibility CLI; implementation: recognition.scope_cli."""
 from pathlib import Path
-from recognition.scope import probe
+import sys
 
-parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument('--release', required=True, type=Path)
-parser.add_argument('--data-version', required=True)
-parser.add_argument('--output', required=True, type=Path)
-args = parser.parse_args()
-report = probe(args.release, args.data_version, args.output)
-print(json.dumps({'selected': report['selected'], 'policy_sha256': report['policy_sha256'],
-                  'unknown_rejection_rate': None}, ensure_ascii=False))
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "ml/src"))
+
+from recognition.scope_cli import main  # noqa: E402
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

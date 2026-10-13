@@ -93,12 +93,13 @@ def archive(tmp_path, names):
     return target, hashlib.sha256(target.read_bytes()).hexdigest()
 
 
-def test_only_the_seven_public_runtime_files_are_published(tmp_path):
+def test_only_the_declared_public_runtime_files_are_published(tmp_path):
     target, digest = archive(tmp_path, publisher.FILES)
     assert set(publisher.bundle_files(target, digest)) == publisher.FILES
 
 
-@pytest.mark.parametrize('extra', ['../backend.env', 'api tokens.txt', 'tests/core.test.cjs', 'index.html'])
+@pytest.mark.parametrize('extra', ['../backend.env', 'api tokens.txt', 'tests/core.test.cjs', 'index.html',
+                                 'modules/../../backend/.env', 'package.json', 'runtime-files.json'])
 def test_private_extra_traversal_and_duplicate_bundle_members_are_refused(tmp_path, extra):
     target, digest = archive(tmp_path, [*publisher.FILES, extra])
     with pytest.raises(ValueError, match='members'):

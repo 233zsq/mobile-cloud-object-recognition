@@ -1,8 +1,9 @@
+
+from review_support import admin, csrf, join, lease, photo, public_archive, review, upload
 import io
 import json
 import re
 import sqlite3
-import sys
 import zipfile
 import csv
 import hashlib
@@ -11,62 +12,24 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from campus_review import create_app
 
 
-@pytest.fixture
-def app(tmp_path):
-    return create_app({'TESTING': True, 'SECRET_KEY': 'test-' * 10, 'DATA_DIR': str(tmp_path),
-                       'SESSION_COOKIE_SECURE': False})
 
 
-def csrf(client, path='/login'):
-    response = client.get(path)
-    assert response.status_code == 200
-    with client.session_transaction() as state:
-        return state['csrf']
 
 
-def join(client, token, name):
-    return client.post(token, data={'csrf': csrf(client, token), 'username': name, 'password': 'a-strong-test-password'})
 
 
-def admin(app):
-    result = app.test_cli_runner().invoke(args=['bootstrap'])
-    assert result.exit_code == 0, result.output
-    client = app.test_client()
-    assert join(client, result.output.strip(), 'admin').status_code == 302
-    assert client.post('/login', data={'csrf': csrf(client), 'username': 'admin', 'password': 'a-strong-test-password'}).status_code == 302
-    return client
 
 
-def photo(color='orange'):
-    stream = io.BytesIO()
-    Image.new('RGB', (200, 200), color).save(stream, 'JPEG')
-    stream.seek(0)
-    return stream
 
 
-def upload(client, category='0', color='orange'):
-    response = client.post('/upload', data={'csrf': csrf(client, '/upload'), 'image': (photo(color), '../../evil.jpg'),
-                           'object_id': 'cup-01', 'session_id': 'lab-01', 'category': category})
-    assert response.status_code == 302
-    return response.headers['Location']
 
 
-def lease(client, path):
-    return re.search(r'name="lease"[^>]*value="([^"]*)"', client.get(path).text).group(1)
 
 
-def review_body(client, path, revision='1', **changes):
-    return {'csrf': csrf(client, path), 'lease': lease(client, path), 'revision': revision,
-            'category': '0', 'status': 'approved', 'object_id': 'cup-01', 'session_id': 'lab-01',
-            'group_id': 'series-01', 'reason': 'clear cup', **changes}
 
 
-def review(client, path, revision='1'):
-    return client.post(path, data=review_body(client, path, revision))
 
 
 def test_invitation_is_single_use_and_roles_are_enforced(app):
@@ -181,26 +144,6 @@ def test_concurrent_reviewers_cannot_overwrite_each_other(app):
         assert sorted(job.result().status_code for job in jobs)==[302,409]
 
 
-def public_archive(app, path, category_version='campus-10-v2', source='wikimedia_commons'):
-    content = photo().getvalue()
-    row = {'sample_id': 'commons-test', 'image_path': 'images/test.jpg',
-           'image_sha256': hashlib.sha256(content).hexdigest(), 'category_id': '0', 'group_id': 'web-group',
-           'source_dataset': 'wikimedia_commons', 'source_id': 'test', 'source_url': 'https://commons.wikimedia.org/wiki/File:Test.jpg',
-           'original_url': 'https://upload.wikimedia.org/test.jpg', 'license': 'CC BY-SA 4.0', 'author': 'Test author'}
-    if source == 'web_product':
-        row.update(source_dataset=source, source_url='https://detail.1688.com/offer/123.html',
-                   original_url='https://cbu01.alicdn.com/test.jpg', author='',
-                   license='unverified (product photo; permission not established)')
-    stream = io.StringIO(newline=''); writer = csv.DictWriter(stream, fieldnames=list(row))
-    writer.writeheader(); writer.writerow(row); payload = stream.getvalue().encode()
-    from campus_review import ROOT
-    receipt = {'purpose': 'public_review_queue', 'count': 1,
-               'categories_sha256': hashlib.sha256((ROOT.parent / ('shared/categories.json' if category_version=='campus-10-v2' else 'shared/category-versions/'+category_version+'.json')).read_bytes()).hexdigest(),
-               'files': {'samples.csv': hashlib.sha256(payload).hexdigest(), row['image_path']: row['image_sha256']}}
-    with zipfile.ZipFile(path, 'w') as package:
-        package.writestr('queue.json', json.dumps(receipt)); package.writestr('samples.csv', payload)
-        package.writestr(row['image_path'], content)
-    return content
 
 
 @pytest.mark.parametrize('source', ['wikimedia_commons', 'web_product'])

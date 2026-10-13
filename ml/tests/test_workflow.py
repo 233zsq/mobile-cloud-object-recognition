@@ -28,7 +28,8 @@ def test_selector_uses_macro_f1_before_accuracy():
     assert training.rank(b)>training.rank(a)
 
 
-def test_formal_export_refuses_smoke_before_loading_tensorflow(tmp_path):
+@pytest.mark.integration
+def test_formal_export_refuses_smoke_before_loading_model(tmp_path):
     path=tmp_path/"result.json"
     common.write_json(path,{"status":"smoke"})
     with pytest.raises(ValueError,match="Formal package"):
@@ -75,6 +76,7 @@ def test_dropout_and_optimizer_continue_identically_after_checkpoint(tmp_path):
         np.testing.assert_allclose(continuous.numpy(),resumed.numpy(),atol=1e-7,rtol=1e-6)
 
 
+@pytest.mark.integration
 def test_resume_does_not_train_again_after_durable_early_stop(tmp_path,monkeypatch):
     import keras
     monkeypatch.setattr(training,'ROOT',tmp_path)

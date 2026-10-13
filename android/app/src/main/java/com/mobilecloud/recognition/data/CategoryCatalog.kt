@@ -4,7 +4,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * 类别清单：与仓库 shared/categories.json（冻结后）或 categories.example.json（草案）对应。
+ * 类别清单：由 scripts/sync-configs.py 从 shared/category-versions/ 的指定冻结版本分发。
  * 类别 ID 与模型输出索引一致（docs/model-contract.md）；界面中文名称由此提供。
  */
 @Serializable

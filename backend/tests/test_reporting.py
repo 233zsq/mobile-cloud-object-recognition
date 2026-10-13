@@ -1,5 +1,4 @@
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime
 import json
 from threading import Barrier, local
 from uuid import uuid4
@@ -12,7 +11,6 @@ from app.cli import register_model, seed_categories
 from app.config import PROJECT_ROOT
 from app.extensions import db
 from app.models import Category, InferenceRecord
-from test_records import database_app, upload  # Shared isolated SQLite/MySQL fixtures.
 
 
 def correction(revision=1, category=1):
@@ -216,6 +214,11 @@ def test_authentication_and_static_dashboard(app, client):
     assert "test-secret" not in client.get("/").get_data(as_text=True)
     assert "frame-ancestors 'none'" in client.get("/").headers["Content-Security-Policy"]
     assert client.get("/assets/js/dashboard.js").status_code == 200
+    assert 'type="module"' in client.get('/').get_data(as_text=True)
+    for module in ('controller', 'api', 'filters', 'state', 'view'):
+        response = client.get('/assets/js/dashboard/' + module + '.js')
+        assert response.status_code == 200
+        assert response.mimetype in ('text/javascript', 'application/javascript', 'application/x-javascript')
     assert client.get("/assets/css/dashboard.css").status_code == 200
     assert client.get("/assets/../../.env").status_code == 404
     assert client.get("/api/stats", headers={"Authorization": "Bearer TEST-SECRET"}).status_code == 401
