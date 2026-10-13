@@ -30,6 +30,21 @@ def verify_package(root=Path(__file__).resolve().parent):
     labels = (release / 'labels.txt').read_text(encoding='utf-8').splitlines()
     if len(labels) != 10 or labels != [c['label_key'] for c in meta['categories']]:
         raise ValueError('Category order differs from model labels')
+    if meta.get('scope_output') is not None:
+        policy_path = release / 'scope-policy.json'
+        if sha256(policy_path) != meta.get('scope_policy_sha256'):
+            raise ValueError('Scope policy hash differs')
+        policy = json.loads(policy_path.read_text(encoding='utf8'))
+        if (policy.get('model_sha256'), policy.get('model_version'), policy.get('labels_sha256')) != (
+                meta['sha256'], meta['model_version'], meta['labels_sha256']):
+            raise ValueError('Scope policy belongs to another model')
+        approval = json.loads((release / 'approval.json').read_text(encoding='utf8'))
+        comparison = release / 'independent-runtime.json'
+        if (meta.get('approval') != 'approved' or approval.get('status') != 'approved'
+                or approval.get('model_sha256') != meta['sha256']
+                or approval.get('policy_sha256') != meta['scope_policy_sha256']
+                or approval.get('comparison_sha256') != sha256(comparison)):
+            raise ValueError('Human approval must bind model, policy and comparison')
     if meta.get('deployment_approval') == 'pending_human_approval':
         approval = json.loads((release / 'approval.json').read_text(encoding='utf-8'))
         report = root / 'comparison.json'

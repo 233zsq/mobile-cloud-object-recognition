@@ -28,7 +28,8 @@ class RecordMigrationTest {
             db.execSQL("INSERT INTO records (recordId,clientId,modelVersion,predictedIndex,predictedLabel,confidence,latencyMs,capturedAt,revision,correctedIndex,correctedLabel,uploaded,correctionPending,updatedAt) VALUES ('legacy','fixture','campus-gpu-v1',0,'cup',0.9,25,100,2,2,'book',1,1,200)")
             db.version = 1
         }
-        val db = Room.databaseBuilder(context, AppDatabase::class.java, name).addMigrations(AppDatabase.MIGRATION_1_2).build()
+        val db = Room.databaseBuilder(context, AppDatabase::class.java, name)
+            .addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3).build()
         try {
             val record = db.recordDao().observeAll().first().single()
             assertEquals("device", record.inferenceSource)
@@ -37,6 +38,7 @@ class RecordMigrationTest {
             assertEquals(2, record.revision)
             assertTrue(record.uploaded)
             assertTrue(record.correctionPending)
+            assertNull(record.scopeDecisionJson)
             db.recordDao().insert(record.copy(recordId = "cloud-fixture", inferenceSource = "cloud"))
             assertEquals("cloud", db.recordDao().observeAll().first().first { it.recordId == "cloud-fixture" }.inferenceSource)
         } finally { db.close(); context.deleteDatabase(name) }

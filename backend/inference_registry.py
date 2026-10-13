@@ -12,8 +12,8 @@ def load_registry(path):
         raise ValueError('Expected a small absolute model registry')
     data = json.loads(path.read_text(encoding='utf-8'))
     entries = data.get('models')
-    if data.get('schema_version') != 1 or not isinstance(entries, list) or not 1 <= len(entries) <= 2:
-        raise ValueError('Registry supports one or two approved models')
+    if data.get('schema_version') != 1 or not isinstance(entries, list) or not 1 <= len(entries) <= 4:
+        raise ValueError('Registry supports one to four approved models')
     versions = set()
     for model in entries:
         if not isinstance(model, dict):

@@ -1,0 +1,10 @@
+{
+  "status": "approved",
+  "approved_at": "2026-10-13T07:53:43.289273+00:00",
+  "authorization": "Human user explicitly approved v3 publication, retaining v2; then requested local and cloud v2/v3 selection.",
+  "model_version": "campus-evolve-v3",
+  "model_sha256": "4fe5b74300c0c9e384822c9a00b8f256a76776d5f818c64a8d50b6c1e9e72623",
+  "policy_sha256": "6a4844173ed1b3aede51b02eb6fa1c18ecbcb131eabed8d4cf0adb411c7a90b3",
+  "comparison_sha256": "c50ce8a797690c8827152334d8f25ad776b92755affe9e6f40ddfa4d55220c37",
+  "independent_field_acceptance": "pending"
+}

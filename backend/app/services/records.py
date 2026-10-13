@@ -10,7 +10,8 @@ from sqlalchemy.exc import IntegrityError
 
 from ..errors import ApiError
 from ..extensions import db
-from ..models import Category, InferenceRecord, ModelVersion
+from ..models import Category, InferenceRecord, ModelVersion, InferenceDecision
+from .decisions import validate_decision, serialize_decision, check_existing
 
 
 FIELDS = {
@@ -34,12 +35,12 @@ def validate_upload(body):
     if not isinstance(body, dict):
         invalid("请求体必须为JSON对象。")
     missing = FIELDS - body.keys()
-    unknown = body.keys() - FIELDS
+    unknown = body.keys() - FIELDS - {'scope_decision'}
     if missing:
         invalid("缺少字段：" + ", ".join(sorted(missing)))
     if unknown:
         invalid("不支持的字段：" + ", ".join(sorted(unknown)))
-    payload = dict(body)
+    payload = {field: body[field] for field in FIELDS}
     for field in ("record_id", "client_id"):
         value = payload[field]
         if not isinstance(value, str) or not re.fullmatch(UUID_PATTERN, value):
@@ -69,11 +70,13 @@ def validate_upload(body):
     if captured.year < 1000:
         invalid("captured_at超出MySQL DATETIME范围。")
     payload["captured_at"] = utc_text(captured.replace(tzinfo=None))
+    if body.get('scope_decision') is not None:
+        payload['scope_decision'] = validate_decision(body['scope_decision'])
     return payload
 
 
 def fingerprint(payload):
-    data = json.dumps(payload, sort_keys=True, separators=(",", ":"), allow_nan=False)
+    data = json.dumps({field: payload[field] for field in FIELDS}, sort_keys=True, separators=(",", ":"), allow_nan=False)
     return hashlib.sha256(data.encode("utf-8")).hexdigest()
 
 
@@ -81,8 +84,9 @@ def existing_result(record, payload):
     # Check the actual immutable fields as well as their stored digest.
     original = {field: getattr(record, field) for field in FIELDS}
     original["captured_at"] = utc_text(record.captured_at)
-    if original != payload or record.payload_sha256 != fingerprint(payload):
+    if original != {field: payload[field] for field in FIELDS} or record.payload_sha256 != fingerprint(payload):
         raise ApiError("RECORD_CONFLICT", "相同UUID已存在不同内容，原记录未被修改。", 409)
+    check_existing(record.record_id, payload.get('scope_decision'), db.session)
     return record, False
 
 
@@ -98,7 +102,7 @@ def save_record(payload):
     if category is None:
         raise ApiError("UNKNOWN_CATEGORY", "该类别不属于模型的类别版本。", 400)
 
-    values = dict(payload)
+    values = {field: payload[field] for field in FIELDS}
     values["captured_at"] = datetime.fromisoformat(payload["captured_at"].replace("Z", "+00:00")).replace(tzinfo=None)
     record = InferenceRecord(
         **values,
@@ -107,6 +111,9 @@ def save_record(payload):
     )
     db.session.add(record)
     try:
+        db.session.flush()
+        if 'scope_decision' in payload:
+            db.session.add(InferenceDecision(record_id=record.record_id, **payload['scope_decision']))
         db.session.commit()
     except IntegrityError:
         # A competing request may have committed the same UUID after our lookup.
@@ -127,5 +134,6 @@ def serialize_record(record):
         corrected_at=utc_text(record.corrected_at) if record.corrected_at else None,
         revision=record.revision,
         created_at=utc_text(record.created_at),
+        scope_decision=serialize_decision(db.session.get(InferenceDecision, record.record_id)),
     )
     return result

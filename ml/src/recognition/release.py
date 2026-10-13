@@ -191,10 +191,20 @@ def verify(release,external_report=None,*,_annex_recovery=None):
     if len(examples)<20 or any(sum(e["category_id"]==i for e in examples)<2 for i in range(10)):
         raise ValueError("Handover examples need at least two per class and twenty total")
     max_difference=0
+    max_knownness_difference=0
     for example in examples:
         path=release/"examples"/example["tensor"]
         array=np.fromfile(path,dtype="<f4").reshape(224,224,3)
-        scores=runner.predict_tensor(array)
+        outputs=runner.predict_outputs(array) if runner.metadata.get('scope_output') else {'scores':runner.predict_tensor(array)}
+        scores=outputs['scores']
+        if runner.metadata.get('scope_output'):
+            expected=example.get('knownness')
+            if type(expected) not in (int,float) or not np.isfinite(expected) or not 0<=expected<=1:
+                raise ValueError('Golden knownness is missing or invalid')
+            scope_diff=abs(outputs['knownness']-expected)
+            max_knownness_difference=max(max_knownness_difference,scope_diff)
+            if scope_diff>.001:
+                raise ValueError('Golden scope prediction mismatch')
         diff=float(np.max(np.abs(scores-example["scores"])))
         max_difference=max(max_difference,diff)
         if scores.argmax()!=example["predicted_id"] or diff>.001:
@@ -202,6 +212,8 @@ def verify(release,external_report=None,*,_annex_recovery=None):
         if not np.array_equal(preprocess(release/"examples"/example["image"]),array):
             raise ValueError("Golden image preprocessing differs")
     result={"passed":True,"example_count":len(examples),"max_score_difference":max_difference,"runtime":"ai-edge-litert", "model_status":runner.metadata["status"]}
+    if runner.metadata.get('scope_output'):
+        result['max_knownness_difference']=max_knownness_difference
     if external_report:result['external']=compare_external(release,external_report)
     return result
 

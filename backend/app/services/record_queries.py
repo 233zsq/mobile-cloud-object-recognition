@@ -9,7 +9,7 @@ from sqlalchemy import case, func, select, update
 
 from ..errors import ApiError
 from ..extensions import db
-from ..models import Category, InferenceRecord as Record, ModelVersion
+from ..models import Category, InferenceRecord as Record, ModelVersion, InferenceDecision
 from .records import TIME_PATTERN, UUID_PATTERN, VERSION_PATTERN, serialize_record, utc_text
 
 
@@ -76,7 +76,7 @@ def correct_label(record_id, body):
 
 
 FILTERS = {"start", "end", "model_version", "category_version", "category_id",
-           "category_basis", "client_id", "inference_source"}
+           "category_basis", "client_id", "inference_source", "recognition_status"}
 
 
 def unique_args(args, allowed):
@@ -129,6 +129,14 @@ def parse_filters(args, *, pagination=False):
             invalid("inference_source必须为device或cloud。")
         normalized["inference_source"] = values["inference_source"]
         conditions.append(Record.inference_source == values["inference_source"])
+    if 'recognition_status' in values:
+        status = values['recognition_status']
+        if status not in ('accepted', 'uncertain', 'unavailable', 'unreported'):
+            invalid('识别状态无效。')
+        normalized['recognition_status'] = status
+        query = select(InferenceDecision.record_id)
+        conditions.append(~Record.record_id.in_(query) if status == 'unreported' else
+                          Record.record_id.in_(query.where(InferenceDecision.status == status)))
     page = integer(values.get("page", "0"), "page", 0, 1_000_000) if pagination else 0
     size = integer(values.get("page_size", "20"), "page_size", 1, 100) if pagination else 20
     return conditions, normalized, page, size
@@ -175,8 +183,13 @@ def statistics(args):
         select(day, func.count()).where(*conditions).group_by(day).order_by(day))]
     models = [{"model_version": version, "count": count} for version, count in db.session.execute(
         select(Record.model_version, func.count()).where(*conditions).group_by(Record.model_version).order_by(Record.model_version))]
+    scope_counts = {status or 'unreported': count for status, count in db.session.execute(
+        select(InferenceDecision.status, func.count(Record.record_id)).select_from(Record)
+        .outerjoin(InferenceDecision, Record.record_id == InferenceDecision.record_id)
+        .where(*conditions).group_by(InferenceDecision.status))}
     return {"total_count": row[0], "corrected_count": int(row[1] or 0), "low_confidence_count": int(row[2] or 0),
             "device_count": int(row[3] or 0), "cloud_count": int(row[4] or 0),
+            "uncertain_count": scope_counts.get('uncertain', 0), "recognition_status_counts": scope_counts,
             "latency_ms": {"average": float(row[5]) if row[5] is not None else None, "min": row[6], "max": row[7]},
             "categories": categories, "daily_counts": daily, "models": models, "filters": filters,
             "generated_at": utc_text(datetime.now(timezone.utc)), "timezone": "UTC"}

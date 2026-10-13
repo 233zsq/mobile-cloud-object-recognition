@@ -51,6 +51,7 @@ class ConsistencyCheck(private val context: Context) {
     suspend fun run(bundle: ModelBundle, onProgress: (String) -> Unit): Summary =
         withContext(Dispatchers.Default) {
             val assets = context.assets
+            val EXAMPLES_DIR = "${bundle.assetDirectory}/examples"
             val contract = bundle.inputContract
                 ?: throw IllegalStateException("metadata 缺少 input 段，无法生成一致性报告")
             if (bundle.inputSize != 224) {

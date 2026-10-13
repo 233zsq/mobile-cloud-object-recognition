@@ -48,4 +48,15 @@ class ScopePolicyTest {
         val tracker = LiveResultTracker()
         repeat(5) { assertFalse(tracker.observe(prediction,.5f,it*500L).stable) }
     }
+
+    @Test fun learnedRuleCanRejectOneHundredPercentClassScoreAndFailsClosedWithoutKnownness() {
+        val learned = text.replace("scope-basic-v1", "scope-knownness-v1").replace("msp_margin_v1", "learned_knownness_v1")
+            .replace("\"margin_threshold\":0.2", "\"margin_threshold\":0.2,\"knownness_threshold\":0.85")
+        val state = parse(learned)
+        val scores = List(10) { if (it == 8) 1f else 0f }
+        assertEquals(ScopeVerdict.UNCERTAIN, state.evaluate(scores, .429f).verdict)
+        assertEquals(ScopeVerdict.ACCEPTED, state.evaluate(scores, .85f).verdict)
+        assertEquals(ScopeVerdict.UNAVAILABLE, state.evaluate(scores).verdict)
+        assertEquals(ScopeVerdict.UNAVAILABLE, state.evaluate(scores, Float.NaN).verdict)
+    }
 }

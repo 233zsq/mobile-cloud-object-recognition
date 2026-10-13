@@ -1,0 +1,173 @@
+{
+  "seed": 43,
+  "selected_architecture": "mlp64",
+  "classification_weights_frozen": true,
+  "feature_cache_sha256": "192901c02e0fba8bacdd2a162ed39a52e2d919a7d037346f412d217d6a2f40a8",
+  "main_selection_sha256": "227f8d1f5a2c6aba1fe5b68ce7bc74eb7b5f28d0b4625c5298b5b67e34011a2b",
+  "unknown_holdout_read": false,
+  "project_test_images_read": false,
+  "calibration": {
+    "threshold": 0.5,
+    "known_count": 609,
+    "known_accepted": 569,
+    "known_coverage": 0.9343185550082101,
+    "known_false_rejection_rate": 0.06568144499178982,
+    "raw_known_accuracy": 0.9146141215106732,
+    "accepted_known_accuracy": 0.9332161687170475,
+    "correct_and_accepted_over_all_known": 0.8719211822660099,
+    "unknown_count": 200,
+    "unknown_rejected": 199,
+    "unknown_rejection_rate": 0.995,
+    "unknown_false_acceptance_rate": 0.005,
+    "per_known_class": {
+      "0": {
+        "total": 58,
+        "accepted": 56,
+        "coverage": 0.9655172413793104
+      },
+      "1": {
+        "total": 38,
+        "accepted": 37,
+        "coverage": 0.9736842105263158
+      },
+      "2": {
+        "total": 66,
+        "accepted": 60,
+        "coverage": 0.9090909090909091
+      },
+      "3": {
+        "total": 41,
+        "accepted": 41,
+        "coverage": 1.0
+      },
+      "4": {
+        "total": 66,
+        "accepted": 60,
+        "coverage": 0.9090909090909091
+      },
+      "5": {
+        "total": 67,
+        "accepted": 67,
+        "coverage": 1.0
+      },
+      "6": {
+        "total": 86,
+        "accepted": 77,
+        "coverage": 0.8953488372093024
+      },
+      "7": {
+        "total": 60,
+        "accepted": 54,
+        "coverage": 0.9
+      },
+      "8": {
+        "total": 54,
+        "accepted": 50,
+        "coverage": 0.9259259259259259
+      },
+      "9": {
+        "total": 73,
+        "accepted": 67,
+        "coverage": 0.9178082191780822
+      }
+    }
+  },
+  "main_calibration": {
+    "threshold": 0.8500000238418579,
+    "known_count": 609,
+    "known_accepted": 556,
+    "known_coverage": 0.9129720853858785,
+    "known_false_rejection_rate": 0.08702791461412152,
+    "raw_known_accuracy": 0.9146141215106732,
+    "accepted_known_accuracy": 0.9316546762589928,
+    "correct_and_accepted_over_all_known": 0.8505747126436781,
+    "unknown_count": 200,
+    "unknown_rejected": 199,
+    "unknown_rejection_rate": 0.995,
+    "unknown_false_acceptance_rate": 0.005,
+    "per_known_class": {
+      "0": {
+        "total": 58,
+        "accepted": 55,
+        "coverage": 0.9482758620689655
+      },
+      "1": {
+        "total": 38,
+        "accepted": 33,
+        "coverage": 0.868421052631579
+      },
+      "2": {
+        "total": 66,
+        "accepted": 59,
+        "coverage": 0.8939393939393939
+      },
+      "3": {
+        "total": 41,
+        "accepted": 41,
+        "coverage": 1.0
+      },
+      "4": {
+        "total": 66,
+        "accepted": 60,
+        "coverage": 0.9090909090909091
+      },
+      "5": {
+        "total": 67,
+        "accepted": 66,
+        "coverage": 0.9850746268656716
+      },
+      "6": {
+        "total": 86,
+        "accepted": 76,
+        "coverage": 0.8837209302325582
+      },
+      "7": {
+        "total": 60,
+        "accepted": 54,
+        "coverage": 0.9
+      },
+      "8": {
+        "total": 54,
+        "accepted": 45,
+        "coverage": 0.8333333333333334
+      },
+      "9": {
+        "total": 73,
+        "accepted": 67,
+        "coverage": 0.9178082191780822
+      }
+    }
+  },
+  "history": {
+    "loss": [
+      0.33915385603904724,
+      0.11036374419927597,
+      0.07132186740636826,
+      0.048116330057382584,
+      0.035622771829366684,
+      0.03087518736720085,
+      0.02580656111240387,
+      0.023822929710149765,
+      0.021893033757805824,
+      0.020573817193508148,
+      0.02006017416715622
+    ],
+    "val_loss": [
+      0.16526639461517334,
+      0.11535938084125519,
+      0.10067626088857651,
+      0.09704945236444473,
+      0.08500846475362778,
+      0.08593583852052689,
+      0.07749247550964355,
+      0.07664220780134201,
+      0.07916317880153656,
+      0.0903739407658577,
+      0.07785971462726593
+    ]
+  },
+  "limitations": [
+    "Frozen backbone features reused; only scope head initialization and training repeated.",
+    "This is a development stability check, not a second independent acceptance test."
+  ]
+}

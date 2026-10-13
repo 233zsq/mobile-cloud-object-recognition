@@ -1,0 +1,20 @@
+{
+  "policy_version": "scope-knownness-v1",
+  "status": "experimental",
+  "rule": "learned_knownness_v1",
+  "model_version": "campus-evolve-v3",
+  "model_sha256": "4fe5b74300c0c9e384822c9a00b8f256a76776d5f818c64a8d50b6c1e9e72623",
+  "labels_sha256": "3148fcb53e5859041bf7f6af5acbfb952a9d3fbd52a4fd334525b7d3af6a1064",
+  "category_version": "campus-10-v4",
+  "preprocessing_version": "rgb-letterbox-v1",
+  "confidence_threshold": 0.55,
+  "margin_threshold": 0.2,
+  "knownness_threshold": 0.8500000238418579,
+  "calibration": {
+    "known_data_version": "campus-evolve-data-v2",
+    "known_validation_sha256": "54ff3df454d9a7e72965696bdf7bdbcc2bd0ef96232290ce54fe4882cc322e01",
+    "auxiliary_data_version": "scope-aux-caltech101-v2",
+    "auxiliary_manifest_sha256": "4230eda9aa5e09ab84294ea9a3f5e45b2e5ee5867858311909e7b4684df370a4",
+    "selection_sha256": "227f8d1f5a2c6aba1fe5b68ce7bc74eb7b5f28d0b4625c5298b5b67e34011a2b"
+  }
+}

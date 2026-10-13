@@ -30,8 +30,15 @@ data class ModelMetadata(
     @SerialName("low_confidence_threshold") val lowConfidenceThreshold: Float? = null,
     val input: InputSpec = InputSpec(),
     val output: OutputSpec = OutputSpec(),
+    @SerialName("score_output_index") val scoreOutputIndex: Int = 0,
+    @SerialName("scope_output") val scopeOutput: ScopeOutputSpec? = null,
+    @SerialName("scope_policy_file") val scopePolicyFile: String? = null,
+    @SerialName("scope_policy_sha256") val scopePolicySha256: String? = null,
     @SerialName("created_at") val createdAt: String? = null,
 ) {
+    @Serializable
+    data class ScopeOutputSpec(val index: Int, val shape: List<Int>, val dtype: String, val interpretation: String)
+
     @Serializable
     data class InputSpec(
         val version: String? = null,

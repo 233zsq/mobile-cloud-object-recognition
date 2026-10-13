@@ -10,6 +10,9 @@ import com.mobilecloud.recognition.inference.CloudClassifier
 import com.mobilecloud.recognition.inference.validated
 import com.mobilecloud.recognition.inference.contract
 import com.mobilecloud.recognition.data.remote.CloudModelOption
+import com.mobilecloud.recognition.data.remote.ScopeUploadEvidence
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import com.mobilecloud.recognition.data.settings.ServerConfig
 import android.os.SystemClock
 import androidx.camera.core.ImageProxy
@@ -51,7 +54,7 @@ data class CaptureResult(
 
 data class PhotoConfirmation(val prediction: Prediction, val displayName: String, val elapsedMs: Long,
     val lowConfidenceThreshold: Float = com.mobilecloud.recognition.inference.ModelBundle.DEFAULT_THRESHOLD,
-    val photoPath: String? = null)
+    val photoPath: String? = null, val source: InferenceMode = InferenceMode.DEVICE)
 
 data class CaptureUiState(
     val modelState: ModelState = ModelState.Loading,
@@ -118,8 +121,22 @@ class CaptureViewModel(
         if (mode == InferenceMode.CLOUD) refreshCloudModels()
     }
 
+    fun selectLocalModel(version: String) {
+        val previous = _state.value
+        if (previous.capturing || previous.confirmation != null || previous.modelState is ModelState.Loading) return
+        setLivePreviewActive(false)
+        _state.update { it.copy(modelState = ModelState.Loading) }
+        viewModelScope.launch {
+            try {
+                val info = AppGraph.modelRepository.selectVersion(version)
+                _state.update { it.copy(modelState = ModelState.Ready(info), liveObservation = null) }
+            } catch (e: CancellationException) { throw e }
+            catch (e: Exception) { _state.update { it.copy(modelState = previous.modelState, message = "模型切换失败，保留原版本：${e.message}") } }
+        }
+    }
+
     fun refreshCloudModels() {
-        if (_state.value.capturing || modelsJob?.isActive == true) return
+        if (_state.value.capturing || _state.value.confirmation != null || modelsJob?.isActive == true) return
         _state.update { it.copy(cloudModelsLoading = true, cloudModelsError = null) }
         modelsJob = viewModelScope.launch {
             try {
@@ -142,7 +159,7 @@ class CaptureViewModel(
     }
 
     fun selectCloudModel(version: String) {
-        if (_state.value.capturing || _state.value.cloudModels.none { it.version == version && it.available }) return
+        if (_state.value.capturing || _state.value.confirmation != null || _state.value.cloudModels.none { it.version == version && it.available }) return
         _state.update { it.copy(cloudModelVersion = version, cloudModelsError = null) }
         viewModelScope.launch {
             try { AppGraph.settings.setCloudModelVersion(version) }
@@ -325,10 +342,10 @@ class CaptureViewModel(
                 CloudClassifier(AppGraph.apiClient.api).classify(file, contract)
             }
             val elapsed = SystemClock.elapsedRealtime() - started
-            if (mode == InferenceMode.DEVICE && prediction.scopeDecision?.needsConfirmation == true) {
+            if (prediction.scopeDecision?.needsConfirmation == true) {
                 _state.update { it.copy(capturing = false, failedPhoto = false, failure = null,
                     confirmation = PhotoConfirmation(prediction,
-                        AppGraph.categoryCatalog.displayNameForLabel(prediction.label), elapsed, threshold, file.absolutePath)) }
+                        AppGraph.categoryCatalog.displayNameForLabel(prediction.label), elapsed, threshold, file.absolutePath, mode)) }
                 return
             }
             savePrediction(file, prediction, threshold, mode, elapsed)
@@ -361,6 +378,9 @@ class CaptureViewModel(
                 latencyMs = prediction.totalMs,
                 capturedAt = capturedAt.takeIf { it > 0 } ?: now,
                 photoPath = file.absolutePath,
+                scopeDecisionJson = prediction.scopeDecision?.let { decision -> Json.encodeToString(ScopeUploadEvidence(
+                    status = decision.verdict.name.lowercase(java.util.Locale.ROOT), policyVersion = decision.policyVersion,
+                    policySha256 = decision.policySha256, knownness = decision.knownness, manualConfirmed = confirmedCategory != null)) },
                 correctedIndex = corrected,
                 correctedLabel = correctedLabel,
                 revision = if (corrected != null) 1 else 0,
@@ -399,7 +419,7 @@ class CaptureViewModel(
         _state.update { it.copy(capturing = true) }
         recognitionJob = viewModelScope.launch {
             try { savePrediction(file, candidate.prediction, candidate.lowConfidenceThreshold,
-                InferenceMode.DEVICE, candidate.elapsedMs, categoryId) }
+                candidate.source, candidate.elapsedMs, categoryId) }
             catch (e: CancellationException) { throw e }
             catch (_: Exception) { _state.update { it.copy(capturing = false, message = "记录保存失败，照片已保留，请重试。") } }
         }

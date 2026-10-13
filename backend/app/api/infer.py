@@ -10,6 +10,7 @@ from . import api
 from ..errors import ApiError
 from ..inference.client import MESSAGES, selected_client
 from ..services.records import UUID_PATTERN
+from ..inference.scope import decide, response_contract, policy_for_contract
 
 
 @api.post("/infer")
@@ -34,6 +35,12 @@ def infer():
         raise ApiError("IMAGE_TOO_LARGE", MESSAGES["IMAGE_TOO_LARGE"], 413)
     result = client.predict(image)
     response = dict(result, request_id=str(UUID(request_id)))
+    contract = response_contract(result, current_app.extensions['inference_contracts'])
+    try:
+        response['scope_decision'] = decide(result, contract)
+    except ValueError as error:
+        raise ApiError('MODEL_UNAVAILABLE', MESSAGES['MODEL_UNAVAILABLE'], 503) from error
+    response['recognition_status'] = response['scope_decision']['status']
     response["server_ms"] = (time.perf_counter() - started) * 1000
     return response
 
@@ -49,5 +56,5 @@ def models():
             available = True
         except ApiError:
             pass
-        result.append(dict(contract, available=available))
+        result.append(dict(contract, available=available, scope_policy=policy_for_contract(contract)))
     return {'default_model_version': current_app.config['INFERENCE_MODEL_VERSION'], 'models': result}

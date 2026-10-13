@@ -166,7 +166,7 @@ private fun ModelSettings(state: SettingsUiState, viewModel: SettingsViewModel) 
         Detail("低置信提醒阈值", "${(info.lowConfidenceThreshold * 100).toInt()}%")
         Text("低于阈值仍显示预测，请核对并按需修正。", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(16.dp))
-        Detail("范围提示", if (info.scopePolicyVersion != null) "试验版 · 仅本地" else "规则不可用，需人工确认")
+        Detail("本地范围判断", if (info.scopePolicyVersion != null) "已启用 · 不确定时人工确认" else "规则不可用，需人工确认")
         Text("分数低或候选接近时先确认，再保存记录。它不能保证识别出所有范围外物品。",
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(24.dp))
@@ -177,6 +177,7 @@ private fun ModelSettings(state: SettingsUiState, viewModel: SettingsViewModel) 
         Detail("归一化", info.normalization)
         info.scopePolicyVersion?.let { Detail("确认规则版本", it) }
         info.scopePolicySha256?.let { Detail("规则校验摘要", it.take(8)) }
+        info.scopeKnownnessThreshold?.let { Detail("范围分数阈值", "${(it * 100).toInt()}% · 与分类分数分别判断") }
     } ?: ResultNote(state.modelError ?: "正在加载模型信息…", state.modelError != null)
     Spacer(Modifier.height(22.dp))
     OutlinedButton(onClick = viewModel::reloadModel, modifier = Modifier.fillMaxWidth()) { Text("重新校验本地模型") }

@@ -51,6 +51,7 @@
 
   function render(stats, records, health) {
     text("total", number(stats.total_count)); text("corrected", number(stats.corrected_count)); text("low", number(stats.low_confidence_count));
+    text("uncertain", stats.uncertain_count === undefined ? '尚未支持' : number(stats.uncertain_count));
     text("sources", `手机 ${number(stats.device_count)} / 云端 ${number(stats.cloud_count)}`);
     text("latency", stats.latency_ms.average === null ? "—" : `${number(stats.latency_ms.average)} ms`);
     text("latency-range", stats.latency_ms.min === null ? "预处理＋推理，不含网络" : `最小 ${number(stats.latency_ms.min)} / 最大 ${number(stats.latency_ms.max)} ms`);
@@ -66,6 +67,9 @@
       if (record.corrected_id !== null) correction.append(node("small", `修订 ${record.revision}`));
       tr.append(correction, node("td", `${number(record.confidence * 100)}%`), node("td", `${number(record.latency_ms)} ms`));
       const source = node("td", record.inference_source === "device" ? "手机离线" : "云端识别");
+      const scope = record.scope_decision;
+      const states = {accepted: '规则通过', uncertain: '不确定', unavailable: '规则未就绪'};
+      source.append(node('small', scope ? `${states[scope.status] || '未标记'}${scope.manual_confirmed ? ' · 已人工确认' : ''}` : '旧记录未标记'));
       source.append(node("small", record.model_version)); tr.append(source);
       const uuid = node("td", record.record_id, "record-id"); uuid.title = record.record_id; tr.append(uuid); tbody.append(tr);
     }
@@ -106,6 +110,7 @@
     if (query.has("start") && query.has("end") && query.get("start") >= query.get("end")) throw new Error("开始时间必须早于结束时间");
     if (el("model").value) query.set("model_version", el("model").value);
     if (el("source").value) query.set("inference_source", el("source").value);
+    if (el("recognition-status").value) query.set("recognition_status", el("recognition-status").value);
     if (el("category").value) { const [version, id] = el("category").value.split(":"); query.set("category_version", version); query.set("category_id", id); }
     query.set("category_basis", el("basis").value);
     return query;
@@ -134,7 +139,7 @@
     state.generation++; state.token = ""; state.connected = false; clearTimeout(state.timer);
     el("connection").hidden = false; el("disconnect").hidden = true;
     for (const id of ["refresh", "apply", "reset", "previous", "next"]) el(id).disabled = true;
-    for (const id of ["total", "corrected", "low", "latency", "page-info"]) text(id, "—");
+    for (const id of ["total", "corrected", "low", "uncertain", "latency", "page-info"]) text(id, "—");
     text("sources", "手机 — / 云端 —"); text("latency-range", "预处理＋推理，不含网络");
     bars("category-chart", []); bars("daily-chart", []); el("record-rows").replaceChildren();
     text("health", "已断开"); status("已断开连接，口令已清除");
@@ -142,7 +147,7 @@
   el("model").addEventListener("change", populateCategories);
   el("apply").addEventListener("click", apply);
   el("reset").addEventListener("click", () => {
-    for (const id of ["start", "end", "model", "source"]) el(id).value = "";
+    for (const id of ["start", "end", "model", "source", "recognition-status"]) el(id).value = "";
     el("basis").value = "predicted"; populateCategories(); apply();
   });
   el("refresh").addEventListener("click", refresh);

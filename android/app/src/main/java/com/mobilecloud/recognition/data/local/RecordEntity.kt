@@ -24,6 +24,7 @@ data class RecordEntity(
     /** 采集时间（epoch 毫秒） */
     val capturedAt: Long,
     val photoPath: String? = null,
+    @ColumnInfo(defaultValue = "NULL") val scopeDecisionJson: String? = null,
     /** 人工纠错的类别 ID，null 表示未纠错 */
     val correctedIndex: Int? = null,
     val correctedLabel: String? = null,

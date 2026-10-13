@@ -17,6 +17,36 @@ class ModelRepository(private val context: Context) {
 
     private val mutex = Mutex()
     private var bundle: ModelBundle? = null
+    private val preferences = context.getSharedPreferences("local-model-selection", Context.MODE_PRIVATE)
+    val versions = listOf("campus-evolve-v3", "campus-evolve-v2")
+
+    private fun loadSelected(): ModelBundle {
+        val version = preferences.getString("version", null)?.takeIf { it in versions } ?: versions.first()
+        return loadVersion(version)
+    }
+
+    private fun loadVersion(version: String): ModelBundle {
+        require(version in versions) { "未知本地模型" }
+        val loaded = ModelBundle.load(context.assets, if (version == "campus-evolve-v2") "models/campus-evolve-v2" else "models")
+        if (loaded.modelVersion != version || loaded.scopePolicy.policy == null) {
+            loaded.close()
+            error("本地模型或范围规则不匹配")
+        }
+        return loaded
+    }
+
+    suspend fun selectVersion(version: String): ModelInfo = withContext(Dispatchers.Default) {
+        mutex.withLock {
+            val next = loadVersion(version)
+            if (!preferences.edit().putString("version", version).commit()) {
+                next.close()
+                error("无法保存本地模型选择")
+            }
+            bundle?.close()
+            bundle = next
+            next.toInfo()
+        }
+    }
 
     data class ModelInfo(
         val modelVersion: String,
@@ -28,13 +58,14 @@ class ModelRepository(private val context: Context) {
         val normalization: String,
         val scopePolicyVersion: String? = null,
         val scopePolicySha256: String? = null,
+        val scopeKnownnessThreshold: Float? = null,
         val scopeConfidenceThreshold: Float? = null,
         val scopeMarginThreshold: Float? = null,
     )
 
     suspend fun info(): ModelInfo = withContext(Dispatchers.Default) {
         mutex.withLock {
-            val target = bundle ?: ModelBundle.load(context.assets).also { bundle = it }
+            val target = bundle ?: loadSelected().also { bundle = it }
             target.toInfo()
         }
     }
@@ -47,7 +78,7 @@ class ModelRepository(private val context: Context) {
      */
     suspend fun classify(bitmap: Bitmap): Prediction = withContext(Dispatchers.Default) {
         mutex.withLock {
-            val target = bundle ?: ModelBundle.load(context.assets).also { bundle = it }
+            val target = bundle ?: loadSelected().also { bundle = it }
             TfliteClassifier(target).classify(bitmap)
         }
     }
@@ -64,7 +95,7 @@ class ModelRepository(private val context: Context) {
     /** 在持锁状态下使用模型包（一致性自检等长任务专用），期间 reload 会等待其结束 */
     suspend fun <T> withBundle(block: suspend (ModelBundle) -> T): T = withContext(Dispatchers.Default) {
         mutex.withLock {
-            val target = bundle ?: ModelBundle.load(context.assets).also { bundle = it }
+            val target = bundle ?: loadSelected().also { bundle = it }
             block(target)
         }
     }
@@ -73,7 +104,7 @@ class ModelRepository(private val context: Context) {
         mutex.withLock {
             bundle?.close()
             bundle = null
-            ModelBundle.load(context.assets).let {
+            loadSelected().let {
                 bundle = it
                 it.toInfo()
             }
@@ -90,6 +121,7 @@ class ModelRepository(private val context: Context) {
         normalization = metadata.input.normalization ?: "identity",
         scopePolicyVersion = scopePolicy.policy?.version,
         scopePolicySha256 = scopePolicy.sha256,
+        scopeKnownnessThreshold = scopePolicy.policy?.knownnessThreshold,
         scopeConfidenceThreshold = scopePolicy.policy?.confidenceThreshold,
         scopeMarginThreshold = scopePolicy.policy?.marginThreshold,
     )

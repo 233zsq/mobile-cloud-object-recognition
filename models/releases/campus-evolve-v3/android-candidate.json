@@ -1,0 +1,21 @@
+{
+  "model_version": "campus-evolve-v3",
+  "model_sha256": "4fe5b74300c0c9e384822c9a00b8f256a76776d5f818c64a8d50b6c1e9e72623",
+  "policy_sha256": "6a4844173ed1b3aede51b02eb6fa1c18ecbcb131eabed8d4cf0adb411c7a90b3",
+  "device": "Xiaomi 23116PN5BC",
+  "threads": 4,
+  "examples": 20,
+  "reference_max_score_error": 9.953975677490234E-6,
+  "reference_max_knownness_error": 6.318092346191406E-6,
+  "image_max_score_error": 9.298324584960938E-6,
+  "image_max_knownness_error": 6.377696990966797E-6,
+  "gecko_candidate": "key",
+  "gecko_confidence": 0.99991417,
+  "gecko_knownness": 0.4290953,
+  "gecko_status": "uncertain",
+  "warmup": 20,
+  "measured": 100,
+  "decode_preprocess_inference_p50_ms": 17.396614999999997,
+  "decode_preprocess_inference_p95_ms": 25.81244,
+  "physical_phone_acceptance": false
+}

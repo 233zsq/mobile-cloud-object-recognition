@@ -70,4 +70,13 @@ class RecordMapperTest {
         val correctionPending = uploaded.copy(correctionPending = true)
         assertEquals(true, correctionPending.pendingSync)
     }
+
+    @Test fun `scope evidence survives retries while legacy records remain unreported`() {
+        assertEquals(null, RecordMapper.toUploadRequest(entity).scopeDecision)
+        val confirmed = entity.copy(scopeDecisionJson = """{"status":"uncertain","policy_version":"scope-knownness-v1","policy_sha256":"${"a".repeat(64)}","knownness":0.429,"manual_confirmed":true}""")
+        val request = RecordMapper.toUploadRequest(confirmed)
+        assertEquals("uncertain", request.scopeDecision!!.status)
+        assertEquals(true, request.scopeDecision!!.manualConfirmed)
+        assertEquals(request.scopeDecision, RecordMapper.toUploadRequest(confirmed.copy(lastError = "offline")).scopeDecision)
+    }
 }

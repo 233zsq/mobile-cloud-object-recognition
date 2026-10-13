@@ -13,6 +13,7 @@ data class ScopeDecision(
     val policyVersion: String?,
     val policySha256: String?,
     val reason: String,
+    val knownness: Float? = null,
 ) {
     val needsConfirmation: Boolean get() = verdict != ScopeVerdict.ACCEPTED
 }
@@ -32,9 +33,14 @@ data class ScopePolicy(
     @SerialName("preprocessing_version") val preprocessingVersion: String,
     @SerialName("confidence_threshold") val confidenceThreshold: Float,
     @SerialName("margin_threshold") val marginThreshold: Float,
+    @SerialName("knownness_threshold") val knownnessThreshold: Float? = null,
+    @SerialName("policy_sha256") val declaredSha256: String? = null,
 ) {
     fun validate(identity: ScopeIdentity) {
-        require(status == "experimental" && rule == "msp_margin_v1" && version == "scope-basic-v1")
+        require(status in setOf("experimental", "frozen"))
+        require((rule == "msp_margin_v1" && version == "scope-basic-v1") ||
+            (rule == "learned_knownness_v1" && version == "scope-knownness-v1"))
+        if (rule == "learned_knownness_v1") require(knownnessThreshold != null && knownnessThreshold.isFinite() && knownnessThreshold in 0f..1f)
         require(confidenceThreshold.isFinite() && confidenceThreshold in 0f..1f &&
             marginThreshold.isFinite() && marginThreshold in 0f..1f)
         require(modelVersion == identity.modelVersion && modelSha256 == identity.modelSha256 &&
@@ -45,19 +51,24 @@ data class ScopePolicy(
 
 /** A broken/mismatched policy never prevents the model from returning its original prediction. */
 data class ScopePolicyState(val policy: ScopePolicy?, val sha256: String?) {
-    fun evaluate(scores: List<Float>): ScopeDecision {
+    fun evaluate(scores: List<Float>, knownness: Float? = null): ScopeDecision {
         val active = policy ?: return ScopeDecision(ScopeVerdict.UNAVAILABLE, null, sha256, "确认规则暂不可用，请人工确认")
         if (scores.size != 10 || scores.any { !it.isFinite() || it !in 0f..1f } || abs(scores.sum()-1f) > .0001f)
             return ScopeDecision(ScopeVerdict.UNAVAILABLE, active.version, sha256, "分数核验未通过，请重新识别")
         val ordered = scores.sortedDescending()
         val low = ordered[0] < active.confidenceThreshold
         val close = ordered[0]-ordered[1] < active.marginThreshold
-        return ScopeDecision(if (low || close) ScopeVerdict.UNCERTAIN else ScopeVerdict.ACCEPTED,
+        val learned = active.rule == "learned_knownness_v1"
+        if (learned && (knownness == null || !knownness.isFinite() || knownness !in 0f..1f))
+            return ScopeDecision(ScopeVerdict.UNAVAILABLE, active.version, sha256, "范围判断输出无效，请人工确认")
+        val outside = learned && knownness!! < requireNotNull(active.knownnessThreshold)
+        return ScopeDecision(if (low || close || outside) ScopeVerdict.UNCERTAIN else ScopeVerdict.ACCEPTED,
             active.version, sha256, when {
+                outside -> "暂不确定，可能不在当前 10 类范围内，请人工确认"
                 low -> "分数较低，可能不在当前 10 类范围内"
                 close -> "候选类别接近，请调整角度或人工确认"
-                else -> "分数规则通过；仍需以实际物品为准"
-            })
+                else -> "范围判断规则通过；仍需以实际物品为准"
+            }, knownness = knownness)
     }
 
     companion object {

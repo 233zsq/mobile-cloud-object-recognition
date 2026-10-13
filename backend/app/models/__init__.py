@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import BigInteger, CheckConstraint, DateTime, Double, ForeignKeyConstraint
+from sqlalchemy import BigInteger, Boolean, CheckConstraint, DateTime, Double, ForeignKeyConstraint
 from sqlalchemy import Index, Integer, String, UniqueConstraint, text
 from sqlalchemy.dialects import mysql
 from sqlalchemy.ext.compiler import compiles
@@ -95,6 +95,24 @@ class InferenceRecord(db.Model):
         CheckConstraint("(corrected_id IS NULL AND corrected_at IS NULL AND revision = 0) OR (corrected_id IS NOT NULL AND corrected_at IS NOT NULL AND revision > 0)", name="ck_record_correction_state"),
         Index("ix_record_captured", "captured_at"),
         Index("ix_record_model_captured", "model_version", "captured_at"),
+        table_options,
+    )
+
+
+class InferenceDecision(db.Model):
+    __tablename__ = 'inference_decision'
+    record_id: Mapped[str] = mapped_column(identifier(36), primary_key=True)
+    status: Mapped[str] = mapped_column(identifier(16))
+    policy_version: Mapped[str | None] = mapped_column(identifier(64))
+    policy_sha256: Mapped[str | None] = mapped_column(identifier(64))
+    knownness: Mapped[float | None] = mapped_column(Double)
+    manual_confirmed: Mapped[bool] = mapped_column(Boolean, server_default=text('0'))
+    __table_args__ = (
+        ForeignKeyConstraint(['record_id'], ['inference_record.record_id'], name='fk_decision_record'),
+        CheckConstraint("status IN ('accepted', 'uncertain', 'unavailable')", name='ck_decision_status'),
+        CheckConstraint('knownness IS NULL OR (knownness >= 0 AND knownness <= 1)', name='ck_decision_knownness'),
+        CheckConstraint("status = 'accepted' OR manual_confirmed = 1", name='ck_decision_confirmed'),
+        Index('ix_decision_status', 'status', 'record_id'),
         table_options,
     )
 

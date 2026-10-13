@@ -21,5 +21,7 @@ shared/category-versions/*.json -text
 shared/device-results/*.json -text
 shared/policies/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 android/app/src/main/assets/scope/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+backend/policies/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+data/ood/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 models/releases/** -text
 experiments/reports/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
