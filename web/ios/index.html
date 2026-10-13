@@ -52,9 +52,11 @@
           <article id="ticket" class="ticket" hidden>
             <div class="ticket-heading"><p class="eyebrow">OBSERVATION / 识别票据</p><span class="ticket-stamp">已观察</span></div>
             <div class="verdict"><strong id="ticket-name" class="name">—</strong><span id="ticket-confidence" class="confidence">—</span></div>
-            <p id="ticket-flag" class="flag" hidden>低于模型阈值，需要确认</p><p id="ticket-original" class="original" hidden></p><dl id="ticket-meta" class="meta"></dl>
-            <div class="row-actions"><button id="ticket-correct" type="button">纠正类别</button><button id="ticket-again" type="button" class="secondary">再识别一张</button></div>
-            <div id="correction" class="correction" hidden><p class="hint">选择正确类别；原预测会保留。</p><div id="category-grid" class="grid"></div></div>
+            <p id="ticket-flag" class="flag" hidden>低于模型阈值，需要确认</p><p id="ticket-original" class="original" hidden></p><p class="hint">基础规则只检查分类分数，范围外物品仍可能被高置信误认。</p>
+            <div id="scope-actions" class="scope-actions" hidden><p class="hint">确认后才会保存和上报。若不是这10类物品，请选择不保存。</p><button id="scope-confirm" type="button">确认候选并保存</button><button id="scope-choose" type="button" class="secondary">选择实际类别</button><button id="scope-discard" type="button" class="text-button">不保存，重新拍摄</button></div>
+            <dl id="ticket-meta" class="meta"></dl>
+            <div id="ticket-actions" class="row-actions"><button id="ticket-correct" type="button">纠正类别</button><button id="ticket-again" type="button" class="secondary">再识别一张</button></div>
+            <div id="correction" class="correction" hidden><p id="correction-hint" class="hint">选择正确类别；原预测会保留。</p><div id="category-grid" class="grid"></div></div>
             <p id="ticket-sync" class="status" role="status" aria-live="polite"></p>
             <div id="ticket-conflict-actions" class="conflict-actions" hidden><p class="hint">同步暂停，选择要保留的修正；读取云端最新修订后再处理。</p><button id="conflict-cloud" type="button" class="secondary">采用云端修正</button><button id="conflict-local" type="button" class="secondary">以新修订提交本机修正</button></div>
           </article>

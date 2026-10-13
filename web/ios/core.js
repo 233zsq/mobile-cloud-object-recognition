@@ -189,6 +189,47 @@
     return result;
   }
 
+  function scopePolicyMatches(contract, policy) {
+    return Boolean(contract && policy && policy.policy_version === 'scope-basic-v1'
+      && policy.status === 'experimental' && policy.rule === 'msp_margin_v1'
+      && policy.model_version === contract.model_version && policy.model_sha256 === contract.model_sha256
+      && policy.labels_sha256 === contract.labels_sha256 && policy.category_version === contract.category_version
+      && policy.preprocessing_version === 'rgb-letterbox-v1'
+      && [policy.confidence_threshold, policy.margin_threshold].every((value) => Number.isFinite(value) && value >= 0 && value <= 1));
+  }
+
+  function scopeDecision(result, contract, policy) {
+    const scores = result.scores;
+    if (!Array.isArray(scores) || scores.length !== 10
+      || !scores.every((value) => Number.isFinite(value) && value >= 0 && value <= 1)
+      || Math.abs(scores.reduce((sum, value) => sum + value, 0) - 1) > 0.0001
+      || result.model_version !== contract.model_version || result.model_sha256 !== contract.model_sha256) {
+      throw new Error('识别分数或模型身份无效，结果未保存。');
+    }
+    if (!scopePolicyMatches(contract, policy)) {
+      return { status: 'unavailable', reason: '当前模型没有匹配的基础规则，请人工确认类别后保存。' };
+    }
+    const ordered = scores.map(Math.fround).sort((a, b) => b - a);
+    const margin = Math.fround(ordered[0] - ordered[1]);
+    const accepted = ordered[0] >= Math.fround(policy.confidence_threshold) && margin >= Math.fround(policy.margin_threshold);
+    return { status: accepted ? 'accepted' : 'uncertain', policy_version: policy.policy_version, margin,
+      reason: accepted ? '' : '分类分数较低或前两类接近，请确认物品类别；也可能不在这10类内。' };
+  }
+
+  function confirmScopedRecord(record, categoryId, confirmedAt) {
+    if (!record || !['uncertain', 'unavailable'].includes(record.scope_decision?.status)
+      || !Number.isInteger(categoryId) || categoryId < 0 || categoryId > 9 || !Number.isFinite(Date.parse(confirmedAt))) {
+      throw new Error('待确认结果或类别无效。');
+    }
+    const confirmed = { ...record, scope_manually_confirmed: true };
+    if (categoryId !== record.predicted_id) {
+      Object.assign(confirmed, { corrected_id: categoryId, corrected_at: confirmedAt,
+        revision: 1, correction_synced: false });
+    }
+    return confirmed;
+  }
+
   return { hasCorrection, isPending, trimRecords, writeState, serverRecord, adoptServerCorrection,
-    syncRecord, createSyncQueue, filterRecords, validateInference, validateModels };
+    syncRecord, createSyncQueue, filterRecords, validateInference, validateModels,
+    scopePolicyMatches, scopeDecision, confirmScopedRecord };
 });

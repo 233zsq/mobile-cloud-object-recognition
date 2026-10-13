@@ -1,0 +1,55 @@
+{
+  "verified_on": "2026-10-13",
+  "status": "experimental",
+  "source_base_commit": "8da29d8f52106de8c7132c918174d411dfa037b7",
+  "source_state": "working_tree",
+  "source_manifest_sha256": "c458e39dd1fdf4b2771d4c8f17ef000563666b9d7da598d59d44399333c06fd8",
+  "apk": {
+    "file": "campus-recognition-scope-basic-debug.apk",
+    "bytes": 57328036,
+    "sha256": "07476c3a540681ed846d3a3b3550fd702c9bc3972be3a7731d8085bd20a01f4c",
+    "version_name": "0.1.0",
+    "signing": "existing debug key",
+    "local_tflite_count": 1,
+    "model_version": "campus-evolve-v2",
+    "model_sha256": "7e2387600303333f714533aac1a0c1e4260425b06154dd7fa4ed920d01bef691"
+  },
+  "policy": {
+    "version": "scope-basic-v1",
+    "sha256": "3011b2f0b71a0592d17e598693af6f57b8155a05350afc43d521dc6df98bd842",
+    "confidence_threshold": 0.55,
+    "margin_threshold": 0.2,
+    "status": "experimental",
+    "scope": "Android local v2 only",
+    "known_validation_count": 609,
+    "known_needs_confirmation": 25,
+    "unknown_evaluation_count": 0,
+    "unknown_rejection_rate": null,
+    "final_test_images_read": false
+  },
+  "checks": {
+    "android_unit_passed": 119,
+    "android_unit_failed": 0,
+    "python_scope_passed": 6,
+    "mumu_device_passed": 13,
+    "resolution": [
+      1220,
+      2656
+    ],
+    "density_dpi": 280,
+    "android_api": 32,
+    "preserves_original_prediction": true,
+    "confirmation_and_discard_checked": true,
+    "local_photo_thumbnail_checked": true,
+    "test_records_uploaded": false,
+    "credentials_written": false,
+    "room_schema_changed": false,
+    "cloud_api_changed": false
+  },
+  "known_limits": [
+    "No reviewed out-of-scope evaluation set; high-confidence unknowns can still pass.",
+    "Validation was used for policy selection, not independent acceptance.",
+    "Pending confirmation is a page-session state, not a recoverable cross-process draft.",
+    "Physical-phone performance, heat and accuracy acceptance remain separate."
+  ]
+}

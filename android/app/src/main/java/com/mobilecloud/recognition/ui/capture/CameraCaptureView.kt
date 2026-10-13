@@ -9,7 +9,11 @@ import android.provider.Settings
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
+import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
+import androidx.camera.core.UseCaseGroup
+import androidx.camera.core.ViewPort
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.layout.Arrangement
@@ -41,7 +45,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,14 +54,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import com.mobilecloud.recognition.AppGraph
 import java.io.File
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import java.util.concurrent.Executors
+import android.util.Size
+import android.util.Rational
+import android.view.Surface
 
 /**
  * 相机预览 + 拍照按钮。ImageCapture 按 display 旋转写入 EXIF，方向在解码时统一应用（T02）。
@@ -70,6 +79,11 @@ fun CameraCaptureView(
     onImportClick: () -> Unit,
     modifier: Modifier = Modifier,
     onCaptureStarted: () -> Unit = {},
+    liveActive: Boolean = false,
+    onAnalyzeFrame: (ImageProxy) -> Unit = { it.close() },
+    onLiveCameraReady: (Boolean) -> Unit = {},
+    onLiveCameraUnavailable: () -> Unit = {},
+    liveOverlay: (@Composable () -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -80,28 +94,72 @@ fun CameraCaptureView(
             .build()
     }
     var capturing by remember { mutableStateOf(false) }
+    var previewSize by remember { mutableStateOf(IntSize.Zero) }
+    val analysis = remember {
+        @Suppress("DEPRECATION")
+        ImageAnalysis.Builder().setTargetResolution(Size(640, 480))
+            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST).build()
+    }
+    val analyzerExecutor = remember { Executors.newSingleThreadExecutor() }
+    val analyzeFrame by rememberUpdatedState(onAnalyzeFrame)
+    val cameraReady by rememberUpdatedState(onLiveCameraReady)
+    val cameraUnavailable by rememberUpdatedState(onLiveCameraUnavailable)
+    val captureError by rememberUpdatedState(onCaptureError)
 
-    LaunchedEffect(Unit) {
-        val provider = withContext(Dispatchers.IO) {
-            ProcessCameraProvider.getInstance(context).get()
+    DisposableEffect(analyzerExecutor) {
+        onDispose {
+            analysis.clearAnalyzer()
+            // Let the current frame finish and release its bitmap/proxy; never interrupt native inference.
+            analyzerExecutor.shutdown()
         }
-        val preview = Preview.Builder().build().also {
-            it.surfaceProvider = previewView.surfaceProvider
+    }
+    DisposableEffect(liveActive, analysis, analyzerExecutor) {
+        if (liveActive) analysis.setAnalyzer(analyzerExecutor) { image -> analyzeFrame(image) }
+        else analysis.clearAnalyzer()
+        onDispose { analysis.clearAnalyzer() }
+    }
+
+    DisposableEffect(lifecycleOwner, previewSize) {
+        var disposed = false
+        var boundProvider: ProcessCameraProvider? = null
+        val preview = Preview.Builder().build().also { it.surfaceProvider = previewView.surfaceProvider }
+        cameraReady(false)
+        if (previewSize.width > 0 && previewSize.height > 0) {
+            val future = ProcessCameraProvider.getInstance(context)
+            future.addListener({
+                if (!disposed) try {
+                    val provider = future.get()
+                    boundProvider = provider
+                    val selector = when {
+                        provider.hasCamera(CameraSelector.DEFAULT_BACK_CAMERA) -> CameraSelector.DEFAULT_BACK_CAMERA
+                        provider.hasCamera(CameraSelector.DEFAULT_FRONT_CAMERA) -> CameraSelector.DEFAULT_FRONT_CAMERA
+                        else -> error("设备没有可用相机")
+                    }
+                    val rotation = previewView.display?.rotation ?: Surface.ROTATION_0
+                    imageCapture.targetRotation = rotation
+                    analysis.targetRotation = rotation
+                    // Shared viewport prevents analysis of regions hidden by the visible preview crop.
+                    val viewport = ViewPort.Builder(Rational(previewSize.width, previewSize.height), rotation)
+                        .setScaleType(ViewPort.FILL_CENTER).build()
+                    val group = UseCaseGroup.Builder().setViewPort(viewport)
+                        .addUseCase(preview).addUseCase(imageCapture).addUseCase(analysis).build()
+                    try {
+                        provider.bindToLifecycle(lifecycleOwner, selector, group)
+                        cameraReady(true)
+                    } catch (_: Exception) {
+                        provider.unbind(preview, imageCapture, analysis)
+                        provider.bindToLifecycle(lifecycleOwner, selector, preview, imageCapture)
+                        cameraUnavailable()
+                    }
+                } catch (error: Exception) {
+                    captureError("相机绑定失败：${error.message ?: error.javaClass.simpleName}")
+                }
+            }, ContextCompat.getMainExecutor(context))
         }
-        // Manifest 只要求 camera.any：无后置相机的设备回退前置，均无则给出明确提示而不是崩溃
-        val selector = when {
-            provider.hasCamera(CameraSelector.DEFAULT_BACK_CAMERA) -> CameraSelector.DEFAULT_BACK_CAMERA
-            provider.hasCamera(CameraSelector.DEFAULT_FRONT_CAMERA) -> CameraSelector.DEFAULT_FRONT_CAMERA
-            else -> {
-                onCaptureError("设备没有可用相机")
-                return@LaunchedEffect
-            }
-        }
-        provider.unbindAll()
-        runCatching {
-            provider.bindToLifecycle(lifecycleOwner, selector, preview, imageCapture)
-        }.onFailure {
-            onCaptureError("相机绑定失败：${it.message ?: it.javaClass.simpleName}")
+        onDispose {
+            disposed = true
+            cameraReady(false)
+            boundProvider?.unbind(preview, imageCapture, analysis)
         }
     }
 
@@ -112,9 +170,10 @@ fun CameraCaptureView(
             update = { view ->
                 view.display?.let { display ->
                     imageCapture.targetRotation = display.rotation
+                    analysis.targetRotation = display.rotation
                 }
             },
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().onSizeChanged { previewSize = it },
         )
         Canvas(Modifier.fillMaxSize().padding(20.dp)) {
             val length = 24.dp.toPx()
@@ -126,7 +185,8 @@ fun CameraCaptureView(
                 drawLine(ink, point, point + androidx.compose.ui.geometry.Offset(0f, if (point.y == 0f) length else -length), stroke)
             }
         }
-        Text("把一个主要物品放入画面", Modifier.align(Alignment.BottomCenter).padding(14.dp).background(Color.Black.copy(alpha = .35f), RoundedCornerShape(14.dp)).padding(horizontal = 12.dp, vertical = 5.dp), color = Color.White, style = MaterialTheme.typography.bodySmall)
+        if (liveOverlay != null) Box(Modifier.align(Alignment.BottomCenter).padding(12.dp)) { liveOverlay() }
+        else Text("把一个主要物品放入画面", Modifier.align(Alignment.BottomCenter).padding(14.dp).background(Color.Black.copy(alpha = .35f), RoundedCornerShape(14.dp)).padding(horizontal = 12.dp, vertical = 5.dp), color = Color.White, style = MaterialTheme.typography.bodySmall)
       }
         Row(
             modifier = Modifier

@@ -26,6 +26,10 @@ class ModelRepository(private val context: Context) {
         val lowConfidenceThreshold: Float,
         val categoryVersion: String?,
         val normalization: String,
+        val scopePolicyVersion: String? = null,
+        val scopePolicySha256: String? = null,
+        val scopeConfidenceThreshold: Float? = null,
+        val scopeMarginThreshold: Float? = null,
     )
 
     suspend fun info(): ModelInfo = withContext(Dispatchers.Default) {
@@ -46,6 +50,15 @@ class ModelRepository(private val context: Context) {
             val target = bundle ?: ModelBundle.load(context.assets).also { bundle = it }
             TfliteClassifier(target).classify(bitmap)
         }
+    }
+
+    /** Preview must never queue behind model reload, consistency checks or a saved-photo inference. */
+    suspend fun tryClassifyPreview(bitmap: Bitmap): Prediction? = withContext(Dispatchers.Default) {
+        if (!mutex.tryLock()) return@withContext null
+        try {
+            val target = bundle ?: return@withContext null
+            TfliteClassifier(target).classify(bitmap)
+        } finally { mutex.unlock() }
     }
 
     /** 在持锁状态下使用模型包（一致性自检等长任务专用），期间 reload 会等待其结束 */
@@ -75,5 +88,9 @@ class ModelRepository(private val context: Context) {
         lowConfidenceThreshold = lowConfidenceThreshold,
         categoryVersion = metadata.categoryVersion,
         normalization = metadata.input.normalization ?: "identity",
+        scopePolicyVersion = scopePolicy.policy?.version,
+        scopePolicySha256 = scopePolicy.sha256,
+        scopeConfidenceThreshold = scopePolicy.policy?.confidenceThreshold,
+        scopeMarginThreshold = scopePolicy.policy?.marginThreshold,
     )
 }

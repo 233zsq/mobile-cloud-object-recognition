@@ -1,0 +1,66 @@
+{
+  "verified_on": "2026-10-13",
+  "status": "experimental_scope_policy",
+  "source_base_commit": "473fc67967cb0923f2a508351397ee10f9bb8f18",
+  "source_state": "working_tree",
+  "apk": {
+    "file": "campus-recognition-1.0-debug.apk",
+    "bytes": 57094075,
+    "sha256": "7bd3b2405f7b4a52f1cd68500a41b7ce63334bdcb9dec2815a31c6b21bbcad3a",
+    "version_name": "1.0",
+    "version_code": 2,
+    "signing": "existing debug key",
+    "local_tflite_count": 1,
+    "model_sha256": "7e2387600303333f714533aac1a0c1e4260425b06154dd7fa4ed920d01bef691",
+    "installed_device": "MuMu, Android API 32, 1220x2656, 280 dpi"
+  },
+  "scope_policy": {
+    "version": "scope-basic-v1",
+    "sha256": "3011b2f0b71a0592d17e598693af6f57b8155a05350afc43d521dc6df98bd842",
+    "confidence_threshold": 0.55,
+    "margin_threshold": 0.2,
+    "applies_to": ["Android local v2", "Web cloud v2"],
+    "web_other_models": "manual_confirmation_required",
+    "unknown_benchmark_count": 0,
+    "unknown_rejection_rate": null,
+    "development_counterexample": "A gecko is predicted as key with confidence 0.9999141693 and is accepted."
+  },
+  "web_deployment": {
+    "url": "https://49.232.195.47/ios/",
+    "published_at_utc": "20261013T052048Z",
+    "release": "20261013T052048Z-11d1ce5a76ac",
+    "previous": "20261012T140753Z-37a0b5762081",
+    "archive_sha256": "11d1ce5a76ace81fc1ec908e1b4f233254cd86addea26d4b36069c70ccf6e596",
+    "archive_bytes": 29374,
+    "public_files_verified_over_trusted_https": 7,
+    "backend_version_after": "0.1.0+576cf5c",
+    "backend_model_after": "campus-evolve-v2",
+    "model_status_after": "ready",
+    "model_database_certificate_ports_changed": false
+  },
+  "checks": {
+    "android_unit_passed": 119,
+    "android_unit_failures": 0,
+    "mumu_device_passed": 13,
+    "web_core_passed": 21,
+    "web_browser_flow_passed": 7,
+    "web_viewport_widths": [320, 390, 820, 1440],
+    "web_browser": "Chromium via installed Microsoft Edge",
+    "python_scope_passed": 6,
+    "confirmation_before_persistence_and_upload": true,
+    "manual_correction_preserves_original_prediction": true,
+    "discard_without_record": true,
+    "missing_or_mismatched_policy_requires_confirmation": true,
+    "test_records_uploaded_to_real_server": false,
+    "credentials_written_to_device": false,
+    "final_test_images_read": false
+  },
+  "known_limits": [
+    "Score gates cannot reliably reject high-confidence out-of-scope images.",
+    "Validation policy selection does not establish independent field accuracy.",
+    "Pending confirmations are session-only and are discarded on restart or page reload.",
+    "Android cloud mode keeps its previous threshold behavior; the new cloud gate is in the Web client.",
+    "Physical-phone performance and iPhone Safari acceptance remain separate.",
+    "The APK uses a debug signature; version 1.0 does not certify formal model acceptance."
+  ]
+}

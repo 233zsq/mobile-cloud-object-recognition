@@ -8,6 +8,8 @@ data class Prediction(
     val inferenceMs: Long,
     val totalMs: Long,
     val modelVersion: String,
+    val scores: List<Float> = emptyList(),
+    val scopeDecision: ScopeDecision? = null,
 ) {
     fun isLowConfidence(threshold: Float): Boolean = confidence < threshold
 }

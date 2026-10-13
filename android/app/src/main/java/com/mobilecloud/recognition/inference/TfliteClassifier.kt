@@ -25,6 +25,8 @@ class TfliteClassifier(private val bundle: ModelBundle) {
         val inputReady = SystemClock.elapsedRealtime()
 
         val scores = runInterpreter(input)
+        require(scores.size == bundle.outputClasses && scores.all { it.isFinite() && it in 0f..1f } &&
+            kotlin.math.abs(scores.sum()-1f) <= .0001f) { "模型分数无效，请重新校验模型" }
         val endAll = SystemClock.elapsedRealtime()
 
         var bestIndex = -1
@@ -37,6 +39,7 @@ class TfliteClassifier(private val bundle: ModelBundle) {
         }
         if (bestIndex < 0) throw IllegalStateException("模型输出为空，无法产生分类结果")
 
+        val completeScores = scores.toList()
         return Prediction(
             index = bestIndex,
             confidence = bestScore,
@@ -45,6 +48,8 @@ class TfliteClassifier(private val bundle: ModelBundle) {
             inferenceMs = endAll - inputReady,
             totalMs = endAll - startAll,
             modelVersion = bundle.modelVersion,
+            scores = completeScores,
+            scopeDecision = bundle.scopePolicy.evaluate(completeScores),
         )
     }
 

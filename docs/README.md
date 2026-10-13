@@ -8,6 +8,8 @@
 | `architecture.md` | 模块边界与主要数据流 |
 | `api/README.md` | 从计划书整理的接口草案，后续由前后端冻结 |
 | `model-contract.md` | 类别、预处理、标签顺序与模型交接要求 |
+| `android-live-recognition.md` | 安卓实时观察、暂停与资源管理及设备检查 |
+| `scope-basic-v1.md` | 安卓本地及网页的基础确认规则、实验结果和高置信误判限制 |
 | `ml-handover.md` | 当前试验包、端云核对、实拍评估与性能测量操作 |
 | `ml-experiments.md` | 已完成CPU实验、10类指标、曲线和实际验收状态 |
 | `ml-expanded-experiments.md` | 877张公开照片的三阶段实验、复核、全类指标及FP32证据 |

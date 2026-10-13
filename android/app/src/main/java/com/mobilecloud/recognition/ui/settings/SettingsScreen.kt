@@ -158,19 +158,25 @@ private fun ConnectionSettings(state: SettingsUiState, viewModel: SettingsViewMo
 
 @Composable
 private fun ModelSettings(state: SettingsUiState, viewModel: SettingsViewModel) {
-    Note("本地与云端使用同版模型，切换识别位置不会切换模型。当前版本随 App 提供，暂不支持在 App 内下载更新。")
+    Note("本地固定使用随 App 提供的 v2，云端模型可在识别页选择。试验性的范围提示目前只用于本地识别。")
     Spacer(Modifier.height(22.dp))
     state.modelInfo?.let { info ->
         Detail("模型版本", info.modelVersion)
         Detail("可识别物品", "${info.labelsCount} 类")
         Detail("低置信提醒阈值", "${(info.lowConfidenceThreshold * 100).toInt()}%")
         Text("低于阈值仍显示预测，请核对并按需修正。", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(16.dp))
+        Detail("范围提示", if (info.scopePolicyVersion != null) "试验版 · 仅本地" else "规则不可用，需人工确认")
+        Text("分数低或候选接近时先确认，再保存记录。它不能保证识别出所有范围外物品。",
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(24.dp))
         Text("技术信息", style = MaterialTheme.typography.titleSmall)
         Detail("模型校验摘要", info.sha256Short + "（SHA-256 前 8 位）")
         Detail("输入形状", info.inputShape.joinToString(" × "))
         info.categoryVersion?.let { Detail("类别版本", it) }
         Detail("归一化", info.normalization)
+        info.scopePolicyVersion?.let { Detail("确认规则版本", it) }
+        info.scopePolicySha256?.let { Detail("规则校验摘要", it.take(8)) }
     } ?: ResultNote(state.modelError ?: "正在加载模型信息…", state.modelError != null)
     Spacer(Modifier.height(22.dp))
     OutlinedButton(onClick = viewModel::reloadModel, modifier = Modifier.fillMaxWidth()) { Text("重新校验本地模型") }
@@ -181,6 +187,8 @@ private fun PrivacySettings(state: SettingsUiState) {
     Note("识别记录与照片分开处理。选择云端前，请确认画面适合发送至组内服务器。")
     Spacer(Modifier.height(24.dp))
     HelpItem("本地识别", "照片在本机处理，识别不需要网络。记录保存到本机，联网后同步分类、置信度、模型版本和时间等记录信息。")
+    HelpItem("实时观察", "在本地识别页开启开关，对准一个主要物品并稍停片刻。连续三帧结果一致后显示类别；预览画面不保存、不上传，点击拍照才重新识别并保存记录。切页或进入后台会暂停。实时结果仍限当前十类，不具备范围外物品检测能力。")
+    HelpItem("暂不确定", "本地试验规则会检查最高分和前两名分数差。拍照遇到不确定结果时，先确认实际类别再保存，也可不保存并重拍。规则只用已知物品验证过，不保证发现所有范围外物品；云端仍沿用原来的低置信提醒。")
     HelpItem("云端识别", "仅在选择云端后发送图片。App 生成去除 EXIF 和位置信息的压缩副本；服务处理后释放图片，不自动加入训练图库。画面内的个人信息仍可能可见。")
     HelpItem("访问口令", "用于组内接口认证，不包含在安装包中。请勿分享口令、手机备份或包含私有配置的文件。")
     HelpItem("本机记录", "在「记录」页可查看、纠错和同步。清空本地记录不删除云端已经保存的记录，筛选结果也不改变清空范围。")
