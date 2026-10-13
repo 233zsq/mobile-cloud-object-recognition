@@ -1,6 +1,6 @@
 {
-  "updated_at": "2026-10-11T22:46:45+08:00",
-  "branch": "feat/model-v2-deployment",
+  "updated_at": "2026-10-13T16:22:35.057263+08:00",
+  "branch": "feat/open-set-recognition",
   "category_version": "campus-10-v4",
   "keyboard_scope": "external and built-in computer keyboards; clearly visible main subject",
   "implemented_commands": [
@@ -54,25 +54,39 @@
     "seed43_macro_f1_difference": 0.0015453654332810984,
     "source_provenance": "models/releases/campus-evolve-v2/source-provenance.json",
     "original_recorded_code_commit": "unavailable",
-    "original_results_modified": false
+    "original_results_modified": false,
+    "scope_head": {
+      "experiment": "campus-open-set-v2-experiment",
+      "parent_classifier": "campus-evolve-v2",
+      "classification_weights_changed": false,
+      "auxiliary_version": "scope-aux-caltech101-v2",
+      "seed": 42,
+      "seed43_rechecked": true,
+      "unknown_holdout_rejected": 391,
+      "unknown_holdout_count": 400,
+      "known_accepted": 556,
+      "known_validation_count": 609
+    }
   },
   "release": {
-    "selected": "campus-evolve-v2",
+    "selected": "campus-evolve-v3",
     "status": "frozen",
     "deployment_approval": "approved via explicit project-owner chat instruction",
-    "model_bytes": 8939040,
-    "sha256": "7e2387600303333f714533aac1a0c1e4260425b06154dd7fa4ed920d01bef691",
+    "model_bytes": 9531856,
+    "sha256": "4fe5b74300c0c9e384822c9a00b8f256a76776d5f818c64a8d50b6c1e9e72623",
     "labels_sha256": "3148fcb53e5859041bf7f6af5acbfb952a9d3fbd52a4fd334525b7d3af6a1064",
     "low_confidence_threshold": 0.5,
     "threshold_status": "validation_selected",
-    "model_sha256": "7e2387600303333f714533aac1a0c1e4260425b06154dd7fa4ed920d01bef691",
+    "model_sha256": "4fe5b74300c0c9e384822c9a00b8f256a76776d5f818c64a8d50b6c1e9e72623",
     "full_validation_max_score_difference": 9.119510650634766e-06,
     "full_validation_top1_mismatches": 0,
     "independent_litert_golden_max_score_difference": 0.0,
-    "cloud_inference_p95_ms": 15.05514100426808,
-    "cloud_preprocess_and_inference_p95_ms": 50.21191498963162,
+    "cloud_inference_p95_ms": 15.001980005763471,
+    "cloud_preprocess_and_inference_p95_ms": 50.73857703246176,
     "timing_scope": "actual Tencent CPU; one thread; warmup20/measure100; excludes network",
-    "freeze_scope": "model, threshold and preprocessing; independent field and physical-phone acceptance pending"
+    "freeze_scope": "approved model and policy; independent field and physical-phone acceptance pending",
+    "scope_policy_sha256": "6a4844173ed1b3aede51b02eb6fa1c18ecbcb131eabed8d4cf0adb411c7a90b3",
+    "scope_policy_version": "scope-knownness-v1"
   },
   "acceptance": {
     "independent_field_accuracy_and_f1": "pending",
@@ -80,8 +94,8 @@
     "android_consistency": "passed on MuMu emulator: 20 reference tensors and 20 image chains; physical phone pending",
     "actual_cloud_consistency_and_latency": "passed: 20 reference + image chains, warmup20/measure100",
     "external_backup": "pending destination",
-    "cloud_https_inference": "passed: 20 same-image requests, TLS, 409 mismatch and 401 unauthorized",
-    "android_authenticated_https": "passed on MuMu: 20 actual same-image API calls; no records written"
+    "cloud_https_inference": "passed: v2/v3 available, v3 default, 20 actual v3 same-image requests including uncertain states; no records written",
+    "android_authenticated_https": "passed on authorized MuMu: 20 v3 image calls and one request per catalog model; no records written"
   },
   "accuracy_caveat": "All current accuracy/F1 values use public validation photos, never independent field acceptance.",
   "tests": {
@@ -295,5 +309,30 @@
     "android_payload_model": "campus-evolve-v2",
     "retained_development_candidate": "campus-evolve-v3",
     "report": "docs/campus-evolve-v2-deployment.md"
-  }
+  },
+  "release_history": {
+    "campus-evolve-v2": {
+      "selected": "campus-evolve-v2",
+      "status": "frozen",
+      "deployment_approval": "approved via explicit project-owner chat instruction",
+      "model_bytes": 8939040,
+      "sha256": "7e2387600303333f714533aac1a0c1e4260425b06154dd7fa4ed920d01bef691",
+      "labels_sha256": "3148fcb53e5859041bf7f6af5acbfb952a9d3fbd52a4fd334525b7d3af6a1064",
+      "low_confidence_threshold": 0.5,
+      "threshold_status": "validation_selected",
+      "model_sha256": "7e2387600303333f714533aac1a0c1e4260425b06154dd7fa4ed920d01bef691",
+      "full_validation_max_score_difference": 9.119510650634766e-06,
+      "full_validation_top1_mismatches": 0,
+      "independent_litert_golden_max_score_difference": 0.0,
+      "cloud_inference_p95_ms": 15.05514100426808,
+      "cloud_preprocess_and_inference_p95_ms": 50.21191498963162,
+      "timing_scope": "actual Tencent CPU; one thread; warmup20/measure100; excludes network",
+      "freeze_scope": "model, threshold and preprocessing; independent field and physical-phone acceptance pending"
+    }
+  },
+  "local_model_versions": [
+    "campus-evolve-v3",
+    "campus-evolve-v2"
+  ],
+  "open_set_evidence": "docs/open-set-recognition.md"
 }
