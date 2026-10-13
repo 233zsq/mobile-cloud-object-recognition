@@ -1,0 +1,5 @@
+sample_id,image_path,image_sha256,category_id,object_id,session_id,collector,captured_at,split_name,review_status,data_version
+c0-o1-s0,images/c0-o1-s0.jpg,,0,object-1,session-01,测试采集者,2026-10-08,test,approved,compat-fixture
+c0-o1-s1,images/c0-o1-s1.jpg,,0,object-1,session-01,测试采集者,2026-10-08,test,approved,compat-fixture
+c1-o4-s0,images/c1-o4-s0.jpg,,1,object-4,session-01,测试采集者,2026-10-08,test,approved,compat-fixture
+c1-o4-s1,images/c1-o4-s1.jpg,,1,object-4,session-01,测试采集者,2026-10-08,test,approved,compat-fixture

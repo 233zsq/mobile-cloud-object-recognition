@@ -1,0 +1,15 @@
+{
+  "name": "campus-recognition-web",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test ios/tests/*.test.cjs tests/*.test.cjs",
+    "test:browser": "node --test ios/tests/*.browser.cjs tests/*.browser.cjs"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1"
+  }
+}

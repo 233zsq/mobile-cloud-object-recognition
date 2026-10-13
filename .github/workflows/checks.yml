@@ -1,0 +1,82 @@
+name: Project checks
+
+on:
+  pull_request:
+  push:
+    branches: [main, opti, 'codex/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  core:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - run: python -m pip install pytest==9.1.1
+      - run: python scripts/check-project.py --group core
+
+  python-components:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - group: backend
+            requirements: backend/requirements-dev.txt
+          - group: review
+            requirements: review/requirements-dev.txt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r ${{ matrix.requirements }}
+      - run: python scripts/check-project.py --group ${{ matrix.group }}
+
+  ml-data:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -e 'ml[test,analysis]'
+      - run: python scripts/check-project.py --group ml-data
+
+  deployment-guards:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r backend/requirements-dev.txt
+      - run: python scripts/check-project.py --group deploy
+
+  web-browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+        working-directory: web
+      - run: npx playwright install --with-deps chromium
+        working-directory: web
+      - run: python scripts/check-project.py --group web-browser

@@ -1,30 +1,16 @@
 """Real HTTP/SQLite checks for division of work and simultaneous reviewers."""
-import re
-import sqlite3
+
+from review_support import admin, connect, csrf, lease, member, public_archive, review_body, upload
 import time
 from concurrent.futures import ThreadPoolExecutor
-from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 import pytest
 
-from test_review import admin, app, csrf, join, lease, public_archive, review_body, upload
 
 
-def member(app, owner, name):
-    response = owner.post('/invites', data={'csrf': csrf(owner, '/')})
-    invite = re.search(r'https?://[^/]+(/join/[^"<>]+)', response.text).group(1)
-    client = app.test_client()
-    assert join(client, invite, name).status_code == 302
-    assert client.post('/login', data={'csrf': csrf(client), 'username': name,
-                                      'password': 'a-strong-test-password'}).status_code == 302
-    return client
 
 
-def connect(app):
-    connection = sqlite3.connect(Path(app.config['DATA_DIR']) / 'review.sqlite3')
-    connection.row_factory = sqlite3.Row
-    return connection
 
 
 def assign(app, owner, category, username, revision='1'):

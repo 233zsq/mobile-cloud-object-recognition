@@ -1,5 +1,7 @@
 # 辅助脚本
 
+Python 文件主要作为兼容命令入口。通用配置、检查、备份和静态打包的实现位于 `tools/`；采集、训练与模型交接业务位于 `ml/src/recognition/`。原参数和退出码保留，导入实现模块不会启动工作；实现归属见 [工具说明](../tools/README.md) 与 [ML 说明](../ml/README.md#命令与业务模块)。
+
 模型训练环境脚本均从仓库根目录运行：
 
 - Windows管理员PowerShell：`./scripts/setup-wsl-admin.ps1` 启用WSL及虚拟机平台，不自动重启；系统要求重启时先保存工作。
@@ -12,6 +14,8 @@
 
 数据、训练、哈希、评估和模型交接使用安装后的 `python -m recognition`，命令详见 `ml/README.md`。服务器数据库备份在deploy/scripts/backup_database.py，本机下载见下文。
 
+跨端配置使用 `scripts/sync-configs.py` 的 `check`、`generate`、`export` 子命令，分别只读核对、按版本绑定修复配置副本和导出指定版本。实现 `tools/config/` 仅依赖标准库，源和哈希在 `shared/config-distribution.json`。常用检查命令是 `python scripts/sync-configs.py check`；指定版本导出和各端绑定见[共享配置说明](../shared/README.md#版本分发与检查)。
+
 完成同一数据版本的训练后，运行 `python scripts/package-ml-delivery.py --release models/releases/<version>`。
 脚本校验发布模型、冻结清单和图片字节，打包源代码、环境锁、实际照片、检查点与交接样例，排除虚拟环境和个人计划书。
 归档位于本机 `backups/`，包含SHA-256清单，并逐项核验压缩包内容；这只是本地交付副本，仍需复制到组内独立备份存储。
@@ -19,9 +23,23 @@
 `make-handover-report.py --release models/releases/<version> --mode reference_tensor|image_chain --out <结果JSON>`
 生成全部20张样例的空白结果表，由Android或云端负责人填写实际分数和设备信息。
 随后用 `python -m recognition verify --release ... --external-report ...` 核对并保存通过或失败记录。
-`write-ml-report.py` 只重生成历史CPU先导章节 `docs/ml-experiments.md`，不修改当前发布状态；未来正式实验应使用各阶段summarize输出重新整理实际指标。
-`write-expanded-ml-report.py` 重生成已完成的877张公开照片CPU历史实验章节，保留该版本的类别和实验记录，不修改当前模型选择、发布状态、哈希或验收进度。
-`write-gpu-ml-report.py --campaign <ID> --version <模型版本>` 从已冻结的完整FP32 GPU发布包和三阶段结果生成 `docs/ml-gpu-experiments.md`，包含候选表、复核、全类别指标、阈值扫描和报告配图，不修改当前发布选择。实际环境说明见 `docs/ml-gpu-environment.md`。
+实验报告统一由 `ml/src/recognition/reports.py` 读取证据、生成候选表、分类指标、阈值扫描及混淆说明。入口 `write-report.py` 使用显式报告类型，仅需 Python 标准库；从仓库根目录运行，无需训练依赖或预先安装 recognition 包。
+
+| `--profile` | 输入与用途 | 默认输出 |
+| --- | --- | --- |
+| `pilot-cpu` | 固定的 `pilot-cpu-20261007 / pilot-cpu-tuned-v1` 历史先导实验 | `docs/ml-experiments.md` |
+| `expanded-cpu` | 固定的 `expanded-cpu-20261007 / expanded-cpu-v1` 历史扩展 CPU 实验 | `docs/ml-expanded-experiments.md` |
+| `gpu` | `--campaign <ID> --version <模型版本>` 指定的冻结完整 FP32 GPU 实验；检查独立运行时证据 | `docs/ml-gpu-experiments.md` |
+
+```bash
+python scripts/write-report.py --profile pilot-cpu
+python scripts/write-report.py --profile expanded-cpu
+python scripts/write-report.py --profile gpu --campaign expanded-gpu-20261008 --version campus-gpu-v1
+```
+
+可加 `--output <路径>.md` 输出到已存在目录中的其他 Markdown 文件；相对路径基于当前工作目录。三个原命令 `write-ml-report.py`、`write-expanded-ml-report.py`、`write-gpu-ml-report.py --campaign <ID> --version <模型版本>` 保留为兼容入口，共用同一实现与默认输出。CPU 类型保留固定历史数据和说明，不能替换为其他 campaign/version；GPU 类型继续检查模型冻结、胜出实验、GPU/TF32 和独立 LiteRT 证据，不将 CPU 历史报告套用 GPU 条件。
+
+报告仅写 Markdown，不修改当前模型选择、发布状态、冻结数据、模型哈希或验收进度；生成时间以外的指标与历史说明有原脚本输出基准测试。回归命令为 `python -m pytest -c ml/pytest.ini ml/tests/test_reports.py`（安装 recognition 或设置 `PYTHONPATH=ml/src`）。GPU 实际环境说明见 `docs/ml-gpu-environment.md`。
 
 独立LiteRT环境运行 `check-local-runtime.py --release models/releases/<version> --run-id <唯一ID>`，
 实际检查20张参考张量和20次图片预处理，并保存没有安装/导入TensorFlow的记录。
@@ -42,6 +60,8 @@ GPU环境预跑和正式训练完成后可加 `--formal`；CPU试验不能标为
 
 两个脚本共用清单读取规则：表头必须与模板一致，每行字段数必须完整，读取时统一去除字段首尾空白。因此 `cup-01` 与 `cup-01 ` 会作为同一实物统计、划分，冻结清单中的字段也使用去除空白后的值。划分不改写源清单。
 
+两个兼容入口的业务实现位于 `recognition.legacy_data`，与正式训练共用 `recognition.manifest_io` 的哈希、CSV/JSON 和原子写入。旧 11 列采集格式与正式 26 列格式分别保留，不自动转换；60/20/20 和正式训练/独立测试隔离规则见 [工具说明](../tools/README.md)。
+
 SHA-256 回填只在检查无错误时执行（警告不阻止回填）：先完整写入同目录临时文件，再替换原清单；校验或写入失败时不覆盖原文件。
 
 回归验证（仅标准库，仓库根目录运行）：
@@ -49,6 +69,10 @@ SHA-256 回填只在检查无错误时执行（警告不阻止回填）：先完
 ```bash
 python -m unittest discover -s tests -p test_data_scripts.py -v
 ```
+
+统一检查入口是 `python scripts/check-project.py`，默认执行配置核对、报告/数据回归、工具与静态边界及 Web 核心测试。可重复 `--group` 选择 `backend`、`review`、`ml-data`、`ml-integration`、`web-browser` 或 Linux `deploy`；使用 `--python <解释器>` / `--node <解释器>` 指向对应环境，`--list` 只列命令。依赖、CI 范围与测试组织见 [测试说明](../tests/README.md)。
+
+`python scripts/package-web.py --output tmp/ios-<唯一版本>.tar.gz` 按 `web/ios/runtime-files.json` 打包。模块依赖不完整时拒绝生成，已有归档不覆盖；输出归档及各文件 SHA-256，供 `deploy/scripts/publish_ios.py` 核验。README、测试、Node 依赖和运行清单本身不进入公开目录。
 
 加入脚本时说明用途、运行目录、参数、依赖与输出位置。清单和文件路径相对仓库根目录；本机绝对路径和凭据通过本地配置提供，不能写死在脚本里。Windows 脚本使用 PowerShell，云端 Linux 脚本放在相应部署目录或在此明确运行平台。
 

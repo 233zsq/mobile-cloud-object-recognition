@@ -7,6 +7,7 @@ const http = require('node:http');
 const { chromium } = require('playwright');
 
 const root = path.resolve(__dirname, '..');
+const runtimeFiles = new Set(JSON.parse(fs.readFileSync(path.join(root, 'runtime-files.json'))));
 const contract = JSON.parse(fs.readFileSync(path.join(root, 'model-contract.json')));
 const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jV3sAAAAASUVORK5CYII=', 'base64');
 const models = [
@@ -20,7 +21,7 @@ let origin;
 before(async () => {
   server = http.createServer((request, response) => {
     const file = decodeURIComponent(new URL(request.url, 'http://localhost').pathname).replace(/^\/ios\//, '');
-    if (!['index.html', 'app.js', 'core.js', 'app.css', 'categories.json', 'model-contract.json', 'manifest.webmanifest'].includes(file)) {
+    if (!runtimeFiles.has(file)) {
       response.writeHead(404).end(); return;
     }
     const types = { '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css', '.json': 'application/json' };

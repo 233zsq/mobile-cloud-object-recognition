@@ -1,4 +1,6 @@
 """AI failures, stale suggestions and spend limits cannot alter human decisions."""
+
+from review_support import admin, answer, categories, connect, fake_api, public_sample, review_body, upload
 import json
 import io
 import urllib.error
@@ -7,31 +9,15 @@ from pathlib import Path
 
 import pytest
 
-from test_review import admin, app, review_body, upload
-from test_workflow import connect
 from campus_review import ai_review
 
 
-def public_sample(app, owner, color='orange', crop=''):
-    path = upload(owner, color=color)
-    with connect(app) as db:
-        db.execute('UPDATE samples SET source="open_images",crop=? WHERE id=?', (crop, path.rsplit('/', 1)[1]))
-        return dict(db.execute('SELECT * FROM samples WHERE id=?', (path.rsplit('/', 1)[1],)).fetchone())
 
 
-def categories():
-    return json.loads((Path(__file__).resolve().parents[2] / 'shared/category-versions/campus-10-v4.json').read_text(encoding='utf-8'))
 
 
-def answer(**changes):
-    return json.dumps({'decision': 'pass', 'category_id': 0, 'subject': '水杯', 'reason': '主体清楚，类别一致',
-                       'flags': [], 'bbox': None, **changes})
 
 
-def fake_api(key, text, photo):
-    assert key == 'test-private-key-1234' and 'JSON' in text and photo.startswith(b'\xff\xd8')
-    assert 'reference_status' not in text and 'approved' not in text
-    return answer(), [300, 80], len(photo) + 1500
 
 
 def test_product_source_enters_ai_queue_and_can_be_analyzed(app):

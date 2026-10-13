@@ -1,6 +1,5 @@
 from uuid import uuid4
 import pytest
-from test_records import database_app, upload
 
 
 def evidence(status='uncertain'):
@@ -62,7 +61,6 @@ def test_unconfirmed_or_invalid_uncertain_results_cannot_be_uploaded(database_ap
 def test_mysql_additive_migration_preserves_legacy_records(database_app, upload):
     if database_app.config['TEST_DATABASE_KIND'] != 'mysql':
         pytest.skip('Actual MySQL DDL only')
-    from pathlib import Path
     from sqlalchemy import text
     from app.extensions import db
     from app.config import PROJECT_ROOT

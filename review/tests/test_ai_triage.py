@@ -1,4 +1,6 @@
 """Actual SQLite/HTTP triage writes, leases, budgets and manual overrides."""
+
+from review_support import admin, answer, categories, connect, csrf, execute, member, prepare, public_sample, review_body, transport
 import json
 import sqlite3
 import time
@@ -7,33 +9,13 @@ from pathlib import Path
 import pytest
 from werkzeug.exceptions import Conflict
 
-from test_review import admin, app, csrf, review_body, upload
-from test_workflow import connect, member
-from test_ai_review import answer, categories, public_sample
 from campus_review import ai_review as ai, ai_triage as triage
 
 
-def prepare(app, owner):
-    row = public_sample(app, owner)
-    app.config.update(REVIEW_TRIAGE_PRIMARY_MODEL='qwen3.8-flash', REVIEW_TRIAGE_POLICY='', REVIEW_AI_BUDGET_NANO=30_000_000_000,
-                      REVIEW_AI_MAX_CALLS=5000)
-    with connect(app) as db:
-        db.isolation_level = None
-        uid = db.execute('SELECT id FROM users WHERE role="admin"').fetchone()[0]
-        triage.set_enabled(db, uid, True)
-    return row, uid
 
 
-def transport(result=None):
-    return lambda key, text, photo: (result or answer(), [300, 80], len(photo))
 
 
-def execute(app, uid, result=None, apply=True, limit=50, analyze=None):
-    with connect(app) as db:
-        db.isolation_level = None
-        identity = triage.new_job(db, uid, limit, app.config, apply)
-        return triage.run_job(db, Path(app.config['DATA_DIR']), categories(), app.config, identity,
-                             analyze or (lambda *args, **kwargs: ai.analyze(*args, api=transport(result), **kwargs)))
 
 
 @pytest.mark.parametrize('change', [

@@ -37,8 +37,8 @@ mobile-cloud-object-recognition/
 │   └── assets/          # css/、js/、images/
 ├── ml/                  # TensorFlow/Keras：训练、评估与 tflite 导出
 │   ├── configs/         # 训练配置示例
-│   └── src/recognition/ # 待实现的 Python 模块
-├── shared/              # 跨模块类别约定与类别清单草案
+│   └── src/recognition/ # 采集、训练、评估、报告及共用清单 I/O
+├── shared/              # 按版本固定的类别、模型契约与策略分发清单
 ├── data/                # 原始照片、处理产物、样本清单与固定划分
 ├── models/              # 模型交接说明与版本元数据
 │   └── releases/        # 模型发布包的本地存放位置
@@ -48,7 +48,10 @@ mobile-cloud-object-recognition/
 │   └── seeds/
 ├── deploy/              # 腾讯云部署，Nginx/systemd 配置、证书及验收脚本
 ├── tests/               # 系统联调、验收记录与测试证据
-├── scripts/             # 后续数据检查、备份与交付辅助脚本
+├── scripts/             # 数据、配置、报告、统一检查、备份与交付入口
+├── tools/               # 配置分发、项目检查、备份、静态打包和素材工具
+├── review/              # 独立照片审核工作台及其测试
+├── .github/workflows/   # 跨平台契约、组件测试与部署边界检查
 ├── docs/                # 计划、接口、模型契约、报告、PPT 与演示资料
 ├── .env.example         # 环境变量名称草案，无真实凭据
 ├── .gitignore           # 忽略密钥、本地配置、照片、权重与构建产物
@@ -58,6 +61,8 @@ mobile-cloud-object-recognition/
 空目录用 `.gitkeep` 保留，加入实际文件后可以删除对应占位文件。
 
 `backend/`中的Python应用位于 `app/`，本地启动入口为 `python -m app`，生产WSGI入口为 `wsgi:app`。原有Java目录仅为初始化占位，不参与Python运行，见 [后端说明](backend/README.md)。
+
+从仓库根目录执行 `python scripts/check-project.py` 运行配置、报告、数据与 Web 核心检查。后端、审核、ML 和部署检查使用 `--group` 指定并在相应环境执行，见 [测试说明](tests/README.md)。
 
 ## 识别模式与统计口径
 

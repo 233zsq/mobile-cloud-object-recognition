@@ -1,12 +1,12 @@
 """New scope, immutable prior decisions and legacy public queue compatibility."""
+
+from review_support import admin, connect, csrf, public_archive, review_body, upload
 import hashlib
 import json
 import re
 
 import pytest
 
-from test_review import admin, app, csrf, public_archive, review_body, upload
-from test_workflow import connect
 from campus_review import ROOT, create_app
 
 

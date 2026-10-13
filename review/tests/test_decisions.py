@@ -1,11 +1,11 @@
 """Exercise quick review choices through the real page, database and audit log."""
+
+from review_support import admin, connect, review_body, upload
 import json
 import re
 
 import pytest
 
-from test_review import admin, app, review_body, upload
-from test_workflow import connect
 
 
 def test_pending_page_defaults_to_approval_without_saving_and_keeps_controls_above_photo(app):

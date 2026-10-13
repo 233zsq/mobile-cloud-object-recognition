@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "status": "frozen",
+  "category_version": "campus-10-v2",
+  "confirmed_at": "2026-10-07",
+  "categories": [
+    {"id": 0, "label_key": "cup", "display_name": "水杯", "definition": "饮水杯，排除酒瓶和饮料包装"},
+    {"id": 1, "label_key": "umbrella", "display_name": "雨伞"},
+    {"id": 2, "label_key": "book", "display_name": "书本", "definition": "实体书，排除扫描页和纯封面图"},
+    {"id": 3, "label_key": "pencil_case", "display_name": "笔袋", "definition": "软质笔袋及普通硬壳文具盒"},
+    {"id": 4, "label_key": "mouse", "display_name": "鼠标", "definition": "计算机鼠标"},
+    {"id": 5, "label_key": "keyboard", "display_name": "键盘", "definition": "仅独立外接计算机键盘，排除笔记本内置键盘、笔记本整机和乐器键盘"},
+    {"id": 6, "label_key": "earphones", "display_name": "耳机", "definition": "入耳或头戴式耳机，排除拆下的元件"},
+    {"id": 7, "label_key": "charger", "display_name": "充电器", "definition": "手机、平板或电脑电源适配器，排除充电桩、车用电池充电器和独立线材"},
+    {"id": 8, "label_key": "key", "display_name": "钥匙", "definition": "门锁或车钥匙，排除键盘按键"},
+    {"id": 9, "label_key": "backpack", "display_name": "背包"}
+  ]
+}

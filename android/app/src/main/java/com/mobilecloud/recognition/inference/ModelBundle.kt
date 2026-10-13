@@ -11,7 +11,7 @@ import org.tensorflow.lite.Interpreter
  * 一次性加载并校验模型包（model.tflite + labels.txt + metadata.json）。
  * 校验失败抛出 [ModelLoadException]，加载失败时上层不得输出任何分类结果（用例 T04）。
  *
- * 标签约定：labels.txt 第 i 行对应输出索引 i，类别 ID 与 shared/categories.json 一致。
+ * 标签约定：labels.txt 第 i 行对应输出索引 i，类别 ID 与对应 shared/category-versions/ 冻结版本一致。
  */
 class ModelBundle private constructor(
     val interpreter: Interpreter,

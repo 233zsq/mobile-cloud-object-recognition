@@ -1,0 +1,47 @@
+{
+  "data_version": "compat-fixture",
+  "seed": 42,
+  "ratios": {
+    "train": 0.6,
+    "validation": 0.2,
+    "test": 0.2
+  },
+  "source_manifest": "tests/fixtures/data-tools/source.csv",
+  "source_manifest_sha256": "ea527bbe0d1652744ee0f9a7b80a521479e6b5056f2534d6bf808e7a233952a7",
+  "rule": "同一 object_id 整体划入一个集合；类别内独立划分；实物不足3件的类别全部入训练集",
+  "counts": {
+    "train": {
+      "0": 8,
+      "1": 6,
+      "2": 4
+    },
+    "validation": {
+      "0": 4,
+      "1": 2
+    },
+    "test": {
+      "0": 2,
+      "1": 2
+    }
+  },
+  "files": {
+    "train": {
+      "path": "data/splits/compat-fixture/train.csv",
+      "rows": 18,
+      "sha256": "5131049ba6cf27a5aaf95e4129e502c5ea1d4c08cf6465fbf9fff272920efd46"
+    },
+    "validation": {
+      "path": "data/splits/compat-fixture/validation.csv",
+      "rows": 6,
+      "sha256": "844260c5cfa0460cc4374942995ac73bcdc2a47ccaf99739d8ed6ec58d6c2cc6"
+    },
+    "test": {
+      "path": "data/splits/compat-fixture/test.csv",
+      "rows": 4,
+      "sha256": "6ab8340345a410db902e93725bbbb53c6b54248b6ccd892fddc94302f1d44614"
+    }
+  },
+  "warnings": [
+    "类别 2 只有 2 件实物，无法按实物分到三个集合，已全部划入训练集；验证/测试对该类无实物泛化意义，建议补采。"
+  ]
+}

@@ -21,6 +21,10 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from deploy.ios_assets import FILES  # noqa: E402
 
 
 SITE = Path('/etc/nginx/sites-available/mobile-cloud-backend')
@@ -71,8 +75,7 @@ def require_root():
 
 
 def require_assets():
-    missing = [name for name in ('index.html', 'app.css', 'app.js', 'core.js', 'categories.json',
-                                'model-contract.json', 'manifest.webmanifest') if not (WWW / name).is_file()]
+    missing = [name for name in sorted(FILES) if not (WWW / name).is_file()]
     if missing:
         raise SystemExit(f"{WWW} 缺少文件：{', '.join(missing)}；先按 web/ios/README.md 同步静态文件。")
 

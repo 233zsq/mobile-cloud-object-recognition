@@ -1,4 +1,6 @@
 """Direct drawing must not require cropping or change immutable source photos."""
+
+from review_support import admin, connect, csrf, review_body, upload
 import csv
 import hashlib
 import io
@@ -8,8 +10,6 @@ import zipfile
 
 import pytest
 
-from test_review import admin, app, csrf, review_body, upload
-from test_workflow import connect
 
 
 @pytest.mark.parametrize(('draw', 'selection', 'expected'), [

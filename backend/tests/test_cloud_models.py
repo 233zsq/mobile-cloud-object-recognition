@@ -7,14 +7,14 @@ import pytest
 
 from app.errors import ApiError
 from inference_registry import LABELS, load_registry
-from test_infer import ReadyModel
+from backend_support import ReadyModel
 
 
 def entry(version='campus-gpu-v1'):
     return {'model_version': version, 'model_sha256': 'a' * 64, 'labels_sha256': 'b' * 64,
             'category_version': 'campus-10-v4', 'labels': LABELS, 'status': 'frozen',
             'display_name': '基准版', 'description': '固定基准', 'low_confidence_threshold': .6,
-            'package': str(Path('/managed/models').resolve() / version)}
+            'package': str(Path.cwd() / 'managed/models' / version)}
 
 
 def test_registry_requires_unique_approved_compatible_models(tmp_path):

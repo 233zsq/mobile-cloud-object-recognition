@@ -3,7 +3,26 @@
 手机、平板与 PC 共用的「观察手册」，部署于 https://49.232.195.47/ios/ 。
 拍照或选图 → 云端推理 → 本机记录 → 同步与纠错。网页版需要联网，不提供端侧离线推理。
 
+类别与模型契约由 `scripts/sync-configs.py` 按 `shared/config-distribution.json` 的绑定分发；
+提交或打包前运行 `python scripts/sync-configs.py check --target web`。策略校验保留原 LF/CRLF 字节，
+模型及策略版本导出见[共享配置说明](../../shared/README.md#版本分发与检查)。
+
 2026-10-13：接入与安卓本地 v2 相同的[基础确认规则](../../docs/scope-basic-v1.md)。最高分至少55%、前两名分差至少20个百分点时自动保存，其余先确认、选实际类别或放弃。旧 v1 没有匹配规则，全部转人工确认。高置信范围外误判仍可能通过。
+
+## 代码职责
+
+`app.js` 仅组装依赖与启动页面，使用原生 ES 模块，无构建步骤。`core.js` 保存纯记录、响应校验和范围规则；业务服务通过回调通知视图，不访问 DOM。
+
+| 模块 | 职责 |
+| --- | --- |
+| `modules/state.js`、`storage.js` | 会话状态及兼容原 localStorage 键的持久化 |
+| `modules/api.js`、`images.js` | 请求认证/超时/取消，图片传输副本处理 |
+| `modules/models.js` | 类别、契约和模型选择，不静默切换版本 |
+| `modules/capture.js`、`records.js` | 识别与待确认流程，单一同步队列及纠错/冲突处理 |
+| `modules/events.js` | 用户事件、导航与定时补传触发 |
+| `modules/views/` | 页面、识别票据、记录和设置的 DOM 渲染 |
+
+函数通过应用实例共享状态，模块不注册全局业务变量；存储、请求和记录服务可独立测试。样式、页面操作、持久化格式、记录与范围判断口径保留。
 
 ## 页面与操作
 
@@ -40,11 +59,13 @@
 
 ## 部署与回退
 
-只公开7个运行文件：index.html、app.css、app.js、core.js、categories.json、
-model-contract.json、manifest.webmanifest。不上传README、测试、照片或凭据。
+只公开 `runtime-files.json` 列出的运行文件，包含入口、类别/模型契约和全部原生模块。清单本身、README、测试、package.json/lock、Node 依赖、照片或凭据不进入公开目录。
+使用 `python scripts/package-web.py --output tmp/ios-<唯一版本>.tar.gz` 生成完整归档及 SHA-256；打包前检查 HTML/JS 依赖闭包，已有归档拒绝覆盖。
 `apply_ios_static.py` 管理Nginx静态路由，`publish_ios.py` 校验归档哈希和成员白名单，
 持有ACME共享锁后原子切换 `/var/www/mobile-cloud-ios` 指针。
 旧版本保存在 `/var/www/mobile-cloud-ios-releases/`，发布记录位于后端shared目录。
+
+部署工具从完整仓库运行，共用 `deploy/ios_assets.py` 和可信的 `web/ios/runtime-files.json`，不单独复制入口脚本。新页面须整体发布入口及所有模块；发布器创建模块子目录，失败仍回退旧目录指针。
 
 443已切换到8443正在使用的可信IP证书，复用现有自动续期任务，正常访问无需安装自签证书。
 `public_tls.py` 只替换已知443证书指令，预检查、备份、Nginx验证、等待就绪；失败恢复旧配置。
@@ -63,7 +84,7 @@ Android配置已有system信任，续期不需要更新APK；不关闭证书或�
   不调用正式记录写入接口。
 - 用户反馈安卓机拍照正常；具体客户端、版本、设备与完整真机链路尚未留证，不替代实拍准确率验收。
 
-复现：`node --test web/ios/tests/core.test.cjs`；
+纯逻辑复现：`node --test web/ios/tests/core.test.cjs web/ios/tests/services.test.cjs`；模块化后的浏览器检查见 [Web 回归说明](../README.md#回归检查)。
 在具备pytest的Python环境运行 `pytest tests/test_ios_deploy.py review/tests/test_acme.py -q`。
 
 
