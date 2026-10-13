@@ -85,16 +85,20 @@ class ConsistencyCheck(private val context: Context) {
                 }
                 val buffer = ByteBuffer.allocateDirect(bytes.size).order(ByteOrder.LITTLE_ENDIAN)
                     .apply { put(bytes); rewind() }
-                val scores = classifier.runInterpreter(buffer)
+                val outputs = classifier.runOutputs(buffer)
+                val scores = outputs.scores
                 val sha = ShaUtil.sha256Hex(bytes)
                 val verdict = ConsistencyReport.evaluate(scores, sample.scores, sample.predictedId, null)
-                if (!verdict.passed || (sample.tensorSha256 != null && sha != sample.tensorSha256)) {
+                val scopeMatches = outputs.knownness == null || (sample.knownness != null && sample.knownness.isFinite() &&
+                    kotlin.math.abs(outputs.knownness - sample.knownness) <= .001)
+                if (!verdict.passed || !scopeMatches || (sample.tensorSha256 != null && sha != sample.tensorSha256)) {
                     refFailures += "${sample.sampleId}: top1=${verdict.top1Same} scoreDiff=${"%.6g".format(verdict.maxScoreDiff)}"
                 }
                 refSamples += ConsistencyReport.SampleReport(
                     sampleId = sample.sampleId,
                     scores = scores,
                     tensorSha256 = sha,
+                    knownness = outputs.knownness,
                 )
             }
             val refReport = ConsistencyReport.build(
@@ -106,6 +110,7 @@ class ConsistencyCheck(private val context: Context) {
                 labelsSha256 = bundle.labelsSha256,
                 inputContract = contract,
                 samples = refSamples,
+                scopePolicySha256 = bundle.scopePolicy.sha256,
             )
             File(outputDir, "$runId-reference_tensor.json")
                 .writeText(json.encodeToString(kotlinx.serialization.json.JsonObject.serializer(), refReport))
@@ -124,12 +129,15 @@ class ConsistencyCheck(private val context: Context) {
                 buffer.rewind()
                 File(outputDir, "${sample.sampleId}.bin").writeBytes(produced)
 
-                val scores = classifier.runInterpreter(buffer)
+                val outputs = classifier.runOutputs(buffer)
+                val scores = outputs.scores
                 val golden = assets.open("$EXAMPLES_DIR/${sample.tensor}").use { it.readBytes() }
                 val inputDiff = ConsistencyReport.maxFloatDiff(produced, golden)
                 val (minV, maxV) = ConsistencyReport.floatRange(produced)
                 val verdict = ConsistencyReport.evaluate(scores, sample.scores, sample.predictedId, inputDiff)
-                if (!verdict.passed || minV < 0f || maxV > 255f) {
+                val scopeMatches = outputs.knownness == null || (sample.knownness != null && sample.knownness.isFinite() &&
+                    kotlin.math.abs(outputs.knownness - sample.knownness) <= .001)
+                if (!verdict.passed || !scopeMatches || minV < 0f || maxV > 255f) {
                     imgFailures += "${sample.sampleId}: inputDiff=${"%.6g".format(inputDiff)} top1=${verdict.top1Same} " +
                         "scoreDiff=${"%.6g".format(verdict.maxScoreDiff)} range=[$minV,$maxV]"
                 }
@@ -137,6 +145,7 @@ class ConsistencyCheck(private val context: Context) {
                     sampleId = sample.sampleId,
                     scores = scores,
                     tensorFile = "${sample.sampleId}.bin",
+                    knownness = outputs.knownness,
                 )
             }
             val imgReport = ConsistencyReport.build(
@@ -148,6 +157,7 @@ class ConsistencyCheck(private val context: Context) {
                 labelsSha256 = bundle.labelsSha256,
                 inputContract = contract,
                 samples = imgSamples,
+                scopePolicySha256 = bundle.scopePolicy.sha256,
             )
             File(outputDir, "$runId-image_chain.json")
                 .writeText(json.encodeToString(kotlinx.serialization.json.JsonObject.serializer(), imgReport))

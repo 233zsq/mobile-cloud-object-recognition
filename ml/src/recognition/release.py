@@ -126,6 +126,8 @@ def compare_external(release,report_path):
         raise ValueError('External model/labels SHA-256 mismatch')
     if report.get('input_contract')!=meta['input']:
         raise ValueError('External preprocessing/type/normalization contract differs')
+    if meta.get('scope_output') and report.get('scope_policy_sha256')!=meta['scope_policy_sha256']:
+        raise ValueError('External scope policy SHA-256 mismatch')
     mode=report.get('mode')
     if mode not in ('reference_tensor','image_chain'):
         raise ValueError('External mode must be reference_tensor or image_chain')
@@ -158,6 +160,10 @@ def compare_external(release,report_path):
             input_passed=input_difference<=.001
             actual_tensor_sha256=digest(path)
         difference=float(np.max(np.abs(scores-golden['scores'])))
+        if meta.get('scope_output'):
+            value=sample.get('knownness')
+            if type(value) not in (int,float) or not np.isfinite(value) or not 0<=value<=1 or abs(value-golden['knownness'])>.001:
+                raise ValueError('External scope output differs from golden reference')
         same=int(scores.argmax())==golden['predicted_id']
         comparisons.append({'sample_id':sample['sample_id'],'actual_tensor_sha256':actual_tensor_sha256,'reference_tensor_sha256':golden['tensor_sha256'],'input_passed':input_passed,'max_input_difference':input_difference,'top1_same':same,'max_score_difference':difference,'passed':bool(input_passed and same and difference<=.001)})
     result={'at':now(),'run_id':run_id,'mode':mode,'device':report.get('device'),'runtime':report.get('runtime'),'model_sha256':meta['sha256'],'labels_sha256':meta['labels_sha256'],'submitted_report_sha256':digest(report_path),'passed':all(c['passed'] for c in comparisons),'comparisons':comparisons}
