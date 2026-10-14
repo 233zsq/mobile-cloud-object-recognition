@@ -91,6 +91,16 @@ review/.venv/Scripts/python.exe -m pytest -q review/tests --basetemp=tmp/review-
 
 ## 运维
 
+### 2026-10-14 职责拆分发布
+
+本次职责拆分已完成部署，完整归档的 89 个源码/公开元数据文件核验通过。具体部署标识、发布目录和备份位置保留在私有交付记录。
+
+本地 Python 3.12 和 Linux 隔离环境分别完成 148 项审核站测试。切换前确认没有进行中的 AI 任务，并使用 SQLite 在线备份保存一致快照；数据库备份完整性检查通过，旧发布保留可回退。
+
+原子切换后核对全部持久表内容/结构及照片、冻结批次的文件统计身份，均一致。已有模型依据、费用预留、抽检、撤回、租约和配置保留。本次验证未创建生产账号、上传照片或调用付费 AI。
+
+公网使用系统信任库验证 HTTPS；健康、登录页、Secure/HttpOnly/SameSite 会话、安全响应头、未登录跳转和 CSRF 拒绝全部通过。公开结果见 [验收摘要](../tests/evidence/review-refactor-deployment-20261014.json)。代码回退只切换 `current` 到已核对的旧发布并重启审核站；具体目标从私有交付记录取得。SQLite 备份用于独立恢复验证，真实数据恢复按下方备份流程处理。
+
 源码：`/home/ubuntu/apps/campus-review/releases/<归档摘要>/`；`current`原子指向当前版本。数据：`/home/ubuntu/apps/campus-review/shared/`（0700）；配置：`/home/ubuntu/.config/campus-review/review.env`（0600）。SQLite WAL适合当前小组规模。照片、数据库、邀请及配置都不进入Git。
 
 本地 `python review/deploy/package.py` 只打包审核源代码、测试、类别和基准公开元数据，保存逐文件源码哈希及Git提交/工作区状态。上传归档并校验哈希后解压到新目录，在服务器执行 `python3 <发布目录>/review/deploy/install.py`。安装会运行网页测试、校验Nginx、仅重启自己的服务，并检查原后端配置哈希及健康；更新失败可恢复上一版本指针。安装需要 `ubuntu` 免密sudo；脚本不配置云防火墙。

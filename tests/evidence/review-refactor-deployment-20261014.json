@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "validation_date": "2026-10-14",
+  "deployment_identifiers": "Retained in private operational records",
+  "source_files_verified": 89,
+  "committed_source_package_verified": true,
+  "local_review_tests": {"python": "3.12.13", "passed": 148},
+  "isolated_linux_review_tests": {"python": "3.14.4", "passed": 148},
+  "compatibility": {"routes": 24, "cli_commands": 8, "schema_matches_baseline": true},
+  "activation_checks": {
+    "no_active_ai_jobs_before_restart": true,
+    "database_backup_integrity": true,
+    "all_persistent_table_values_and_schema_unchanged": true,
+    "original_photo_and_batch_file_stats_unchanged": true,
+    "existing_configuration_preserved": true
+  },
+  "public_https_checks": {
+    "system_trust_certificate_validation": true,
+    "review_health": true,
+    "login_page": true,
+    "secure_httponly_samesite_session_cookie": true,
+    "security_headers": true,
+    "unauthenticated_redirect": true,
+    "csrf_rejected": true,
+    "existing_service_compatibility": true
+  },
+  "production_photos_uploaded": 0,
+  "production_accounts_created": 0,
+  "paid_ai_api_calls": 0,
+  "passed": true
+}
