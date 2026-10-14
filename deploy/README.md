@@ -2,9 +2,15 @@
 
 2026-10-08 已在 `49.232.195.47` 部署 Flask、Gunicorn、MySQL 和 Nginx。服务器内及公网 HTTPS 验收通过，HTTP 自动跳转 HTTPS；真实入库、去重、冲突处理及服务重启验证完成。
 
+## 2026-10-14 审核站独立更新
+
+审核站职责拆分已完成部署。本地与 Linux 隔离环境各 148 项测试通过，可信 HTTPS 验收通过；切换前保存私有 SQLite 备份及旧发布，切换后核对持久表内容、结构、照片/冻结批次和配置身份。通用维护说明见 [审核站运维](../review/README.md#2026-10-14-职责拆分发布)，结果见 [验收摘要](../tests/evidence/review-refactor-deployment-20261014.json)；具体发布和备份位置保留在私有交付记录。
+
 ## 2026-10-12 后端与统计页
 
-当前模型为campus-evolve-v2，类别campus-10-v4；health返回实际模型和当前后端提交版本。已增加修订号纠错、分页记录、统计和类别接口，Flask与Nginx均校验非空API_TOKEN。根路径提供Web统计页，页面输入现有口令后每5秒刷新，口令只在页面内存。443与8443现共用已签发、自动续期的可信IP证书；原自签证书保留为回退资料。
+当时模型为campus-evolve-v2，类别campus-10-v4；health返回实际模型和当次后端提交版本。已增加修订号纠错、分页记录、统计和类别接口，Flask与Nginx均校验非空API_TOKEN。根路径提供Web统计页，页面输入现有口令后每5秒刷新，口令只在页面内存。443与8443现共用已签发、自动续期的可信IP证书；原自签证书保留为回退资料。
+
+2026-10-13 已上线可选择 v2/v3 的云端推理，2026-10-14 实读后端健康状态为 `campus-evolve-v3` / `ready`。v3 的范围判断、人工确认和交接记录见 [open-set-recognition.md](../docs/open-set-recognition.md)。审核站与后端分别发布；代码拆分不意味着两处服务自动升级。
 
 本次不新增依赖或改变数据库结构。用固定提交生成发布归档，通过SHA-256核对后，按以下流程部署；staging.json记录旧发布、待激活发布和Nginx哈希，激活时使用这些值。
 
@@ -139,4 +145,4 @@ sudo python3 deploy/scripts/apply_ios_static.py   # 备份 + 写入 location + n
 - 静态页用 `alias` 直接读取 `/var/www/mobile-cloud-ios/`，与 `current` 发布目录解耦；页面调用的 `/api/*`
   仍是同一个 Flask 发布，两者互不影响。
 
-静态包更新使用 `publish_ios.py <shared目录中的归档> --sha256 <归档哈希>`，仅接受7个运行文件，校验后原子切换目录指针；旧版本保存在 `/var/www/mobile-cloud-ios-releases/`。不使用全目录上传，测试和README不会公开托管。
+静态包先由 `python scripts/package-web.py --output <新归档路径>` 生成，再使用 `publish_ios.py <shared目录中的归档> --sha256 <归档哈希>` 更新。打包与发布共用可信的 `web/ios/runtime-files.json`，目前包含 21 个运行文件及嵌套模块；依赖闭包、路径和哈希通过后原子切换目录指针。工具从完整仓库运行，旧版本保存在 `/var/www/mobile-cloud-ios-releases/`；测试和 README 不公开托管。

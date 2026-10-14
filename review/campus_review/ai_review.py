@@ -14,7 +14,6 @@ from collections import Counter, defaultdict, deque
 from datetime import datetime, timezone
 from pathlib import Path
 
-import click
 from PIL import Image, ImageOps
 
 from .assets import PUBLIC_SOURCES, crop_box
@@ -438,95 +437,9 @@ def usage_report(totals):
 
 
 def register(app, get_db, data, categories):
-    @app.cli.command('ai-review')
-    @click.option('--mode', type=click.Choice(['pilot', 'pending']), default='pilot')
-    @click.option('--limit', type=click.IntRange(1, 50), default=20)
-    @click.option('--category', type=click.IntRange(0, 9))
-    @click.option('--retry-errors', is_flag=True, help='Explicitly retry failed suggestions, preserving all prior charged/reserved usage.')
-    @click.option('--cohort', type=click.Path(exists=True, path_type=Path), help='Reuse sample IDs and unchanged human references from a pilot report.')
-    @click.option('--report', type=click.Path(path_type=Path))
-    def run(mode, limit, category, retry_errors, cohort, report):
-        """Suggest on public photos; pilot compares against hidden human decisions."""
-        try:
-            key = read_key(app.config)
-        except ReviewError as error:
-            raise click.ClickException(str(error)) from None
-        connection = get_db()
-        run_id = uuid.uuid4().hex
-        results = []
-        cohort_hash = None
-        if cohort and (mode != 'pilot' or category is not None):
-            raise click.UsageError('--cohort requires pilot mode without --category')
-        try:
-            rows, cohort_hash = cohort_rows(connection, cohort, limit, categories, app.config['REVIEW_AI_CATEGORY_SHA256']) if cohort else (
-                select_rows(connection, mode, limit, category, categories, retry_errors), None)
-        except ReviewError as error:
-            raise click.ClickException(str(error)) from None
-        usage_before = usage_totals(connection)
-        identities = [cache_key(row, categories) for row in rows]
-        selected_usage_before = usage_totals(connection, identities)
-        for i, row in enumerate(rows):
-            error_code = ''
-            try:
-                state, result = analyze(connection, data, row, categories, {**app.config, 'REVIEW_AI_RETRY_ERRORS': retry_errors}, key)
-                if state == 'error':
-                    error_code = connection.execute('SELECT error_code FROM ai_reviews WHERE cache_key=?',
-                                                     (cache_key(row, categories),)).fetchone()[0]
-            except ReviewError as error:
-                state, result, error_code = 'error', None, str(error)
-            except (OSError, ValueError):
-                state, result = 'error', None
-                error_code = 'photo_validation_failed'
-            current = connection.execute('SELECT revision FROM samples WHERE id=?', (row['id'],)).fetchone()[0]
-            results.append({'sample_id': row['id'], 'category_id': row['category'], 'reference_status': row['status'],
-                            'photo_sha256': row['sha256'], 'crop': json.loads(row['crop']) if row['crop'] else None,
-                            'reference_revision': row['revision'], 'reference_still_current': current == row['revision'],
-                            'state': state, 'error_code': error_code, 'suggestion': result})
-            click.echo(f'AI {i + 1}/{len(rows)}: {state}', err=True)
-            if state == 'error' and error_code not in ('invalid_suggestion', 'photo_validation_failed'):
-                # Per-photo format faults need human review; provider/budget faults stop the run.
-                break
-        passed = [r for r in results if r['reference_still_current'] and r['suggestion'] and r['suggestion']['decision'] == 'pass']
-        agreed = sum(r['reference_status'] == 'approved' for r in passed)
-        pass_disagreements = [r['sample_id'] for r in passed if r['reference_status'] != 'approved'] if mode == 'pilot' else []
-        approved = [r for r in results if mode == 'pilot' and r['reference_still_current'] and
-                    r['reference_status'] == 'approved' and r['suggestion']]
-        reject_disagreements = [r['sample_id'] for r in approved if r['suggestion']['decision'] == 'reject']
-        crop_rechecks = [r['sample_id'] for r in approved if r['suggestion']['decision'] == 'crop']
-        usage = usage_totals(connection)
-        output = {'run_id': run_id, 'mode': mode, 'model': MODEL, 'prompt_version': PROMPT_VERSION,
-                  'provider_model_is_alias': MODEL in ALIAS_GENERATIONS,
-                  'alias_cache_generation': ALIAS_GENERATIONS.get(MODEL),
-                  'inference': inference(Profile(MODEL, PROMPT_VERSION)),
-                  'category_version': categories['category_version'], 'categories_sha256': app.config['REVIEW_AI_CATEGORY_SHA256'],
-                  'cohort_source_sha256': cohort_hash, 'input_nano_yuan_per_token': INPUT_RATE, 'output_nano_yuan_per_token': OUTPUT_RATE,
-                  'at': stamp(), 'count': len(results), 'requested_count': len(rows), 'human_decisions_changed': 0,
-                  'decision_counts': dict(Counter(r['suggestion']['decision'] for r in results if r['suggestion'])),
-                  'errors': dict(Counter(r['error_code'] for r in results if r['error_code'])),
-                  'reference_basis': 'existing_single_review_not_adjudicated', 'reference_is_ground_truth': False,
-                  'pass_reference_agreement': agreed / len(passed) if mode == 'pilot' and passed else None,
-                  'pass_reference_disagreements': pass_disagreements,
-                  'reject_reference_disagreements': reject_disagreements,
-                  'approved_needing_crop_recheck': crop_rechecks,
-                  # Legacy report consumers use these aliases; neither measures correctness.
-                  'pass_precision': agreed / len(passed) if mode == 'pilot' and passed else None,
-                  'pass_reference_count': len(passed) if mode == 'pilot' else 0,
-                  'false_passes': pass_disagreements,
-                  'auto_approval_enabled': False, 'auto_approval_note': '此入口只保存建议，不修改照片状态；严格分流由独立策略入口控制。',
-                  'cumulative_usage': usage_report(usage),
-                  'run_usage': usage_report(tuple(a - b for a, b in zip(usage_totals(connection, identities), selected_usage_before))),
-                  'run_usage_basis': 'selected_inputs_ledger_delta',
-                  'ledger_window_usage': usage_report(tuple(a - b for a, b in zip(usage, usage_before))),
-                  'cohort_usage': usage_report(usage_totals(connection, identities)),
-                  'samples': results}
-        payload = json.dumps(output, ensure_ascii=False, indent=2)
-        connection.execute('INSERT INTO ai_runs VALUES(?,?,?)', (run_id, payload, stamp()))
-        if report:
-            report.parent.mkdir(parents=True, exist_ok=True)
-            report.write_text(payload + '\n', encoding='utf-8')
-        click.echo(json.dumps({k: v for k, v in output.items() if k != 'samples'}, ensure_ascii=False))
-        if len(results) < len(rows) or any(r['state'] != 'done' for r in results):
-            raise click.ClickException('AI run incomplete; inspect safe error_code in ai_reviews')
+    """Compatibility registration; commands live in the CLI package."""
+    from .cli.ai_review import register as register_commands
+    register_commands(app, get_db, data, categories)
 
 
 def latest_report(connection, mode=None):
@@ -537,3 +450,71 @@ def latest_report(connection, mode=None):
         arguments.append(mode)
     row = connection.execute('SELECT report FROM ai_runs' + clause + ' ORDER BY created_at DESC,rowid DESC LIMIT 1', arguments).fetchone()
     return json.loads(row[0]) if row else None
+
+
+def run_review(connection, data, categories, config, key, mode, limit, category=None,
+               retry_errors=False, cohort=None, progress=lambda message: None):
+    """Save suggestions and their report without changing human decisions."""
+    run_id = uuid.uuid4().hex
+    rows, cohort_hash = cohort_rows(connection, cohort, limit, categories, config['REVIEW_AI_CATEGORY_SHA256']) if cohort else (
+        select_rows(connection, mode, limit, category, categories, retry_errors), None)
+    results = []
+    usage_before = usage_totals(connection)
+    identities = [cache_key(row, categories) for row in rows]
+    selected_usage_before = usage_totals(connection, identities)
+    for i, row in enumerate(rows):
+        error_code = ''
+        try:
+            state, result = analyze(connection, data, row, categories, {**config, 'REVIEW_AI_RETRY_ERRORS': retry_errors}, key)
+            if state == 'error':
+                error_code = connection.execute('SELECT error_code FROM ai_reviews WHERE cache_key=?',
+                                                 (cache_key(row, categories),)).fetchone()[0]
+        except ReviewError as error:
+            state, result, error_code = 'error', None, str(error)
+        except (OSError, ValueError):
+            state, result = 'error', None
+            error_code = 'photo_validation_failed'
+        current = connection.execute('SELECT revision FROM samples WHERE id=?', (row['id'],)).fetchone()[0]
+        results.append({'sample_id': row['id'], 'category_id': row['category'], 'reference_status': row['status'],
+                        'photo_sha256': row['sha256'], 'crop': json.loads(row['crop']) if row['crop'] else None,
+                        'reference_revision': row['revision'], 'reference_still_current': current == row['revision'],
+                        'state': state, 'error_code': error_code, 'suggestion': result})
+        progress(f'AI {i + 1}/{len(rows)}: {state}')
+        if state == 'error' and error_code not in ('invalid_suggestion', 'photo_validation_failed'):
+            # Per-photo format faults need human review; provider/budget faults stop the run.
+            break
+    passed = [r for r in results if r['reference_still_current'] and r['suggestion'] and r['suggestion']['decision'] == 'pass']
+    agreed = sum(r['reference_status'] == 'approved' for r in passed)
+    pass_disagreements = [r['sample_id'] for r in passed if r['reference_status'] != 'approved'] if mode == 'pilot' else []
+    approved = [r for r in results if mode == 'pilot' and r['reference_still_current'] and
+                r['reference_status'] == 'approved' and r['suggestion']]
+    reject_disagreements = [r['sample_id'] for r in approved if r['suggestion']['decision'] == 'reject']
+    crop_rechecks = [r['sample_id'] for r in approved if r['suggestion']['decision'] == 'crop']
+    usage = usage_totals(connection)
+    output = {'run_id': run_id, 'mode': mode, 'model': MODEL, 'prompt_version': PROMPT_VERSION,
+              'provider_model_is_alias': MODEL in ALIAS_GENERATIONS,
+              'alias_cache_generation': ALIAS_GENERATIONS.get(MODEL),
+              'inference': inference(Profile(MODEL, PROMPT_VERSION)),
+              'category_version': categories['category_version'], 'categories_sha256': config['REVIEW_AI_CATEGORY_SHA256'],
+              'cohort_source_sha256': cohort_hash, 'input_nano_yuan_per_token': INPUT_RATE, 'output_nano_yuan_per_token': OUTPUT_RATE,
+              'at': stamp(), 'count': len(results), 'requested_count': len(rows), 'human_decisions_changed': 0,
+              'decision_counts': dict(Counter(r['suggestion']['decision'] for r in results if r['suggestion'])),
+              'errors': dict(Counter(r['error_code'] for r in results if r['error_code'])),
+              'reference_basis': 'existing_single_review_not_adjudicated', 'reference_is_ground_truth': False,
+              'pass_reference_agreement': agreed / len(passed) if mode == 'pilot' and passed else None,
+              'pass_reference_disagreements': pass_disagreements,
+              'reject_reference_disagreements': reject_disagreements,
+              'approved_needing_crop_recheck': crop_rechecks,
+              # Legacy report consumers use these aliases; neither measures correctness.
+              'pass_precision': agreed / len(passed) if mode == 'pilot' and passed else None,
+              'pass_reference_count': len(passed) if mode == 'pilot' else 0,
+              'false_passes': pass_disagreements,
+              'auto_approval_enabled': False, 'auto_approval_note': '此入口只保存建议，不修改照片状态；严格分流由独立策略入口控制。',
+              'cumulative_usage': usage_report(usage),
+              'run_usage': usage_report(tuple(a - b for a, b in zip(usage_totals(connection, identities), selected_usage_before))),
+              'run_usage_basis': 'selected_inputs_ledger_delta',
+              'ledger_window_usage': usage_report(tuple(a - b for a, b in zip(usage, usage_before))),
+              'cohort_usage': usage_report(usage_totals(connection, identities)),
+              'samples': results}
+    connection.execute('INSERT INTO ai_runs VALUES(?,?,?)', (run_id, json.dumps(output, ensure_ascii=False, indent=2), stamp()))
+    return output

@@ -1,6 +1,6 @@
 # 照片审核工作台
 
-云端入口：<https://49.232.195.47:8443>。独立使用 `ubuntu`、`campus-review.service` 和回环8081，不改变现有443后端。组员通过一次性邀请建立个人账号；管理员冻结批次、下载训练包并审批候选模型。训练在本机GPU执行，Android后续接入。
+云端入口：<https://49.232.195.47:8443>。独立使用 `ubuntu`、`campus-review.service` 和回环8081，不改变现有443后端。组员通过一次性邀请建立个人账号；管理员冻结批次、下载训练包并审批候选模型。训练在本机GPU执行，候选模型经批准后另行交付Android和云端。
 
 8443使用浏览器信任的Let’s Encrypt IP证书，无需安装自签名证书。IP证书约6天有效，独立的 `campus-review-acme.timer` 每6小时检查续期；HTTP-01仅在签发期间临时使用80端口验证路径，结束后逐字节恢复原跳转配置。443的证书与配置保持原样，`deploy/certs/server.crt` 仍属于443后端。[官方IP证书与Certbot说明](https://letsencrypt.org/2026/03/11/shorter-certs-certbot)。
 
@@ -32,6 +32,33 @@
 
 ## 开发与验证
 
+### 模块职责
+
+`campus_review.create_app` 和 `wsgi:app` 继续作为启动入口。工厂只组合配置、数据库、请求生命周期、路由和 CLI；资源保存在每个应用自己的 `extensions` 中。一个进程中创建多个测试应用时，数据目录、类别口径和连接各自隔离。
+
+| 模块 | 职责 |
+| --- | --- |
+| `factory.py`、`configuration.py`、`paths.py` | 组装应用、读取环境及冻结类别/基准元数据，定位完整交付包 |
+| `database.py` | 原有 SQLite 建表与兼容迁移、应用上下文连接、事件持久化 |
+| `lifecycle.py`、`security.py`、`validation.py`、`http.py` | 会话、CSRF、权限、表单校验、错误回滚、安全响应头和下载流量计费 |
+| `routes/` | 账号、列表、照片、分流、批次、候选模型和健康检查的 HTTP 适配；保留原 URL 和 endpoint 名称 |
+| `services/` | 显式传入连接和资源，完成照片入库、账号邀请、公开候选导入、批次冻结、模型审批及有限审核轮次 |
+| `cli/` | 参数校验、调用服务、输出及报告文件；原有 8 个命令继续可用 |
+| `policies.py` | 严格交叉核验、Max 直接审核及 Flash/Max 分流的版本、配置和判断规则 |
+| `ai_review.py`、`ai_triage.py`、`workflow.py` | AI 请求/缓存/费用、持久任务/依据/抽检/撤回，以及人工分工/租约/修订保护 |
+
+策略判断不读写数据库，任务执行保留原有事务、历史配置和账本。`ai_review.register`、`ai_triage.register` 保留兼容入口并转交 CLI 包；HTTP 不等待模型调用。照片与批次服务可在没有 Flask 应用上下文时用独立连接运行，失败时回滚本次事务。
+
+在单独的审核站依赖环境运行完整检查：
+
+```bash
+python scripts/check-project.py --group review --python review/.venv/bin/python
+```
+
+Windows 使用 `review/.venv/Scripts/python.exe`。`tests/fixtures/review-contract.json` 保存重构前 24 个路由、8 个 CLI 命令的参数和 SQLite 表/索引结构；新增回归同时检查多应用资源隔离、无 HTTP 上下文的照片/冻结服务及导入模块不启动任务。已有租约并发、人工优先、暂停、抽检、撤回、未知费用预留和缓存身份测试仍由审核站完整测试组运行。
+
+部署继续使用 `review/deploy/package.py`，它自动包含整个 `campus_review/` 包及兼容基准；上传完整归档，不单独复制应用入口文件。启动、打包或 `--help` 不创建 AI 任务，实际模型请求只在显式运行审核命令或启动分流任务后发生。
+
 ### 百炼视觉初审
 
 初审支持白名单固定快照 `qwen3-vl-flash-2026-01-22`（默认）及 `qwen3-vl-plus-2025-12-19`，使用非思考模式及JSON输出。以 `REVIEW_AI_MODEL` 选择模型，`REVIEW_AI_PROMPT_VERSION` 选择 `campus-ai-review-v3`（默认）或更严格的 `campus-ai-review-v4`；修改后重启服务生效。仅处理Commons/Open Images网图，成员实拍不外发。向百炼发送最长边512像素的JPEG预览，移除EXIF；已有人工裁剪时只审该区域，建议框再换算回原图。v3提示先独立判断实际主要主体，只发送图像和完整类别口径，不向模型透露抓取类别或人工通过/拒绝答案，也不发送账号、实物ID或分组信息；返回类别不匹配当前标签时转为人工确认。API密钥保存在Git外的0600文件，以 `REVIEW_AI_KEY_FILE` 指向；也支持 `DASHSCOPE_API_KEY`。请求仅发送至百炼北京官方HTTPS端点，不跟随重定向，不输出密钥或供应商错误正文。[官方调用说明](https://help.aliyun.com/zh/model-studio/vision)、[JSON输出说明](https://help.aliyun.com/zh/model-studio/qwen-structured-output)。
@@ -43,7 +70,7 @@ set -a
 set +a
 /home/ubuntu/apps/campus-review/venv/bin/flask --app wsgi ai-review --mode pilot --limit 50 \
   --report /home/ubuntu/apps/campus-review/shared/ai-pilot.json
-# 试运行后可为尚未审核的网图生成建议；单次最多100张
+# 试运行后可为尚未审核的网图生成建议；单次最多50张
 /home/ubuntu/apps/campus-review/venv/bin/flask --app wsgi ai-review --mode pending --limit 50
 ```
 
@@ -63,6 +90,16 @@ review/.venv/Scripts/python.exe -m pytest -q review/tests --basetemp=tmp/review-
 `create_app()`要求至少32字符的 `REVIEW_SECRET_KEY`。默认Secure/HttpOnly/SameSite=Lax会话、POST CSRF、密码scrypt、邀请摘要、登录节流、受信任Host、图片解码预算及单进程串行图片解码。生产运行Gunicorn，不使用Flask开发服务器。[Flask部署说明](https://flask.palletsprojects.com/en/stable/deploying/)、[安全配置说明](https://flask.palletsprojects.com/en/stable/web-security/)。
 
 ## 运维
+
+### 2026-10-14 职责拆分发布
+
+本次职责拆分已完成部署，完整归档的 89 个源码/公开元数据文件核验通过。具体部署标识、发布目录和备份位置保留在私有交付记录。
+
+本地 Python 3.12 和 Linux 隔离环境分别完成 148 项审核站测试。切换前确认没有进行中的 AI 任务，并使用 SQLite 在线备份保存一致快照；数据库备份完整性检查通过，旧发布保留可回退。
+
+原子切换后核对全部持久表内容/结构及照片、冻结批次的文件统计身份，均一致。已有模型依据、费用预留、抽检、撤回、租约和配置保留。本次验证未创建生产账号、上传照片或调用付费 AI。
+
+公网使用系统信任库验证 HTTPS；健康、登录页、Secure/HttpOnly/SameSite 会话、安全响应头、未登录跳转和 CSRF 拒绝全部通过。公开结果见 [验收摘要](../tests/evidence/review-refactor-deployment-20261014.json)。代码回退只切换 `current` 到已核对的旧发布并重启审核站；具体目标从私有交付记录取得。SQLite 备份用于独立恢复验证，真实数据恢复按下方备份流程处理。
 
 源码：`/home/ubuntu/apps/campus-review/releases/<归档摘要>/`；`current`原子指向当前版本。数据：`/home/ubuntu/apps/campus-review/shared/`（0700）；配置：`/home/ubuntu/.config/campus-review/review.env`（0600）。SQLite WAL适合当前小组规模。照片、数据库、邀请及配置都不进入Git。
 

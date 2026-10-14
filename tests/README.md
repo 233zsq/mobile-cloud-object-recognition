@@ -8,7 +8,7 @@
 | --- | --- | --- |
 | `core` | 配置分发核对、报告/数据基准、工具导入与命令边界、静态依赖/归档、Web 核心及服务逻辑 | Python 3.12+、pytest、Node；无需 NumPy、Flask 或 TensorFlow |
 | `backend` | Flask 接口、入库去重、纠错、统计、推理边界 | 独立环境安装 `backend/requirements-dev.txt` |
-| `review` | 审核站 HTTP/SQLite、权限、协作、AI 队列与失败处理 | 独立环境安装 `review/requirements-dev.txt` |
+| `review` | 审核站 HTTP/SQLite、租约与 AI 边界，以及路由/CLI/数据库兼容、多应用隔离和服务回滚 | 独立环境安装 `review/requirements-dev.txt` |
 | `ml-data` | 正式清单、分组隔离、版本迁移、评估及恢复约束；排除训练集成用例 | 独立环境安装 `-e 'ml[test,analysis]'`，无需 TensorFlow/LiteRT；运行时用例使用隔离 fake |
 | `ml-integration` | 梯度更新、模型保存恢复与实际 TensorFlow/Keras 调用 | 安装项目训练锁及 recognition；已有 GPU 环境按 `ml/README.md` 激活 |
 | `web-browser` | 实际页面下的识别确认、纠错、导航、备份、统计筛选和并发响应 | Node 20+、`npm ci --prefix web`，以及 Playwright Chromium 或本机 Edge；全部 API 模拟 |
@@ -39,6 +39,7 @@ Windows 的 `--python` 使用对应环境下的 `Scripts/python.exe`。后端与
 
 - `backend/tests/conftest.py`：应用、客户端、隔离数据库和记录上传 fixture；`backend_support.py`：推理 fake。
 - `review/tests/conftest.py`：应用 fixture；`review_support.py`：HTTP、SQLite 与 AI 辅助函数。单独运行任何测试文件都不依赖先收集其他测试模块。
+- `review/tests/fixtures/review-contract.json`：审核站拆分前的 24 个路由、8 个 CLI 命令参数及数据库表/索引结构；`test_refactor_contract.py` 同时验证多应用隔离、服务事务回滚和导入时不启动任务。
 - `ml/tests/conftest.py`：`data_workspace` 与 `evolution_workspace`，按需加载图片依赖，分别保持正式划分和批次迁移场景。实际训练用例标记为 `integration`。
 - `tests/fixtures/data-tools/` 与 `ml/tests/fixtures/reports/`：重构前输出基准；前者校验 CSV 原始字节和冻结元数据，后者校验报告正文。
 
@@ -48,7 +49,7 @@ Windows 的 `--python` 使用对应环境下的 `Scripts/python.exe`。后端与
 
 负责人：组长兼测试负责人，各模块负责人协助。
 
-- `acceptance-cases.csv`：基础验收用例与结果记录，初始化状态均为 `pending`。
+- `acceptance-cases.csv`：按实际证据记录验收结果；已执行的条目包含 `passed`，真机联调、性能及独立评估缺口继续保留 `pending`。
 - `integration/`：后续端云接口与系统联调测试。
 - `fixtures/`：经过审核的小型测试输入；不要混入冻结测试集或未审核照片。
 - `evidence/`：截图、测试日志与结果摘要；大体积录屏另行保存并记录位置。
