@@ -171,7 +171,7 @@ Invoke-WebRequest -Uri http://127.0.0.1:8080/api/records -Method Post -ContentTy
 
 - `POST /api/infer`接收单张照片、`request_id`及模型版本，返回预测与阶段耗时，不自动写入采集记录。
 - `POST /api/records`保存用户采用的结果，携带UUID和`inference_source`，来源为`device`或`cloud`；重复提交只计一次。
-- 同图对比结果单独记录到实验清单，不覆盖原预测，不重复增加采集总数；照片默认处理后释放，样本审核属于后续扩展。
+- 同图对比结果单独记录到实验清单，不覆盖原预测，不重复增加采集总数；照片默认处理后释放。样本审核由 [独立审核站](../review/README.md) 处理，识别请求不会自动创建训练样本。
 
 ## 运行约束
 

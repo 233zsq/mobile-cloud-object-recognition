@@ -14,9 +14,11 @@
 
 手机、平板和PC可打开 [识别网页版](https://49.232.195.47/ios/)，使用同版云端模型；支持照片预览、记录筛选、纠错补传和本机备份。网页与审核站现使用可信HTTPS证书。网页版实现和边界见 [使用说明](web/ios/README.md)。
 
+维护入口已统一：实验报告、清单 I/O、版本配置分发及项目检查分别使用公共实现；Web 按状态、网络、存储、业务和视图拆分。审核站的工厂、路由、服务、CLI 和 AI 判断策略也已分开，见 [审核站模块说明](review/README.md#模块职责)。原命令、URL、类别/模型身份、记录修订和审核租约按兼容基准检查。
+
 ## 技术栈
 
-| 模块 | 计划采用的技术 | 职责 |
+| 模块 | 采用的技术 | 职责 |
 | --- | --- | --- |
 | 本地训练 | Python、TensorFlow/Keras、预训练MobileNetV2 | 10类迁移学习、分阶段调参、评估与导出 |
 | Android | Kotlin、CameraX、tflite/LiteRT、Room | 拍照、离线推理、纠错、记录、云端调用与补传 |
@@ -33,8 +35,9 @@ mobile-cloud-object-recognition/
 ├── android/             # Kotlin Android App：拍照、推理、本地保存与同步
 │   └── app/src/main/    # java/、res/、assets/models/
 ├── backend/             # Flask入库、去重、纠错、查询、统计及CPU推理
-├── web/                 # HTML/JavaScript统计页，每5秒刷新
-│   └── assets/          # css/、js/、images/
+├── web/                 # 原生 ES 模块统计页和云端识别页
+│   ├── assets/          # css/、js/dashboard/、images/
+│   └── ios/             # 识别页、modules/ 与可信运行文件清单
 ├── ml/                  # TensorFlow/Keras：训练、评估与 tflite 导出
 │   ├── configs/         # 训练配置示例
 │   └── src/recognition/ # 采集、训练、评估、报告及共用清单 I/O
@@ -50,10 +53,11 @@ mobile-cloud-object-recognition/
 ├── tests/               # 系统联调、验收记录与测试证据
 ├── scripts/             # 数据、配置、报告、统一检查、备份与交付入口
 ├── tools/               # 配置分发、项目检查、备份、静态打包和素材工具
-├── review/              # 独立照片审核工作台及其测试
+├── review/              # 独立照片审核工作台、测试和发布工具
+│   └── campus_review/   # factory、routes/、services/、cli/、AI 策略与任务
 ├── .github/workflows/   # 跨平台契约、组件测试与部署边界检查
 ├── docs/                # 计划、接口、模型契约、报告、PPT 与演示资料
-├── .env.example         # 环境变量名称草案，无真实凭据
+├── .env.example         # 环境变量示例，无真实凭据
 ├── .gitignore           # 忽略密钥、本地配置、照片、权重与构建产物
 └── CONTRIBUTING.md      # 分支、提交与模块交接规则
 ```
@@ -88,10 +92,10 @@ mobile-cloud-object-recognition/
 
 1. 阅读 [协作说明](CONTRIBUTING.md)，各自在功能分支开发。
 2. 在 [环境清单](docs/environment.md) 登记并统一验证后的工具和依赖版本。
-3. 冻结 [类别映射](shared/README.md)、[接口草案](docs/api/README.md) 与 [模型交接约定](docs/model-contract.md)。
-4. 在`android/`生成Kotlin Android工程，在`backend/`建立Flask应用与独立Python环境，在`ml/`建立训练入口；云端模型使用同一发布包。
-5. 先跑通小样本转换和真机加载，完成Flask记录接收、MySQL入库及Web展示，再接入云端CPU模型与单图片接口。
-6. 完成主动云端调用、纠错、补传和UUID去重，10月11日晚冻结基础功能；随后填写`tests/acceptance-cases.csv`，完成独立评估、端云对比、回归与材料。
+3. 按已冻结的 [类别映射](shared/README.md)、[接口约定](docs/api/README.md) 与 [模型交接要求](docs/model-contract.md) 开发；变更另设版本并保留历史身份。
+4. 按各模块 README 使用现有 Android、Flask、审核站和训练工程，分别准备依赖环境；云端与 Android 核对同版发布包。
+5. 使用统一检查入口完成相关组件回归；网页整体发布所有运行模块，审核站使用完整源码归档，服务器升级保留备份与旧发布。
+6. 按实际证据维护`tests/acceptance-cases.csv`，补齐真机业务联调、独立实拍评估、端云耗时及资源测试和课程材料。
 
 | 日期 | 主要检查点 |
 | --- | --- |

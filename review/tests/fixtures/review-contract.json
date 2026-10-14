@@ -1,0 +1,644 @@
+{
+  "routes": [
+    {
+      "path": "/",
+      "endpoint": "index",
+      "methods": [
+        "GET",
+        "HEAD",
+        "OPTIONS"
+      ]
+    },
+    {
+      "path": "/ai-triage/jobs",
+      "endpoint": "triage_job",
+      "methods": [
+        "OPTIONS",
+        "POST"
+      ]
+    },
+    {
+      "path": "/ai-triage/policy",
+      "endpoint": "triage_policy",
+      "methods": [
+        "OPTIONS",
+        "POST"
+      ]
+    },
+    {
+      "path": "/assignments/<int:category>",
+      "endpoint": "assign_category",
+      "methods": [
+        "OPTIONS",
+        "POST"
+      ]
+    },
+    {
+      "path": "/batches",
+      "endpoint": "freeze",
+      "methods": [
+        "OPTIONS",
+        "POST"
+      ]
+    },
+    {
+      "path": "/batches/<version>.zip",
+      "endpoint": "download",
+      "methods": [
+        "GET",
+        "HEAD",
+        "OPTIONS"
+      ]
+    },
+    {
+      "path": "/candidates/<version>",
+      "endpoint": "candidate",
+      "methods": [
+        "GET",
+        "HEAD",
+        "OPTIONS"
+      ]
+    },
+    {
+      "path": "/candidates/<version>/approval.json",
+      "endpoint": "approval",
+      "methods": [
+        "GET",
+        "HEAD",
+        "OPTIONS"
+      ]
+    },
+    {
+      "path": "/candidates/<version>/decision",
+      "endpoint": "decision",
+      "methods": [
+        "OPTIONS",
+        "POST"
+      ]
+    },
+    {
+      "path": "/candidates/<version>/report.json",
+      "endpoint": "candidate_report",
+      "methods": [
+        "GET",
+        "HEAD",
+        "OPTIONS"
+      ]
+    },
+    {
+      "path": "/health",
+      "endpoint": "health",
+      "methods": [
+        "GET",
+        "HEAD",
+        "OPTIONS"
+      ]
+    },
+    {
+      "path": "/images/<sid>",
+      "endpoint": "image",
+      "methods": [
+        "GET",
+        "HEAD",
+        "OPTIONS"
+      ]
+    },
+    {
+      "path": "/invites",
+      "endpoint": "invite",
+      "methods": [
+        "OPTIONS",
+        "POST"
+      ]
+    },
+    {
+      "path": "/join/<token>",
+      "endpoint": "join",
+      "methods": [
+        "GET",
+        "HEAD",
+        "OPTIONS",
+        "POST"
+      ]
+    },
+    {
+      "path": "/login",
+      "endpoint": "login",
+      "methods": [
+        "GET",
+        "HEAD",
+        "OPTIONS",
+        "POST"
+      ]
+    },
+    {
+      "path": "/logout",
+      "endpoint": "logout",
+      "methods": [
+        "OPTIONS",
+        "POST"
+      ]
+    },
+    {
+      "path": "/review/next",
+      "endpoint": "next_review",
+      "methods": [
+        "GET",
+        "HEAD",
+        "OPTIONS"
+      ]
+    },
+    {
+      "path": "/samples/<sid>",
+      "endpoint": "sample",
+      "methods": [
+        "GET",
+        "HEAD",
+        "OPTIONS",
+        "POST"
+      ]
+    },
+    {
+      "path": "/samples/<sid>/ai-undo",
+      "endpoint": "undo_automatic",
+      "methods": [
+        "OPTIONS",
+        "POST"
+      ]
+    },
+    {
+      "path": "/samples/<sid>/lease",
+      "endpoint": "renew_lease",
+      "methods": [
+        "OPTIONS",
+        "POST"
+      ]
+    },
+    {
+      "path": "/samples/<sid>/release",
+      "endpoint": "release_lease",
+      "methods": [
+        "OPTIONS",
+        "POST"
+      ]
+    },
+    {
+      "path": "/samples/<sid>/skip",
+      "endpoint": "skip_sample",
+      "methods": [
+        "OPTIONS",
+        "POST"
+      ]
+    },
+    {
+      "path": "/static/<path:filename>",
+      "endpoint": "static",
+      "methods": [
+        "GET",
+        "HEAD",
+        "OPTIONS"
+      ]
+    },
+    {
+      "path": "/upload",
+      "endpoint": "upload",
+      "methods": [
+        "GET",
+        "HEAD",
+        "OPTIONS",
+        "POST"
+      ]
+    }
+  ],
+  "cli": {
+    "ai-review": [
+      {
+        "name": "mode",
+        "opts": [
+          "--mode"
+        ],
+        "secondary_opts": [],
+        "required": false,
+        "default": "pilot",
+        "type": "Choice(['pilot', 'pending'])",
+        "nargs": 1
+      },
+      {
+        "name": "limit",
+        "opts": [
+          "--limit"
+        ],
+        "secondary_opts": [],
+        "required": false,
+        "default": 20,
+        "type": "<IntRange 1<=x<=50>",
+        "nargs": 1
+      },
+      {
+        "name": "category",
+        "opts": [
+          "--category"
+        ],
+        "secondary_opts": [],
+        "required": false,
+        "default": "Sentinel.UNSET",
+        "type": "<IntRange 0<=x<=9>",
+        "nargs": 1
+      },
+      {
+        "name": "retry_errors",
+        "opts": [
+          "--retry-errors"
+        ],
+        "secondary_opts": [],
+        "required": false,
+        "default": "Sentinel.UNSET",
+        "type": "BOOL",
+        "nargs": 1
+      },
+      {
+        "name": "cohort",
+        "opts": [
+          "--cohort"
+        ],
+        "secondary_opts": [],
+        "required": false,
+        "default": "Sentinel.UNSET",
+        "type": {
+          "name": "path",
+          "type": "Path",
+          "exists": true,
+          "file_okay": true,
+          "dir_okay": true,
+          "readable": true,
+          "writable": false,
+          "executable": false,
+          "resolve_path": false,
+          "allow_dash": false
+        },
+        "nargs": 1
+      },
+      {
+        "name": "report",
+        "opts": [
+          "--report"
+        ],
+        "secondary_opts": [],
+        "required": false,
+        "default": "Sentinel.UNSET",
+        "type": {
+          "name": "path",
+          "type": "Path",
+          "exists": false,
+          "file_okay": true,
+          "dir_okay": true,
+          "readable": true,
+          "writable": false,
+          "executable": false,
+          "resolve_path": false,
+          "allow_dash": false
+        },
+        "nargs": 1
+      }
+    ],
+    "ai-triage": [
+      {
+        "name": "actor",
+        "opts": [
+          "--actor"
+        ],
+        "secondary_opts": [],
+        "required": true,
+        "default": "Sentinel.UNSET",
+        "type": "INT",
+        "nargs": 1
+      },
+      {
+        "name": "limit",
+        "opts": [
+          "--limit"
+        ],
+        "secondary_opts": [],
+        "required": false,
+        "default": 20,
+        "type": "<IntRange 1<=x<=50>",
+        "nargs": 1
+      },
+      {
+        "name": "apply_changes",
+        "opts": [
+          "--apply"
+        ],
+        "secondary_opts": [],
+        "required": false,
+        "default": "Sentinel.UNSET",
+        "type": "BOOL",
+        "nargs": 1
+      }
+    ],
+    "ai-triage-policy": [
+      {
+        "name": "actor",
+        "opts": [
+          "--actor"
+        ],
+        "secondary_opts": [],
+        "required": true,
+        "default": "Sentinel.UNSET",
+        "type": "INT",
+        "nargs": 1
+      },
+      {
+        "name": "value",
+        "opts": [
+          "--enabled"
+        ],
+        "secondary_opts": [],
+        "required": true,
+        "default": "Sentinel.UNSET",
+        "type": "BOOL",
+        "nargs": 1
+      }
+    ],
+    "ai-triage-round": [
+      {
+        "name": "actor",
+        "opts": [
+          "--actor"
+        ],
+        "secondary_opts": [],
+        "required": true,
+        "default": "Sentinel.UNSET",
+        "type": "INT",
+        "nargs": 1
+      },
+      {
+        "name": "archive",
+        "opts": [
+          "--archive"
+        ],
+        "secondary_opts": [],
+        "required": true,
+        "default": "Sentinel.UNSET",
+        "type": {
+          "name": "path",
+          "type": "Path",
+          "exists": true,
+          "file_okay": true,
+          "dir_okay": true,
+          "readable": true,
+          "writable": false,
+          "executable": false,
+          "resolve_path": false,
+          "allow_dash": false
+        },
+        "nargs": 1
+      },
+      {
+        "name": "max_photos",
+        "opts": [
+          "--max-photos"
+        ],
+        "secondary_opts": [],
+        "required": false,
+        "default": 500,
+        "type": "<IntRange 1<=x<=2000>",
+        "nargs": 1
+      },
+      {
+        "name": "progress",
+        "opts": [
+          "--progress"
+        ],
+        "secondary_opts": [],
+        "required": true,
+        "default": "Sentinel.UNSET",
+        "type": {
+          "name": "path",
+          "type": "Path",
+          "exists": false,
+          "file_okay": true,
+          "dir_okay": true,
+          "readable": true,
+          "writable": false,
+          "executable": false,
+          "resolve_path": false,
+          "allow_dash": false
+        },
+        "nargs": 1
+      }
+    ],
+    "ai-triage-worker": [
+      {
+        "name": "job",
+        "opts": [
+          "--job"
+        ],
+        "secondary_opts": [],
+        "required": true,
+        "default": "Sentinel.UNSET",
+        "type": "STRING",
+        "nargs": 1
+      }
+    ],
+    "bootstrap": [],
+    "import-public": [
+      {
+        "name": "archive_file",
+        "opts": [
+          "archive_file"
+        ],
+        "secondary_opts": [],
+        "required": true,
+        "default": "Sentinel.UNSET",
+        "type": {
+          "name": "path",
+          "type": "Path",
+          "exists": true,
+          "file_okay": true,
+          "dir_okay": true,
+          "readable": true,
+          "writable": false,
+          "executable": false,
+          "resolve_path": false,
+          "allow_dash": false
+        },
+        "nargs": 1
+      },
+      {
+        "name": "report",
+        "opts": [
+          "--report"
+        ],
+        "secondary_opts": [],
+        "required": false,
+        "default": "Sentinel.UNSET",
+        "type": {
+          "name": "path",
+          "type": "Path",
+          "exists": false,
+          "file_okay": true,
+          "dir_okay": true,
+          "readable": true,
+          "writable": false,
+          "executable": false,
+          "resolve_path": false,
+          "allow_dash": false
+        },
+        "nargs": 1
+      }
+    ],
+    "register-candidate": [
+      {
+        "name": "report_file",
+        "opts": [
+          "report_file"
+        ],
+        "secondary_opts": [],
+        "required": true,
+        "default": "Sentinel.UNSET",
+        "type": {
+          "name": "path",
+          "type": "Path",
+          "exists": true,
+          "file_okay": true,
+          "dir_okay": true,
+          "readable": true,
+          "writable": false,
+          "executable": false,
+          "resolve_path": false,
+          "allow_dash": false
+        },
+        "nargs": 1
+      }
+    ]
+  },
+  "schema": [
+    [
+      "index",
+      "ai_auto_sample",
+      "ai_auto_decisions",
+      "CREATE INDEX ai_auto_sample ON ai_auto_decisions(sample_id)"
+    ],
+    [
+      "index",
+      "ai_reviews_sample",
+      "ai_reviews",
+      "CREATE INDEX ai_reviews_sample ON ai_reviews(sample_id)"
+    ],
+    [
+      "index",
+      "ai_triage_single_worker",
+      "ai_triage_jobs",
+      "CREATE UNIQUE INDEX ai_triage_single_worker ON ai_triage_jobs((1)) WHERE state IN ('queued','running')"
+    ],
+    [
+      "index",
+      "review_leases_expiry",
+      "review_leases",
+      "CREATE INDEX review_leases_expiry ON review_leases(expires)"
+    ],
+    [
+      "table",
+      "ai_auto_decisions",
+      "ai_auto_decisions",
+      "CREATE TABLE ai_auto_decisions(\n id TEXT PRIMARY KEY,sample_id TEXT NOT NULL REFERENCES samples(id),job_id TEXT NOT NULL REFERENCES ai_triage_jobs(id),\n policy TEXT NOT NULL,applied_revision INTEGER NOT NULL,after_status TEXT NOT NULL,before_values TEXT NOT NULL,\n evidence TEXT NOT NULL,audit_required INTEGER NOT NULL DEFAULT 1,reverted_at TEXT,created_at TEXT NOT NULL)"
+    ],
+    [
+      "table",
+      "ai_reviews",
+      "ai_reviews",
+      "CREATE TABLE ai_reviews(\n cache_key TEXT PRIMARY KEY, sample_id TEXT NOT NULL REFERENCES samples(id),\n model TEXT NOT NULL, state TEXT NOT NULL, result TEXT NOT NULL DEFAULT '{}',\n prompt_tokens INTEGER NOT NULL DEFAULT 0, completion_tokens INTEGER NOT NULL DEFAULT 0,\n charged_nano INTEGER NOT NULL, sent_bytes INTEGER NOT NULL DEFAULT 0,\n attempts INTEGER NOT NULL DEFAULT 1,\n error_code TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL)"
+    ],
+    [
+      "table",
+      "ai_runs",
+      "ai_runs",
+      "CREATE TABLE ai_runs(id TEXT PRIMARY KEY, report TEXT NOT NULL, created_at TEXT NOT NULL)"
+    ],
+    [
+      "table",
+      "ai_triage_jobs",
+      "ai_triage_jobs",
+      "CREATE TABLE ai_triage_jobs(\n id TEXT PRIMARY KEY,actor INTEGER NOT NULL REFERENCES users(id),state TEXT NOT NULL,\n apply_changes INTEGER NOT NULL,limit_count INTEGER NOT NULL,profiles TEXT NOT NULL,\n audit_percent INTEGER NOT NULL DEFAULT 10,\n policy TEXT NOT NULL DEFAULT 'strict-crosscheck-v2',\n processed INTEGER NOT NULL DEFAULT 0,pid INTEGER,report TEXT NOT NULL DEFAULT '{}',\n error_code TEXT NOT NULL DEFAULT '',created_at TEXT NOT NULL,updated_at TEXT NOT NULL)"
+    ],
+    [
+      "table",
+      "ai_triage_routes",
+      "ai_triage_routes",
+      "CREATE TABLE ai_triage_routes(\n sample_id TEXT PRIMARY KEY REFERENCES samples(id),revision INTEGER NOT NULL,photo_sha256 TEXT NOT NULL,\n category INTEGER NOT NULL,context TEXT NOT NULL,job_id TEXT NOT NULL REFERENCES ai_triage_jobs(id),\n state TEXT NOT NULL CHECK(state IN ('manual','error')),reason_code TEXT NOT NULL,created_at TEXT NOT NULL)"
+    ],
+    [
+      "table",
+      "ai_triage_seen",
+      "ai_triage_seen",
+      "CREATE TABLE ai_triage_seen(\n identity TEXT PRIMARY KEY,sample_id TEXT NOT NULL REFERENCES samples(id),policy TEXT NOT NULL,\n job_id TEXT NOT NULL REFERENCES ai_triage_jobs(id),created_at TEXT NOT NULL)"
+    ],
+    [
+      "table",
+      "ai_triage_settings",
+      "ai_triage_settings",
+      "CREATE TABLE ai_triage_settings(id INTEGER PRIMARY KEY CHECK(id=1),enabled INTEGER NOT NULL DEFAULT 0)"
+    ],
+    [
+      "table",
+      "batches",
+      "batches",
+      "CREATE TABLE batches(id TEXT PRIMARY KEY, receipt TEXT NOT NULL, created_at TEXT NOT NULL)"
+    ],
+    [
+      "table",
+      "candidates",
+      "candidates",
+      "CREATE TABLE candidates(version TEXT PRIMARY KEY, report TEXT NOT NULL, digest TEXT NOT NULL,\n status TEXT NOT NULL DEFAULT 'pending', decision TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL)"
+    ],
+    [
+      "table",
+      "category_assignments",
+      "category_assignments",
+      "CREATE TABLE category_assignments(\n category INTEGER PRIMARY KEY CHECK(category BETWEEN 0 AND 9),\n reviewer_id INTEGER REFERENCES users(id), revision INTEGER NOT NULL DEFAULT 1)"
+    ],
+    [
+      "table",
+      "egress",
+      "egress",
+      "CREATE TABLE egress(id INTEGER PRIMARY KEY CHECK(id=1), bytes INTEGER NOT NULL DEFAULT 0)"
+    ],
+    [
+      "table",
+      "events",
+      "events",
+      "CREATE TABLE events(id INTEGER PRIMARY KEY, actor INTEGER NOT NULL, action TEXT NOT NULL,\n subject TEXT NOT NULL, details TEXT NOT NULL, created_at TEXT NOT NULL)"
+    ],
+    [
+      "table",
+      "invites",
+      "invites",
+      "CREATE TABLE invites(digest TEXT PRIMARY KEY, role TEXT NOT NULL, expires REAL NOT NULL, consumed INTEGER NOT NULL DEFAULT 0)"
+    ],
+    [
+      "table",
+      "login_attempts",
+      "login_attempts",
+      "CREATE TABLE login_attempts(key TEXT PRIMARY KEY, failures INTEGER NOT NULL, reset_at REAL NOT NULL)"
+    ],
+    [
+      "table",
+      "review_leases",
+      "review_leases",
+      "CREATE TABLE review_leases(\n sample_id TEXT PRIMARY KEY REFERENCES samples(id), user_id INTEGER NOT NULL REFERENCES users(id),\n token TEXT NOT NULL, expires REAL NOT NULL)"
+    ],
+    [
+      "table",
+      "samples",
+      "samples",
+      "CREATE TABLE samples(id TEXT PRIMARY KEY, owner INTEGER NOT NULL, filename TEXT NOT NULL,\n sha256 TEXT UNIQUE NOT NULL, category INTEGER NOT NULL, object_id TEXT NOT NULL, session_id TEXT NOT NULL,\n group_id TEXT NOT NULL, phash TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending', reason TEXT NOT NULL DEFAULT '',\n width INTEGER NOT NULL, height INTEGER NOT NULL, revision INTEGER NOT NULL DEFAULT 1, batch TEXT, created_at TEXT NOT NULL, source TEXT NOT NULL DEFAULT 'field', source_meta TEXT NOT NULL DEFAULT '{}', crop TEXT NOT NULL DEFAULT '')"
+    ],
+    [
+      "table",
+      "users",
+      "users",
+      "CREATE TABLE users(id INTEGER PRIMARY KEY, username TEXT UNIQUE NOT NULL,\n password TEXT NOT NULL, role TEXT NOT NULL CHECK(role IN ('admin','reviewer')), active INTEGER NOT NULL DEFAULT 1)"
+    ]
+  ]
+}
