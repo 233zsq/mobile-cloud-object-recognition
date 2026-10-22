@@ -72,3 +72,13 @@ FieldNotes与OpenCode本次证书均为腾讯云免费 DV 证书（TrustAsia）�
 - 域名证书续期仍需人工或另配自动化：自动续费只覆盖签发，见 [证书续期说明](cert-renewal.md)。若采用 certbot（80端口 HTTP-01），可让两个域名一次配置后自动 renew+reload。
 - Android 1.2 已重新打包并归档到 `ml-deliveries/android-1.2-20261022/`（debug 签名，内置 v2/v3 双模型与20张一致性样例，默认服务地址已改为域名）；未在真机或模拟器上安装验证。
 - 仓库改动已 rebase 到 PR #18 之后的 `origin/main` 并合并推送；线上展示层仍是就地修补（早于本次合并），下一次正式打包部署后两者一致。
+
+## 2026-10-22 首页顶部入口调整
+
+按用户要求调整统计页页头：删除「工作空间 / 云端观察档案」文案，改为「用户网页端」按钮，指向 <https://fieldnotes.bigdogaaa.cn/ios/>；侧栏 `<nav>` 的 `aria-label` 同时由「工作空间」改为「页面导航」，页面内不再出现「工作空间」字样。
+
+- 展示层就地修补（未重新打包、未改 Nginx/证书/凭据）：`web/index.html` `e867791628…` → `86832563b7…`；`web/assets/css/dashboard.css` `7a903a8a53…` → `36550fe4d3…`。按钮使用 `.topbar-link`，复用站点强调色，hover 轻微压暗。
+- 备份：`/var/backups/fieldnotes-domain-20261022/topbar-20261022/`（首次改页头）与 `/var/backups/fieldnotes-domain-20261022/topbar2-20261022/`（改 aria-label）。
+- 回滚：从备份目录恢复 `dashboard-index.html` 与 `dashboard.css` 即回到上一版页头；静态文件由 Flask 直接读取，无需重启服务。
+- 验证：主页 200，「工作空间」「云端观察档案」出现 0 次，按钮与 `/ios/` 链接存在，`/review/` 入口与备案号仍在；`/assets/css/dashboard.css` 200 且含 `.topbar-link`；`/api/health` 200。用 CDP 在 360/390/414/430/700/768/1024 宽度实测 `scrollWidth == innerWidth`（无横向溢出），桌面 1440 与手机 390 截图确认按钮、状态徽标与导航换行正常。
+- 仓库已同步 `web/index.html` 与 `web/assets/css/dashboard.css`，推送后下一次正式打包即与线上一致。
