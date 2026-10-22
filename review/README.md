@@ -1,6 +1,6 @@
 # 照片审核工作台
 
-云端入口：<https://49.232.195.47:8443>。独立使用 `ubuntu`、`campus-review.service` 和回环8081，不改变现有443后端。组员通过一次性邀请建立个人账号；管理员冻结批次、下载训练包并审批候选模型。训练在本机GPU执行，候选模型经批准后另行交付Android和云端。
+云端入口：<https://fieldnotes.bigdogaaa.cn/review/>（旧 8443 入口 308 跳转到该路径）。独立使用 `ubuntu`、`campus-review.service` 和回环8081，不改变现有443后端。组员通过一次性邀请建立个人账号；管理员冻结批次、下载训练包并审批候选模型。训练在本机GPU执行，候选模型经批准后另行交付Android和云端。
 
 8443使用浏览器信任的Let’s Encrypt IP证书，无需安装自签名证书。IP证书约6天有效，独立的 `campus-review-acme.timer` 每6小时检查续期；HTTP-01仅在签发期间临时使用80端口验证路径，结束后逐字节恢复原跳转配置。443的证书与配置保持原样，`deploy/certs/server.crt` 仍属于443后端。[官方IP证书与Certbot说明](https://letsencrypt.org/2026/03/11/shorter-certs-certbot)。
 

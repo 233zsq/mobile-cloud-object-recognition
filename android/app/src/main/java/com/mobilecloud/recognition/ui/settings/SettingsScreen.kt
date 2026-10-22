@@ -134,7 +134,7 @@ private fun ConnectionSettings(state: SettingsUiState, viewModel: SettingsViewMo
     Spacer(Modifier.height(22.dp))
     OutlinedTextField(
         value = state.baseUrl, onValueChange = viewModel::onBaseUrlChange,
-        label = { Text("服务器地址") }, supportingText = { Text("组内服务：https://49.232.195.47。仅填写服务根地址。") },
+        label = { Text("服务器地址") }, supportingText = { Text("组内服务：https://fieldnotes.bigdogaaa.cn。仅填写服务根地址。") },
         singleLine = true, modifier = Modifier.fillMaxWidth().testTag("settings-server-url"), enabled = state.configLoaded && !state.saving,
     )
     Spacer(Modifier.height(16.dp))

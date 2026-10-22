@@ -10,9 +10,9 @@
 
 ## 当前状态
 
-已完成Flask、MySQL记录存储、UUID去重、修订号纠错、分页查询、统计和类别接口，以及每5秒刷新的Web统计页。非空API_TOKEN启用Flask与Nginx两层Bearer认证。当前默认 `campus-evolve-v3` 增加类别外范围判断，安卓本地与云端均可选择 v2/v3；不确定结果须人工确认后保存，统计页可筛选。真实云端、独立CPU运行时和Android模拟器已验证，见 [v3模型与交接记录](docs/open-set-recognition.md)。照片审核工作台独立部署在8443。真实手机业务联调、真机性能及独立实拍评估仍待验收。初始化见 [后端说明](backend/README.md) 和 [数据库说明](database/README.md)，运维见 [部署说明](deploy/README.md)，接口见 [API说明](docs/api/README.md)。
+已完成Flask、MySQL记录存储、UUID去重、修订号纠错、分页查询、统计和类别接口，以及每5秒刷新的Web统计页。非空API_TOKEN启用Flask与Nginx两层Bearer认证。当前默认 `campus-evolve-v3` 增加类别外范围判断，安卓本地与云端均可选择 v2/v3；不确定结果须人工确认后保存，统计页可筛选。真实云端、独立CPU运行时和Android模拟器已验证，见 [v3模型与交接记录](docs/open-set-recognition.md)。照片审核工作台已迁移到 <https://fieldnotes.bigdogaaa.cn/review/>（旧 8443 入口 308 跳转）。真实手机业务联调、真机性能及独立实拍评估仍待验收。初始化见 [后端说明](backend/README.md) 和 [数据库说明](database/README.md)，运维见 [部署说明](deploy/README.md)，接口见 [API说明](docs/api/README.md)。
 
-手机、平板和PC可打开 [识别网页版](https://49.232.195.47/ios/)，使用同版云端模型；支持照片预览、记录筛选、纠错补传和本机备份。网页与审核站现使用可信HTTPS证书。网页版实现和边界见 [使用说明](web/ios/README.md)。
+手机、平板和PC可打开 [识别网页版](https://fieldnotes.bigdogaaa.cn/ios/)，使用同版云端模型；支持照片预览、记录筛选、纠错补传和本机备份。网页与审核站使用公开 HTTPS 证书，正式域名已在页脚展示 ICP 备案号。网页版实现和边界见 [使用说明](web/ios/README.md)。
 
 维护入口已统一：实验报告、清单 I/O、版本配置分发及项目检查分别使用公共实现；Web 按状态、网络、存储、业务和视图拆分。审核站的工厂、路由、服务、CLI 和 AI 判断策略也已分开，见 [审核站模块说明](review/README.md#模块职责)。原命令、URL、类别/模型身份、记录修订和审核租约按兼容基准检查。
 
