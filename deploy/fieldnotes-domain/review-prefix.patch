@@ -1,0 +1,99 @@
+--- a/review/campus_review/factory.py
++++ b/review/campus_review/factory.py
+@@ -9,7 +9,7 @@
+ 
+ def create_app(config=None):
+     app = Flask("campus_review")
+-    app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1)
++    app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_prefix=1)
+     runtime = configure(app, config)
+     app.extensions["review_resources"] = runtime
+     app.extensions["review_data"] = runtime.data
+--- a/review/campus_review/configuration.py
++++ b/review/campus_review/configuration.py
+@@ -24,6 +24,7 @@
+         SECRET_KEY=os.environ.get("REVIEW_SECRET_KEY"),
+         DATA_DIR=os.environ.get("REVIEW_DATA_DIR", str(ROOT / "var")),
+         MAX_CONTENT_LENGTH=9 * 1024 * 1024,
++        APPLICATION_ROOT=os.environ.get("REVIEW_URL_PREFIX", "/"),
+         SESSION_COOKIE_SECURE=True,
+         SESSION_COOKIE_HTTPONLY=True,
+         SESSION_COOKIE_SAMESITE="Lax",
+@@ -44,7 +45,7 @@
+         EGRESS_LIMIT_BYTES=int(
+             float(os.environ.get("REVIEW_EGRESS_LIMIT_GIB", "20")) * 1024**3
+         ),
+-        TRUSTED_HOSTS=["49.232.195.47", "127.0.0.1", "localhost"],
++        TRUSTED_HOSTS=["49.232.195.47", "127.0.0.1", "localhost", "fieldnotes.bigdogaaa.cn"],
+     )
+     if config:
+         app.config.update(config)
+--- /dev/null
++++ b/review/tests/test_url_prefix.py
+@@ -0,0 +1,66 @@
++import re
++from urllib.parse import urlsplit
++from campus_review import create_app
++from review_support import photo
++
++BASE='https://fieldnotes.bigdogaaa.cn/review/'
++FORWARDED={'X-Forwarded-Proto':'https','X-Forwarded-Prefix':'/review'}
++
++def prefixed_app(tmp_path):
++    return create_app({'TESTING':True,'SECRET_KEY':'prefix-test-'*5,'DATA_DIR':str(tmp_path),'APPLICATION_ROOT':'/review'})
++
++def call(client,path,method='GET',data=None):
++    # Nginx strips /review from PATH_INFO and supplies the trusted prefix.
++    return client.open(path,method=method,data=data,base_url=BASE,headers=FORWARDED)
++
++def token(response):
++    return re.search(r'name="csrf"[^>]*value="([^"]+)"',response.text).group(1)
++
++def login(app):
++    invitation=app.test_cli_runner().invoke(args=['bootstrap'])
++    assert invitation.exit_code==0,invitation.output
++    client=app.test_client()
++    path=invitation.output.strip()
++    page=call(client,path)
++    joined=call(client,path,'POST',{'csrf':token(page),'username':'prefix-admin','password':'prefix-test-password-strong'})
++    assert joined.status_code==302 and joined.headers['Location']=='/review/login'
++    page=call(client,'/login')
++    result=call(client,'/login','POST',{'csrf':token(page),'username':'prefix-admin','password':'prefix-test-password-strong'})
++    assert result.status_code==302 and result.headers['Location']=='/review/'
++    return client
++
++def test_prefix_login_static_cookie_and_host_protection(tmp_path):
++    app=prefixed_app(tmp_path);client=app.test_client()
++    index=call(client,'/')
++    assert index.status_code==302 and index.headers['Location']=='/review/login'
++    page=call(client,'/login')
++    assert page.status_code==200
++    assert '/review/static/style.css' in page.text
++    cookie=index.headers['Set-Cookie']
++    assert 'Path=/review' in cookie and 'Secure' in cookie and 'HttpOnly' in cookie and 'SameSite=Lax' in cookie
++    assert call(client,'/static/style.css').status_code==200
++    assert client.get('/health',base_url='https://evil.example').status_code==400
++
++def test_prefix_authentication_csrf_and_upload_image_cycle(tmp_path):
++    app=prefixed_app(tmp_path);client=login(app)
++    assert call(client,'/').status_code==200
++    assert call(client,'/upload','POST',{}).status_code==400
++    page=call(client,'/upload')
++    upload=call(client,'/upload','POST',{'csrf':token(page),'image':(photo(),'prefix.jpg'),'object_id':'prefix-cup','session_id':'prefix-session','category':'0'})
++    assert upload.status_code==302 and upload.headers['Location'].startswith('/review/samples/')
++    sid=upload.headers['Location'].rsplit('/',1)[1]
++    assert call(client,'/samples/'+sid).status_code==200
++    image=call(client,'/images/'+sid+'?size=thumb')
++    assert image.status_code==200 and image.mimetype=='image/webp'
++    anonymous=app.test_client()
++    denied=call(anonymous,'/images/'+sid)
++    assert denied.status_code==302 and denied.headers['Location']=='/review/login'
++
++def test_prefix_absolute_invitation_and_logout(tmp_path):
++    app=prefixed_app(tmp_path);client=login(app)
++    page=call(client,'/')
++    invitation=call(client,'/invites','POST',{'csrf':token(page)})
++    assert invitation.status_code==200 and 'https://fieldnotes.bigdogaaa.cn/review/join/' in invitation.text
++    logout=call(client,'/logout','POST',{'csrf':token(call(client,'/'))})
++    assert logout.status_code==302 and logout.headers['Location']=='/review/login'
++    assert call(client,'/').headers['Location']=='/review/login'

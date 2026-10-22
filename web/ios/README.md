@@ -1,6 +1,6 @@
 # 自适应识别网页（/ios）
 
-手机、平板与 PC 共用的「观察手册」，部署于 https://49.232.195.47/ios/ 。
+手机、平板与 PC 共用的「观察手册」，部署于 https://fieldnotes.bigdogaaa.cn/ios/ 。
 拍照或选图 → 云端推理 → 本机记录 → 同步与纠错。网页版需要联网，不提供端侧离线推理。
 
 类别与模型契约由 `scripts/sync-configs.py` 按 `shared/config-distribution.json` 的绑定分发；

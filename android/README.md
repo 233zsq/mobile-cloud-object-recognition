@@ -89,8 +89,8 @@ python scripts/make_placeholder_model.py   # 仓库根目录执行，需要 tens
 
 ## 联调说明
 
-- **组内云端已部署**：`https://49.232.195.47`（443现使用自动续期的可信IP证书，App已有系统CA信任，
-  见 `res/xml/network_security_config.xml`）；`POST/PATCH` 需要
+- **组内云端已部署**：`https://fieldnotes.bigdogaaa.cn`（正式域名，公开证书，App 使用系统 CA 信任；
+  旧 `https://49.232.195.47` 入口保留兼容，见 `res/xml/network_security_config.xml`）；`POST/PATCH` 需要
   `Authorization: Bearer <API_TOKEN>`，令牌在 App「我的 → 云端连接」填写（勿提交到仓库）。
 - 默认占位地址 `http://localhost:8080`（与 `.env.example` 的 `API_BASE_URL` 一致）表示"未配置"，
   此时请求快速失败并保留待传记录。

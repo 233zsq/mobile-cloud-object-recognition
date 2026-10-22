@@ -1,6 +1,6 @@
 # 腾讯云后端部署
 
-2026-10-08 已在 `49.232.195.47` 部署 Flask、Gunicorn、MySQL 和 Nginx。服务器内及公网 HTTPS 验收通过，HTTP 自动跳转 HTTPS；真实入库、去重、冲突处理及服务重启验证完成。
+2026-10-08 已在 `49.232.195.47` 部署 Flask、Gunicorn、MySQL 和 Nginx；2026-10-22 ICP 备案完成后启用正式域名 `fieldnotes.bigdogaaa.cn`（当前正式入口，旧 IP 入口保留兼容），域名与审核入口配置见 [FieldNotes 域名说明](fieldnotes-domain/README.md)。服务器内及公网 HTTPS 验收通过，HTTP 自动跳转 HTTPS；真实入库、去重、冲突处理及服务重启验证完成。
 
 ## 2026-10-14 审核站独立更新
 
@@ -43,7 +43,7 @@ sudo -n python3 /暂存发布/deploy/scripts/deploy_dashboard.py activate \
 | 数据库 | `object_recognition`；四张表、10 个类别及 `expanded-cpu-v1` 元数据已初始化 |
 | Gunicorn | 单 worker、2 threads，只监听 `127.0.0.1:8080` |
 | MySQL | 只监听回环地址；128MiB buffer pool、40 个连接、关闭 Performance Schema |
-| 公网入口 | `https://49.232.195.47`；80 跳转到 443 |
+| 公网入口 | `https://fieldnotes.bigdogaaa.cn`（2026-10-22 起；旧 `https://49.232.195.47` 保留兼容）；80 跳转到 443 |
 | 模型 | 初始记录发布未加载；新增CPU推理服务的安装和启用见 INFERENCE.md |
 
 原 `/home/gongyi/projects/mobile-cloud-object-recognition` 的 ML 工作区保留。此次发布使用固定提交归档，部署脚本、配置模板和证据在本 PR 后续提交维护。
@@ -59,7 +59,7 @@ sudo -n python3 /暂存发布/deploy/scripts/deploy_dashboard.py activate \
 从仓库根目录验证（Windows）：
 
 ```powershell
-curl.exe --noproxy "*" https://49.232.195.47/api/health
+curl.exe --noproxy "*" https://fieldnotes.bigdogaaa.cn/api/health
 ```
 
 初始记录发布结果为 `status=ok`、`version=0.1.0+9eb92b9`、`model_loaded=false`。启用独立推理工作进程后返回新发布版本、model_loaded=true、model_version=campus-gpu-v1及model_status=ready。记录调用需配置令牌及证书信任；不能把忽略证书验证作为正式客户端配置。后续更换受信任证书时，同步更新客户端信任配置和 API 地址。
@@ -75,7 +75,7 @@ sudo systemctl status mobile-cloud-backend mysql nginx
 sudo journalctl -u mobile-cloud-backend -n 100 --no-pager
 sudo systemctl restart mobile-cloud-backend
 sudo nginx -t
-curl https://49.232.195.47/api/health
+curl https://fieldnotes.bigdogaaa.cn/api/health
 ```
 
 服务定义在 `systemd/mobile-cloud-backend.service`，代理配置在 `nginx/mobile-cloud-backend.conf`。服务已设自动启动及故障重启，MemoryHigh/MemoryMax 为 192MiB/384MiB。初始实测 MySQL 约 230MiB、后端约 73MiB，整机仍可用约 526MiB，已有约 1.1GiB 交换空间被使用；尚未完成负载测试。
@@ -129,7 +129,7 @@ sudo journalctl -u mobile-cloud-backend-backup.service -n 20 --no-pager
 
 ## 2026-10-12 自适应识别网页（/ios）
 
-`https://49.232.195.47/ios/` 提供手机、平板和PC共用的云端识别页面。页面是纯静态文件，
+`https://fieldnotes.bigdogaaa.cn/ios/` 提供手机、平板和PC共用的云端识别页面。页面是纯静态文件，
 由 nginx 直接托管（`/var/www/mobile-cloud-ios/`），**不经过** Flask 发布流程，也不改数据库、模型、口令
 和审核站。静态更新与证书切换使用独立脚本；实现与验收记录见 [web/ios/README.md](../web/ios/README.md)。
 
@@ -146,3 +146,11 @@ sudo python3 deploy/scripts/apply_ios_static.py   # 备份 + 写入 location + n
   仍是同一个 Flask 发布，两者互不影响。
 
 静态包先由 `python scripts/package-web.py --output <新归档路径>` 生成，再使用 `publish_ios.py <shared目录中的归档> --sha256 <归档哈希>` 更新。打包与发布共用可信的 `web/ios/runtime-files.json`，目前包含 21 个运行文件及嵌套模块；依赖闭包、路径和哈希通过后原子切换目录指针。工具从完整仓库运行，旧版本保存在 `/var/www/mobile-cloud-ios-releases/`；测试和 README 不公开托管。
+
+## 2026-10-22 正式域名与 ICP 备案
+
+- 正式入口 `https://fieldnotes.bigdogaaa.cn`：`/`、`/assets/`、`/ios/`、`/api/*` 与 `/review/` 同域；`opencode.bigdogaaa.cn` 是 OpenCode 客户端 API。旧 `https://49.232.195.47` 入口保留兼容，旧 `:8443` 以 308 跳转到 `/review/`。
+- 域名站点配置在服务器 `/etc/nginx/conf.d/fieldnotes.conf`，仓库副本见 [fieldnotes.nginx.conf](fieldnotes-domain/fieldnotes.nginx.conf)。旧 IP 默认站与 8443 跳转仍由 `sites-available/` 原文件承担，未新增公网业务端口。
+- 域名为腾讯云免费 DV 证书（TrustAsia），位于服务器 `/etc/fieldnotes-tls/`，北京时间 2027-01-20 12:59:59 到期。控制台已开启自动续费，但自动续费只负责签发新证书，**不会自动替换自建 Nginx 上的文件**；续期后须下载证书并按 [FieldNotes 域名说明](fieldnotes-domain/README.md) 重新部署，否则整站 HTTPS 失效。
+- 合规：主页、`/ios/` 与 `/review/` 页脚展示 `京ICP备2026070624号` 并链接工信部备案系统。
+- 本轮只改展示层：当前发布内的 `web/index.html`、`web/assets/css/dashboard.css`、`/var/www/mobile-cloud-ios/` 的 `index.html`/`app.css` 与审核模板 `base.html` 就地修补，改前备份并记录哈希；完整改动已提交到 `feat/fieldnotes-icp-20261022` 分支，下次正式打包再走发布流程。详见 [域名说明](fieldnotes-domain/README.md)。

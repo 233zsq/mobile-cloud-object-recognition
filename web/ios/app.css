@@ -1296,3 +1296,5 @@ input[type=date] {
 .cloud-model-control label { display: grid; gap: 7px; min-width: 0; font-size: 13px; font-weight: 700; }
 .cloud-model-control select { width: 100%; min-width: 0; font-size: 14px; }
 .cloud-model-control p { grid-column: 1 / -1; margin: 0; }
+
+.foot a.icp{color:inherit;text-decoration:none}.foot a.icp:hover{text-decoration:underline}

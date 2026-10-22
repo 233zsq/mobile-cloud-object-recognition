@@ -54,7 +54,7 @@ class SettingsStore(private val context: Context) {
         const val DEFAULT_BASE_URL = "http://localhost:8080"
 
         /** 组内腾讯云实例（deploy/README.md），证书信任见 res/xml/network_security_config.xml */
-        const val TEAM_SERVER_URL = "https://49.232.195.47"
+        const val TEAM_SERVER_URL = "https://fieldnotes.bigdogaaa.cn"
 
         private val KEY_BASE_URL = stringPreferencesKey("base_url")
         private val KEY_TOKEN = stringPreferencesKey("api_token")
