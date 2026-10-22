@@ -41,7 +41,7 @@ OpenCode客户端继续直接填写域名、不增加子路径；浏览器验证
 
 ## 证书与回滚
 
-FieldNotes和OpenCode本次证书均于北京时间2027-01-20 12:59:59到期，未配置自动续签。FieldNotes证书在 `/etc/fieldnotes-tls/fullchain.pem` 与 `privkey.pem`，目录0700、文件0600，只有root可读；完整证书链和私钥匹配验证通过后更新，检查共享Nginx配置，再只平滑HUP其主进程。OpenCode证书更新还需按其独立9443服务的运维步骤同步检查和加载。
+FieldNotes与OpenCode本次证书均为腾讯云免费 DV 证书（TrustAsia），北京时间2027-01-20 12:59:59到期。控制台已开启自动续费，但按腾讯云文档自动续费只负责**重新签发**新证书，不会部署到自建 Nginx（结论与出处见 [证书续期说明](cert-renewal.md)）。2026-12-21 起进入到期前 30 天窗口：在控制台续期并下载新证书，替换 `/etc/fieldnotes-tls/fullchain.pem` 与 `privkey.pem`（目录0700、文件0600，只有root可读），核对证书链与私钥匹配后 `nginx -t` 再平滑 `systemctl reload nginx`；OpenCode 证书还需按其独立9443服务的步骤同步更新。要在窗口内完全免人工，可改用服务器端 certbot 自动续期（需80端口对 Let's Encrypt 可达）。
 
 本次配置、原审核版本信息和SQLite一致性备份位于服务器 `/var/backups/fieldnotes-domain-20261022`（root权限）。回滚前先核对线上是否出现后续修改；恢复本次备份的OpenCode与旧审核Nginx文件，移除新增FieldNotes配置、恢复原 `current` 软链并移除本次前缀drop-in，daemon-reload后只重启审核服务，检查Nginx并平滑HUP。不要自动覆盖生产SQLite备份，以免丢失迁移后新增的照片和审核结果。保留所有业务数据与原代码版本。
 
@@ -69,6 +69,6 @@ FieldNotes和OpenCode本次证书均于北京时间2027-01-20 12:59:59到期，�
 
 仍未做：
 
-- 域名证书自动续签：`/etc/fieldnotes-tls/` 证书 2027-01-20 到期，到期前需人工更新，否则整站 HTTPS 失效。
-- Android 默认服务地址已在源码改为 `https://fieldnotes.bigdogaaa.cn`（含网络安全配置），但未重新编译 APK；已安装的 1.1 仍用旧 IP，可在 App 内改服务器地址。
-- 仓库改动在分支 `feat/fieldnotes-icp-20261022`，尚未推送或合并；下次正式发布应按该分支重新打包，发布后线上静态文件与仓库恢复一致。
+- 域名证书续期仍需人工或另配自动化：自动续费只覆盖签发，见 [证书续期说明](cert-renewal.md)。若采用 certbot（80端口 HTTP-01），可让两个域名一次配置后自动 renew+reload。
+- Android 1.2 已重新打包并归档到 `ml-deliveries/android-1.2-20261022/`（debug 签名，内置 v2/v3 双模型与20张一致性样例，默认服务地址已改为域名）；未在真机或模拟器上安装验证。
+- 仓库改动已 rebase 到 PR #18 之后的 `origin/main` 并合并推送；线上展示层仍是就地修补（早于本次合并），下一次正式打包部署后两者一致。
