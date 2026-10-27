@@ -1,7 +1,8 @@
 """Activate a fixed public source bundle and two existing approved CPU packages.
 
-Run with sudo. Preserves API credentials, TLS, ports, database schema and /ios.
-Backs up config/unit/current pointer and restores all three if readiness fails.
+Run with sudo. Preserves API credentials, TLS, ports and /ios. Applies the additive
+record-label migration before activation; backs up config/unit/current pointer and
+restores all three if readiness fails.
 """
 import argparse
 from datetime import datetime, timezone
@@ -161,6 +162,15 @@ def activate(args):
                "c.commit(); c.close(); print('scope schema ready')")
     if args.default_model_version=='campus-evolve-v3':
         run([str(python),'-B','-c',migration],cwd=backend)
+    # Human "other" is an additive record-label migration, not a model class.
+    other_migration=("from app import create_app; from app.extensions import db; from sqlalchemy import inspect; "
+               "a=create_app(); ctx=a.app_context(); ctx.push(); "
+               "exists='corrected_label' in {c['name'] for c in inspect(db.engine).get_columns('inference_record')}; "
+               "script=open('../database/schema/003_human_other_label.sql').read(); "
+               "script='\\n'.join(l for l in script.splitlines() if not l.lstrip().startswith('--')); "
+               "c=db.engine.connect(); [c.exec_driver_sql(s) for s in script.split(';') if s.strip()] if not exists else None; "
+               "c.commit(); c.close(); print('human other label schema ready')")
+    run([str(python),'-B','-c',other_migration],cwd=backend)
     register_packages(python, backend, registry['models'])
     stamp = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
     backup = BASE / 'shared/model-rollbacks' / (stamp + '-multi-model')
@@ -228,7 +238,7 @@ def activate(args):
         raise RuntimeError('Activation failed; restored previous source, configuration and worker') from None
     report = {'source_commit': args.revision, 'release': str(release), 'previous_release': str(previous),
         'rollback_directory': str(backup), 'models': public, 'credentials_preserved': True,
-        'tls_ports_and_static_ios_changed': False, 'database_schema_changed': args.default_model_version=='campus-evolve-v3'}
+        'tls_ports_and_static_ios_changed': False, 'database_schema_changed': True}
     atomic(BASE / 'shared/cloud-models-activation.json', (json.dumps(report, ensure_ascii=False, indent=2) + '\n').encode())
     print(json.dumps(report, ensure_ascii=False))
 

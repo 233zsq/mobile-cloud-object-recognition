@@ -17,6 +17,36 @@ def correction(revision=1, category=1):
     return {"corrected_id": category, "revision": revision, "corrected_at": "2026-10-09T10:00:00.123+08:00"}
 
 
+def other_correction(revision=1):
+    return {"corrected_label": "other", "revision": revision,
+            "corrected_at": "2026-10-09T10:00:00.123+08:00"}
+
+
+def test_other_correction_is_revision_safe_and_preserves_original_prediction(database_app, upload):
+    client = database_app.test_client()
+    assert client.post("/api/records", json=upload).status_code == 201
+    path = f'/api/records/{upload["record_id"]}/label'
+    first = client.patch(path, json=other_correction())
+    assert first.status_code == 200, first.json
+    assert first.json["record"]["predicted_id"] == 0
+    assert first.json["record"]["corrected_id"] is None
+    assert first.json["record"]["corrected_label"] == "other"
+    assert first.json["record"]["revision"] == 1
+    retry = client.patch(path, json=other_correction())
+    assert retry.status_code == 200 and retry.json["updated"] is False
+    assert client.patch(path, json=correction()).status_code == 409
+    retry_upload = client.post("/api/records", json=upload)
+    assert retry_upload.status_code == 200
+    assert retry_upload.json["record"]["corrected_label"] == "other"
+    changed = client.patch(path, json=correction(revision=2, category=3))
+    assert changed.status_code == 200
+    assert changed.json["record"]["corrected_id"] == 3
+    assert changed.json["record"]["corrected_label"] is None
+    back_to_other = client.patch(path, json=other_correction(revision=3))
+    assert back_to_other.status_code == 200
+    assert back_to_other.json["record"]["corrected_label"] == "other"
+
+
 def test_correction_retries_conflicts_and_immutable_upload(database_app, upload):
     client = database_app.test_client()
     assert client.post("/api/records", json=upload).status_code == 201
@@ -41,7 +71,10 @@ def test_correction_retries_conflicts_and_immutable_upload(database_app, upload)
 @pytest.mark.parametrize("body", [None, [], {}, {**correction(), "extra": 1}, correction(0),
     correction(-1), correction(2**63), correction(True), correction("1"), correction(category=True),
     correction(category=1.0), correction(category=10), {**correction(), "corrected_at": "2026-02-30T00:00:00Z"},
-    {**correction(), "corrected_at": "2026-10-09T00:00:00.1234Z"}])
+    {**correction(), "corrected_at": "2026-10-09T00:00:00.1234Z"},
+    {**correction(), "corrected_label": "other"}, {k: v for k, v in correction().items() if k != "corrected_id"},
+    {**other_correction(), "corrected_label": "unknown"}, {**other_correction(), "corrected_label": None},
+    {**other_correction(), "corrected_id": None}])
 def test_bad_corrections_are_rejected_without_database_access(client, body):
     response = client.patch(f"/api/records/{uuid4()}/label", data=json.dumps(body), content_type="application/json")
     assert response.status_code == 400
@@ -152,6 +185,28 @@ def test_reporting_counts_thresholds_and_versioned_labels(populated):
     assert client.get("/api/categories?model_version=expanded-cpu-v1").json["category_version"] == "campus-10-v2"
 
 
+def test_other_label_reporting_and_effective_filters(populated):
+    app, entries = populated
+    client = app.test_client()
+    record_id = entries[1]["record_id"]
+    assert client.patch(f"/api/records/{record_id}/label", json=other_correction()).status_code == 200
+    stats = client.get("/api/stats").json
+    assert stats["total_count"] == 4
+    assert stats["corrected_count"] == 2
+    assert stats["other_count"] == 1
+    assert sum(c["effective_count"] for c in stats["categories"]) == 3
+    original = client.get("/api/records?category_id=1&category_basis=predicted").json
+    effective = client.get("/api/records?category_id=other&category_basis=effective").json
+    assert original["total"] == 1
+    assert effective["total"] == 1 and effective["records"][0]["record_id"] == record_id
+    assert effective["records"][0]["corrected_label"] == "other"
+    assert effective["filters"]["category_id"] == "other"
+    filtered_stats = client.get("/api/stats?category_id=other&category_basis=effective").json
+    assert filtered_stats["total_count"] == filtered_stats["other_count"] == 1
+    assert sum(c["effective_count"] for c in filtered_stats["categories"]) == 0
+    assert client.get("/api/stats?category_id=other").status_code == 400
+
+
 def test_filters_pagination_and_half_open_time_ranges(populated):
     app, entries = populated
     client = app.test_client()
@@ -183,6 +238,7 @@ def test_empty_results_and_invalid_versions(database_app):
     client = database_app.test_client()
     stats = client.get("/api/stats").json
     assert stats["total_count"] == stats["low_confidence_count"] == stats["corrected_count"] == 0
+    assert stats["other_count"] == 0
     assert stats["latency_ms"] == {"average": None, "min": None, "max": None}
     assert stats["daily_counts"] == []
     assert client.get("/api/records").json["pages"] == 0

@@ -3,6 +3,7 @@
 负责人：数据与云端负责人。已实现MySQL首版四张核心表和记录写入。最低要求MySQL 8.0.16，使用InnoDB、utf8mb4及CHECK约束；2026-10-08已在云端MySQL 8.4.11部署并通过验收。
 
 - `schema/001_initial.sql`：可在空应用数据库执行的初始建表SQL。
+- `schema/002_inference_decision.sql`、`schema/003_human_other_label.sql`：已部署数据库的版本化增量升级。
 - `seeds/categories.campus-10-v2.json`：模型分支已冻结的类别清单快照。
 - `seeds/expanded-cpu-v1.metadata.json`：模型分支现有试验模型元数据快照，供登记和联调使用。
 
@@ -17,7 +18,7 @@
 
 记录通过复合外键确保预测类别与模型类别版本一致；人工标签使用同版本类别。字符串标识区分大小写，上传UUID统一为小写。置信度用DOUBLE保存，采集时间为UTC `DATETIME(3)`，耗时为非负BIGINT。记录只按UUID去重，不把不同UUID的相同照片或内容强行合并。
 
-原预测与人工标签分别保存；上传重试不清空已有纠错。修订号初始为0，纠错字段和数据库约束已预留，PATCH纠错接口尚未实现。
+原预测与人工标签分别保存；上传重试不清空已有纠错。修订号初始为0，PATCH支持十类 `corrected_id` 和人工特殊标签 `corrected_label='other'`，两者互斥。其他不属于模型类别，不占类别ID，也不改变模型输出。
 
 ## 初始化顺序
 
@@ -56,6 +57,8 @@ New-Item -ItemType Directory ../tmp -Force | Out-Null
 ```
 
 正式部署后保留001快照，结构变化通过新的版本化升级SQL或统一迁移工具管理；不能依靠create_all修改已有表。
+从现有001/002结构升级时先备份，再按顺序执行尚未应用的 `002_inference_decision.sql`、`003_human_other_label.sql`。
+003增加corrected_label并替换修正状态约束，不修改既有原预测或人工类别；只执行一次。全新环境可先执行001，再依次执行002、003。
 
 ## 验证与资料来源
 

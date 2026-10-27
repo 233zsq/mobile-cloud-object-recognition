@@ -23,7 +23,7 @@ async function pageFixture(t) {
     if (hold) { if (started) started.resolve(); await hold.promise; }
     if (failure && url.pathname === '/api/stats') { await route.fulfill({ status: 500, json: { error: { message: '本地模拟故障' } } }); return; }
     if (url.pathname === '/api/stats') {
-      await route.fulfill({ json: { generated_at: '2026-10-13T12:00:00Z', total_count: 40, corrected_count: 3, low_confidence_count: 2,
+      await route.fulfill({ json: { generated_at: '2026-10-13T12:00:00Z', total_count: 40, corrected_count: 3, other_count: 2, low_confidence_count: 2,
         uncertain_count: 3, device_count: 10, cloud_count: 30, latency_ms: { average: 32, min: 10, max: 120 },
         categories: categories.categories.map(item => ({ ...item, category_version: categories.category_version, effective_count: 4, predicted_count: 4 })),
         daily_counts: [{ date: '2026-10-13', count: 40 }] } });
@@ -59,6 +59,13 @@ test('dashboard native modules connect, paginate and apply versioned filters', a
   assert.equal(query.get('category_version'), categories.category_version); assert.equal(query.get('category_id'), '5');
   assert.equal(query.get('category_basis'), 'effective'); assert.equal(query.get('recognition_status'), 'uncertain');
   assert.equal(query.get('page'), '0'); assert.equal(query.get('page_size'), '20');
+  await page.locator('#category').selectOption('other'); await page.locator('#basis').selectOption('predicted');
+  await page.locator('#apply').click();
+  await page.waitForFunction(() => document.querySelector('#record-rows').textContent.includes('local-page-0'));
+  const otherQuery = requests.filter(item => item.url.pathname === '/api/records').at(-1).url.searchParams;
+  assert.equal(otherQuery.get('category_id'), 'other'); assert.equal(otherQuery.get('category_version'), null);
+  assert.equal(otherQuery.get('category_basis'), 'effective');
+  assert.match(await page.locator('#category-chart').textContent(), /其他/);
   assert.ok(requests.every(item => item.auth === 'Bearer local-dashboard-test'));
   assert.equal(await page.evaluate(() => localStorage.length), 0);
   assert.deepEqual(errors, []);

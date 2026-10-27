@@ -50,7 +50,7 @@ interface RecordDao {
     )
     suspend fun applyCorrection(
         recordId: String,
-        correctedIndex: Int,
+        correctedIndex: Int?,
         correctedLabel: String,
         correctedAt: Long,
         now: Long,

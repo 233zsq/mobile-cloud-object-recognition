@@ -46,7 +46,9 @@ data class CloudScopeDecision(
 
 @Serializable
 data class CorrectionRequest(
-    @SerialName("corrected_id") val correctedId: Int,
+    /** 十类纠错与其他人工标签互斥；explicitNulls=false 保证请求只携带其中一项。 */
+    @SerialName("corrected_id") val correctedId: Int? = null,
+    @SerialName("corrected_label") val correctedLabel: String? = null,
     @SerialName("revision") val revision: Int,
     @SerialName("corrected_at") val correctedAt: String,
 )

@@ -42,23 +42,39 @@ def correct_label(record_id, body):
     if not re.fullmatch(UUID_PATTERN, record_id):
         invalid("record_id必须为带连字符的UUID。", code)
     record_id = str(UUID(record_id))
-    if not isinstance(body, dict) or set(body) != {"corrected_id", "revision", "corrected_at"}:
-        invalid("纠错必须且只能包含corrected_id、revision和corrected_at。", code)
-    # JSON numbers stay strict, unlike numeric query parameters.
-    if type(body["corrected_id"]) is not int or type(body["revision"]) is not int:
-        invalid("corrected_id和revision必须为JSON整数。", code)
-    category_id = integer(body["corrected_id"], "corrected_id", 0, 9, code)
+    required = {"revision", "corrected_at"}
+    allowed = required | {"corrected_id", "corrected_label"}
+    if not isinstance(body, dict) or not required <= set(body) or not set(body) <= allowed:
+        invalid("纠错须包含revision、corrected_at，以及corrected_id或corrected_label之一。", code)
+    has_category = "corrected_id" in body
+    has_special = "corrected_label" in body
+    if has_category == has_special:
+        invalid("corrected_id和corrected_label必须且只能提供一项。", code)
+    category_id = None
+    corrected_label = None
+    if has_category:
+        # JSON numbers stay strict, unlike numeric query parameters.
+        if type(body["corrected_id"]) is not int:
+            invalid("corrected_id必须为JSON整数。", code)
+        category_id = integer(body["corrected_id"], "corrected_id", 0, 9, code)
+    else:
+        if body["corrected_label"] != "other":
+            invalid("corrected_label目前仅支持other。", code)
+        corrected_label = "other"
+    if type(body["revision"]) is not int:
+        invalid("revision必须为JSON整数。", code)
     revision = integer(body["revision"], "revision", 1, 2**63 - 1, code)
     corrected_at = timestamp(body["corrected_at"], "corrected_at", code)
     record = db.session.get(Record, record_id)
     if record is None:
         raise ApiError("RECORD_NOT_FOUND", "记录尚未上报，请先上传原记录。", 404)
-    if db.session.get(Category, (record.category_version, category_id)) is None:
+    if category_id is not None and db.session.get(Category, (record.category_version, category_id)) is None:
         raise ApiError("UNKNOWN_CATEGORY", "纠正类别不属于该记录的类别版本。", 400)
     # The comparison runs inside UPDATE, not as a read-then-write check.
     changed = db.session.execute(
         update(Record).where(Record.record_id == record_id, Record.revision < revision)
-        .values(corrected_id=category_id, corrected_at=corrected_at, revision=revision),
+        .values(corrected_id=category_id, corrected_label=corrected_label,
+                corrected_at=corrected_at, revision=revision),
         execution_options={"synchronize_session": False},
     ).rowcount
     if changed:
@@ -70,7 +86,7 @@ def correct_label(record_id, body):
     if record is None:
         raise ApiError("RECORD_NOT_FOUND", "记录不存在。", 404)
     if not changed and (record.revision != revision or record.corrected_id != category_id
-                        or record.corrected_at != corrected_at):
+                        or record.corrected_label != corrected_label or record.corrected_at != corrected_at):
         raise ApiError("REVISION_CONFLICT", "服务端已有该修订号的不同内容或更新修订，原标签未被覆盖。", 409)
     return {"updated": bool(changed), "record": serialize_record(record)}
 
@@ -115,10 +131,18 @@ def parse_filters(args, *, pagination=False):
         invalid("category_basis必须为predicted或effective。")
     normalized["category_basis"] = basis
     if "category_id" in values:
-        category_id = integer(values["category_id"], "category_id", 0, 9)
-        normalized["category_id"] = category_id
-        column = Record.predicted_id if basis == "predicted" else func.coalesce(Record.corrected_id, Record.predicted_id)
-        conditions.append(column == category_id)
+        if values["category_id"] == "other":
+            if basis != "effective":
+                invalid("其他是人工标签，只能按category_basis=effective筛选。")
+            normalized["category_id"] = "other"
+            conditions.append(Record.corrected_label == "other")
+        else:
+            category_id = integer(values["category_id"], "category_id", 0, 9)
+            normalized["category_id"] = category_id
+            column = Record.predicted_id if basis == "predicted" else func.coalesce(Record.corrected_id, Record.predicted_id)
+            conditions.append(column == category_id)
+            if basis == "effective":
+                conditions.append(Record.corrected_label.is_(None))
     if "client_id" in values:
         if not re.fullmatch(UUID_PATTERN, values["client_id"]):
             invalid("client_id必须为带连字符的UUID。")
@@ -155,17 +179,20 @@ def list_records(args):
 def statistics(args):
     conditions, filters, _, _ = parse_filters(args)
     row = db.session.execute(select(
-        func.count(Record.record_id), func.sum(case((Record.corrected_id.is_not(None), 1), else_=0)),
+        func.count(Record.record_id), func.sum(case((Record.revision > 0, 1), else_=0)),
         func.sum(case((Record.confidence < ModelVersion.low_confidence_threshold, 1), else_=0)),
         func.sum(case((Record.inference_source == "device", 1), else_=0)),
         func.sum(case((Record.inference_source == "cloud", 1), else_=0)),
         func.avg(Record.latency_ms), func.min(Record.latency_ms), func.max(Record.latency_ms),
+        func.sum(case((Record.corrected_label == "other", 1), else_=0)),
     ).select_from(Record).join(ModelVersion, Record.model_version == ModelVersion.version).where(*conditions)).one()
     counts = {}
     for name, column in (("predicted_count", Record.predicted_id), ("corrected_count", Record.corrected_id),
                          ("effective_count", func.coalesce(Record.corrected_id, Record.predicted_id))):
+        extra_conditions = [Record.corrected_label.is_(None)] if name == "effective_count" else []
         for version, category_id, count in db.session.execute(select(Record.category_version, column, func.count())
-                .where(*conditions, column.is_not(None)).group_by(Record.category_version, column)):
+                .where(*conditions, column.is_not(None), *extra_conditions)
+                .group_by(Record.category_version, column)):
             counts.setdefault((version, category_id), {})[name] = count
     catalog = select(Category).order_by(Category.category_version, Category.id)
     category_version = filters.get("category_version")
@@ -191,6 +218,7 @@ def statistics(args):
             "device_count": int(row[3] or 0), "cloud_count": int(row[4] or 0),
             "uncertain_count": scope_counts.get('uncertain', 0), "recognition_status_counts": scope_counts,
             "latency_ms": {"average": float(row[5]) if row[5] is not None else None, "min": row[6], "max": row[7]},
+            "other_count": int(row[8] or 0),
             "categories": categories, "daily_counts": daily, "models": models, "filters": filters,
             "generated_at": utc_text(datetime.now(timezone.utc)), "timezone": "UTC"}
 

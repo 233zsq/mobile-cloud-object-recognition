@@ -1,9 +1,12 @@
 // Pure record, inference and policy contracts; no DOM, storage or HTTP access.
-const hasCorrection = (record) => record.corrected_id !== null && record.corrected_id !== undefined;
+const hasCorrection = (record) => (record.corrected_id !== null && record.corrected_id !== undefined)
+  || record.corrected_label === 'other';
 const isPending = (record) => !record.synced || (hasCorrection(record) && !record.correction_synced);
 const sameTime = (a, b) => Number.isFinite(Date.parse(a)) && Date.parse(a) === Date.parse(b);
 const sameCorrection = (record, sent) => record.revision === sent.revision
-  && record.corrected_id === sent.corrected_id && sameTime(record.corrected_at, sent.corrected_at);
+  && (record.corrected_id ?? null) === (sent.corrected_id ?? null)
+  && (record.corrected_label ?? null) === (sent.corrected_label ?? null)
+  && sameTime(record.corrected_at, sent.corrected_at);
 
 function trimRecords(records, maximum) {
   let over = Math.max(0, records.length - maximum);
@@ -30,10 +33,14 @@ function writeState(storage, key, value) {
 
 function serverRecord(response, record) {
   const server = response && response.record;
+  const categoryCorrection = server?.corrected_id !== null && server?.corrected_id !== undefined;
+  const otherCorrection = server?.corrected_label === 'other';
   if (!server || server.record_id !== record.record_id || !Number.isSafeInteger(server.revision)
-    || server.revision < 0 || (hasCorrection(server)
-      && (!Number.isInteger(server.corrected_id) || server.corrected_id < 0 || server.corrected_id > 9
-        || !Number.isFinite(Date.parse(server.corrected_at))))) {
+    || server.revision < 0 || (server.revision > 0 && categoryCorrection === otherCorrection)
+      || (server.revision === 0 && hasCorrection(server))
+      || (server.corrected_label != null && !otherCorrection)
+      || (categoryCorrection && (!Number.isInteger(server.corrected_id) || server.corrected_id < 0 || server.corrected_id > 9))
+      || (server.revision > 0 && !Number.isFinite(Date.parse(server.corrected_at)))) {
     throw new Error('服务器返回的记录无效，本机修改已保留，请稍后重试。');
   }
   return server;
@@ -43,6 +50,7 @@ function adoptServerCorrection(record, server) {
   record.revision = server.revision;
   record.server_revision = server.revision;
   record.corrected_id = server.corrected_id ?? null;
+  record.corrected_label = server.corrected_label ?? null;
   record.corrected_at = server.corrected_at ?? null;
   record.correction_synced = true;
   record.correction_conflict = false;
@@ -68,7 +76,9 @@ async function syncRecord(record, { request, uploadPayload }) {
   }
   if (hasCorrection(record) && !record.correction_synced && !record.correction_conflict) {
     const sent = {
-      corrected_id: record.corrected_id,
+      ...(record.corrected_label === 'other'
+        ? { corrected_label: 'other' }
+        : { corrected_id: record.corrected_id }),
       revision: record.revision,
       corrected_at: record.corrected_at,
     };
@@ -126,9 +136,10 @@ function createSyncQueue({ getRecords, sync, onChange = () => {} }) {
 
 function filterRecords(records, filters) {
   return records.filter((record) => {
-    const effective = hasCorrection(record) ? record.corrected_id : record.predicted_id;
+    const effective = record.corrected_label === 'other' ? 'other'
+      : (hasCorrection(record) ? record.corrected_id : record.predicted_id);
     if (filters.model && record.model_version !== filters.model) return false;
-    if (filters.category !== '' && effective !== Number(filters.category)) return false;
+    if (filters.category !== '' && effective !== (filters.category === 'other' ? 'other' : Number(filters.category))) return false;
     if (filters.status === 'pending' && !isPending(record)) return false;
     if (filters.status === 'conflict' && !record.correction_conflict) return false;
     if (filters.status === 'corrected' && !hasCorrection(record)) return false;
@@ -228,13 +239,16 @@ function scopeDecision(result, contract, policy) {
 }
 
 function confirmScopedRecord(record, categoryId, confirmedAt) {
+  const other = categoryId === 'other';
   if (!record || !['uncertain', 'unavailable'].includes(record.scope_decision?.status)
-    || !Number.isInteger(categoryId) || categoryId < 0 || categoryId > 9 || !Number.isFinite(Date.parse(confirmedAt))) {
+    || (!other && (!Number.isInteger(categoryId) || categoryId < 0 || categoryId > 9))
+    || !Number.isFinite(Date.parse(confirmedAt))) {
     throw new Error('待确认结果或类别无效。');
   }
   const confirmed = { ...record, scope_manually_confirmed: true };
-  if (categoryId !== record.predicted_id) {
-    Object.assign(confirmed, { corrected_id: categoryId, corrected_at: confirmedAt,
+  if (other || categoryId !== record.predicted_id) {
+    Object.assign(confirmed, { corrected_id: other ? null : categoryId,
+      corrected_label: other ? 'other' : null, corrected_at: confirmedAt,
       revision: 1, correction_synced: false });
   }
   return confirmed;

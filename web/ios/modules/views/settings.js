@@ -72,6 +72,7 @@ export function createSettingsView({ state, dom, ui }) {
       dom.filterCategory.add(new Option(category.display_name, String(category.id)));
       dom.modelCategories.appendChild(el('li', null, category.display_name));
     }
+    dom.filterCategory.add(new Option('其他（人工标注）', 'other'));
   }
   return { renderStorageInfo, renderStorageWarning, appendRows, renderModelInfo, renderModelSelection, renderCategories };
 }

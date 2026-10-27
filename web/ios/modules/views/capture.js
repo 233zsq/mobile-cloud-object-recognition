@@ -68,10 +68,11 @@ export function createCaptureView({ state, dom, ui, handlers }) {
     const pending = state.pendingConfirmation === ticket;
     dom.scopeActions.hidden = !pending;
     dom.ticketActions.hidden = pending;
+    const other = ticket.corrected_label === 'other';
     const shownId = ticket.corrected_id !== null && ticket.corrected_id !== undefined
       ? ticket.corrected_id
       : ticket.predicted_id;
-    dom.ticketName.textContent = pending ? '暂不确定' : ui.categoryName(shownId, ticket.label_key);
+    dom.ticketName.textContent = pending ? '暂不确定' : (other ? '其他' : ui.categoryName(shownId, ticket.label_key));
     dom.ticketConfidence.textContent = percent(ticket.confidence);
     dom.ticketFlag.hidden = !pending && !ticket.low_confidence && !ticket.scope_manually_confirmed;
     dom.ticketFlag.textContent = pending ? ticket.scope_decision.reason
@@ -80,7 +81,7 @@ export function createCaptureView({ state, dom, ui, handlers }) {
       dom.ticketOriginal.hidden = false;
       dom.ticketOriginal.textContent = `候选：${ui.categoryName(ticket.predicted_id, ticket.label_key)} · 上方为候选分数`;
       dom.scopeConfirm.textContent = `确认是${ui.categoryName(ticket.predicted_id, ticket.label_key)}并保存`;
-    } else if (ticket.corrected_id !== null && ticket.corrected_id !== undefined) {
+    } else if (Core.hasCorrection(ticket)) {
       dom.ticketOriginal.hidden = false;
       dom.ticketOriginal.textContent = `原预测：${ui.categoryName(ticket.predicted_id, ticket.label_key)}（已保留）`;
     } else {
@@ -118,7 +119,7 @@ export function createCaptureView({ state, dom, ui, handlers }) {
       ui.setStatus(dom.ticketSync, '修订冲突：本机修正尚未上报，请选择如何处理。', true);
     } else if (state.storageError && isPending(record)) {
       ui.setStatus(dom.ticketSync, '本机保存失败，请立即同步或导出；关闭页面可能丢失这条待同步记录。', true);
-    } else if (record.synced && (record.corrected_id === null || record.corrected_id === undefined || record.correction_synced)) {
+    } else if (record.synced && (!Core.hasCorrection(record) || record.correction_synced)) {
       ui.setStatus(dom.ticketSync, '已上报到云端。', false);
     } else if (navigator.onLine) {
       ui.setStatus(dom.ticketSync, '等待上报，会自动重试，也可以在「记录」里立即同步。', false);
@@ -131,9 +132,10 @@ export function createCaptureView({ state, dom, ui, handlers }) {
     dom.categoryGrid.textContent = '';
     const pending = state.pendingConfirmation === ticket;
     dom.correctionHint.textContent = pending ? '选择实际类别并保存；原预测和分数会保留。' : '选择正确类别；原预测会保留。';
-    const current = ticket.corrected_id !== null && ticket.corrected_id !== undefined
-      ? ticket.corrected_id
-      : ticket.predicted_id;
+    const current = ticket.corrected_label === 'other' ? 'other'
+      : ticket.corrected_id !== null && ticket.corrected_id !== undefined
+        ? ticket.corrected_id
+        : ticket.predicted_id;
     for (const category of state.categories) {
       const button = el('button', category.id === current ? 'current' : null, category.display_name);
       button.type = 'button';
@@ -144,6 +146,14 @@ export function createCaptureView({ state, dom, ui, handlers }) {
       });
       dom.categoryGrid.appendChild(button);
     }
+    const other = el('button', current === 'other' ? 'current' : null, '其他（不属于这十类）');
+    other.type = 'button';
+    other.addEventListener('click', () => {
+      if (current === 'other') return;
+      if (pending) handlers.confirmPending('other');
+      else handlers.correctRecord(ticket.record_id, 'other');
+    });
+    dom.categoryGrid.appendChild(other);
   }
 
   function setPhase(name) {

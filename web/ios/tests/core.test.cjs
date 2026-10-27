@@ -169,6 +169,37 @@ test('filters use effective labels and inclusive local dates consistently', () =
   assert.equal(filtered[0].record_id, 'record-1');
 });
 
+test('other is a correction, filters distinctly and PATCHes only corrected_label', async () => {
+  const original = record({ synced: false, scope_decision: { status: 'uncertain' } });
+  const confirmed = core.confirmScopedRecord(original, 'other', '2026-10-12T10:00:00.000Z');
+  assert.equal(confirmed.predicted_id, 0);
+  assert.equal(confirmed.corrected_id, null);
+  assert.equal(confirmed.corrected_label, 'other');
+  assert.equal(confirmed.revision, 1);
+  assert.equal(core.hasCorrection(confirmed), true);
+  assert.deepEqual(core.filterRecords([confirmed, record()], { category: 'other' }), [confirmed]);
+  assert.deepEqual(core.filterRecords([confirmed, record()], { category: '0' }), [record()]);
+  const requests = [];
+  await core.syncRecord(confirmed, { uploadPayload: () => ({ predicted_id: 0 }), request: async (_, options) => {
+    requests.push(options.body);
+    if (options.method === 'POST') return response(original);
+    return response(original, options.body);
+  } });
+  assert.equal('corrected_id' in requests[1], false);
+  assert.equal(requests[1].corrected_label, 'other');
+  assert.equal(confirmed.correction_synced, true);
+});
+
+test('a server other label survives conflict adoption and malformed dual corrections fail', () => {
+  const original = record({ ...edit(2, 2), corrected_label: null });
+  const server = response(original, { corrected_id: null, corrected_label: 'other', corrected_at: '2026-10-12T10:00:03.000Z', revision: 3 });
+  core.adoptServerCorrection(original, core.serverRecord(server, original));
+  assert.equal(original.corrected_label, 'other');
+  assert.equal(original.corrected_id, null);
+  assert.throws(() => core.serverRecord(response(original, { corrected_id: 2, corrected_label: 'other',
+    corrected_at: '2026-10-12T10:00:03.000Z', revision: 3 }), original));
+});
+
 test('web model contract matches the frozen release and Android label order', () => {
   const root = path.resolve(__dirname, '../../..');
   const metadata = JSON.parse(fs.readFileSync(path.join(root, 'models/releases/campus-evolve-v2/metadata.json')));

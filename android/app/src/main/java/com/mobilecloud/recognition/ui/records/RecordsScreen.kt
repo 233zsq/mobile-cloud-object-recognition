@@ -19,6 +19,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -31,6 +33,7 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -69,6 +72,7 @@ import kotlinx.coroutines.withContext
 /**
  * 记录页：本地识别记录列表、同步状态展示与手动补传（F03/F04，T07）。
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecordsScreen(viewModel: RecordsViewModel = viewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -81,6 +85,7 @@ fun RecordsScreen(viewModel: RecordsViewModel = viewModel()) {
         }
     }
 
+    var correctionTarget by remember { mutableStateOf<RecordEntity?>(null) }
     // 待删除记录：非空时显示确认框（删除为破坏性操作，需二次确认）
     var pendingDelete by remember { mutableStateOf<RecordEntity?>(null) }
     // 清空全部：批量破坏性操作，单独确认
@@ -162,9 +167,33 @@ fun RecordsScreen(viewModel: RecordsViewModel = viewModel()) {
             } else {
                 LazyColumn(modifier = Modifier.weight(1f)) {
                     items(selection.records, key = { it.recordId }) { record ->
-                        RecordCard(record, onDelete = { pendingDelete = record })
+                        RecordCard(record, onDelete = { pendingDelete = record }, onCorrect = { correctionTarget = record })
                     }
                 }
+            }
+        }
+    }
+
+    correctionTarget?.let { record ->
+        ModalBottomSheet(onDismissRequest = { correctionTarget = null }) {
+            Column(Modifier.padding(22.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("修正历史记录", style = MaterialTheme.typography.headlineSmall)
+                Text("原预测保留；选择后递增修订号并等待同步。", style = MaterialTheme.typography.bodySmall)
+                AppGraph.categoryCatalog.categories.chunked(2).forEach { row ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        row.forEach { item ->
+                            AssistChip(modifier = Modifier.weight(1f), onClick = {
+                                viewModel.correctRecord(record, item.id)
+                                correctionTarget = null
+                            }, label = { Text(item.displayName) })
+                        }
+                    }
+                }
+                Button(modifier = Modifier.fillMaxWidth().testTag("history-correct-as-other"), onClick = {
+                    viewModel.correctRecord(record, null)
+                    correctionTarget = null
+                }) { Text("不属于这十类，修正为其他") }
+                Spacer(Modifier.height(24.dp))
             }
         }
     }
@@ -259,7 +288,7 @@ private fun RecordMetric(label: String, count: Int) {
 }
 
 @Composable
-private fun RecordCard(record: RecordEntity, onDelete: () -> Unit) {
+private fun RecordCard(record: RecordEntity, onDelete: () -> Unit, onCorrect: () -> Unit) {
     val catalog = AppGraph.categoryCatalog
     val currentName = catalog.displayNameForLabel(record.displayLabel)
     val originalName = catalog.displayNameForLabel(record.predictedLabel)
@@ -304,6 +333,10 @@ private fun RecordCard(record: RecordEntity, onDelete: () -> Unit) {
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall,
                     )
+                }
+                TextButton(onClick = onCorrect, modifier = Modifier.testTag("correct-record"),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)) {
+                    Text("修正类别")
                 }
             }
             Spacer(Modifier.width(6.dp))

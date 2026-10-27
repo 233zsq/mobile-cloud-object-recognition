@@ -69,7 +69,7 @@ def publish(archive, expected):
     try:
         temporary.replace(WWW)
         subprocess.run(['curl', '--max-time', '15', '--fail', '--silent', '--show-error',
-                        'https://49.232.195.47/ios/model-contract.json'], check=True, capture_output=True, timeout=20)
+                        'https://fieldnotes.bigdogaaa.cn/ios/model-contract.json'], check=True, capture_output=True, timeout=20)
     except Exception:
         if temporary.is_symlink():
             temporary.unlink()

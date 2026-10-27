@@ -7,11 +7,12 @@ export function createRecordsView({ state, dom, ui, handlers }) {
   function recordRow(record) {
     const item = el('li');
     const head = el('div', 'head');
-    const name = record.corrected_id !== null && record.corrected_id !== undefined
-      ? ui.categoryName(record.corrected_id, record.label_key)
-      : ui.categoryName(record.predicted_id, record.label_key);
+    const name = record.corrected_label === 'other' ? '其他'
+      : record.corrected_id !== null && record.corrected_id !== undefined
+        ? ui.categoryName(record.corrected_id, record.label_key)
+        : ui.categoryName(record.predicted_id, record.label_key);
     const title = el('span', 'title', name);
-    if (record.corrected_id !== null && record.corrected_id !== undefined) {
+    if (Core.hasCorrection(record)) {
       title.appendChild(el('em', null, `原预测 ${ui.categoryName(record.predicted_id, record.label_key)}`));
     }
     head.appendChild(title);
@@ -21,7 +22,7 @@ export function createRecordsView({ state, dom, ui, handlers }) {
 
     const badges = el('div', 'badges');
     badges.appendChild(el('span', 'tag', record.synced ? '已上报' : '待上报'));
-    if (record.corrected_id !== null && record.corrected_id !== undefined) {
+    if (Core.hasCorrection(record)) {
       badges.appendChild(el('span', 'tag fixed', record.correction_synced && !record.correction_conflict ? '修正已上报' : '修正待上报'));
     }
     if (record.correction_conflict) badges.appendChild(el('span', 'tag pending', '修订冲突'));

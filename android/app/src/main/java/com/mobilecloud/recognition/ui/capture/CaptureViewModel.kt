@@ -362,11 +362,17 @@ class CaptureViewModel(
     }
 
     private suspend fun savePrediction(file: File, prediction: Prediction, threshold: Float, mode: InferenceMode,
-        elapsed: Long, confirmedCategory: Int? = null) {
+        elapsed: Long, confirmedCategory: Int? = null, confirmedOther: Boolean = false) {
             val clientId = AppGraph.settings.ensureClientId()
             val now = System.currentTimeMillis()
-            val corrected = confirmedCategory?.takeIf { it != prediction.index }
-            val correctedLabel = corrected?.let { id -> AppGraph.categoryCatalog.categories.single { it.id == id }.labelKey }
+            val corrected = if (confirmedOther) null else confirmedCategory?.takeIf { it != prediction.index }
+            val correctedLabel = when {
+                confirmedOther -> com.mobilecloud.recognition.data.CategoryCatalog.OTHER_LABEL
+                corrected != null -> AppGraph.categoryCatalog.categories.single { it.id == corrected }.labelKey
+                else -> null
+            }
+            val hasCorrection = confirmedOther || corrected != null
+            val manuallyConfirmed = confirmedOther || confirmedCategory != null
             val record = RecordEntity(
                 recordId = java.util.UUID.randomUUID().toString(),
                 clientId = clientId,
@@ -380,12 +386,12 @@ class CaptureViewModel(
                 photoPath = file.absolutePath,
                 scopeDecisionJson = prediction.scopeDecision?.let { decision -> Json.encodeToString(ScopeUploadEvidence(
                     status = decision.verdict.name.lowercase(java.util.Locale.ROOT), policyVersion = decision.policyVersion,
-                    policySha256 = decision.policySha256, knownness = decision.knownness, manualConfirmed = confirmedCategory != null)) },
+                    policySha256 = decision.policySha256, knownness = decision.knownness, manualConfirmed = manuallyConfirmed)) },
                 correctedIndex = corrected,
                 correctedLabel = correctedLabel,
-                revision = if (corrected != null) 1 else 0,
-                correctedAt = if (corrected != null) now else null,
-                correctionPending = corrected != null,
+                revision = if (hasCorrection) 1 else 0,
+                correctedAt = if (hasCorrection) now else null,
+                correctionPending = hasCorrection,
                 updatedAt = now,
             )
             insertRecord(record)
@@ -402,7 +408,7 @@ class CaptureViewModel(
                         source = mode,
                         elapsedMs = elapsed,
                         correctedDisplayName = correctedLabel?.let(AppGraph.categoryCatalog::displayNameForLabel),
-                        manuallyConfirmed = confirmedCategory != null,
+                        manuallyConfirmed = manuallyConfirmed,
                     ),
                 )
             }
@@ -412,14 +418,21 @@ class CaptureViewModel(
     }
 
     fun confirmPhoto(categoryId: Int) {
+        if (AppGraph.categoryCatalog.categories.none { it.id == categoryId }) return
+        confirmPhotoSelection(categoryId, false)
+    }
+
+    fun confirmPhotoAsOther() = confirmPhotoSelection(null, true)
+
+    private fun confirmPhotoSelection(categoryId: Int?, other: Boolean) {
         val candidate = _state.value.confirmation ?: return
         val file = pendingPhoto ?: return
-        if (_state.value.capturing || AppGraph.categoryCatalog.categories.none { it.id == categoryId }) return
+        if (_state.value.capturing) return
         setLivePreviewActive(false)
         _state.update { it.copy(capturing = true) }
         recognitionJob = viewModelScope.launch {
             try { savePrediction(file, candidate.prediction, candidate.lowConfidenceThreshold,
-                candidate.source, candidate.elapsedMs, categoryId) }
+                candidate.source, candidate.elapsedMs, categoryId, other) }
             catch (e: CancellationException) { throw e }
             catch (_: Exception) { _state.update { it.copy(capturing = false, message = "记录保存失败，照片已保留，请重试。") } }
         }
@@ -447,14 +460,21 @@ class CaptureViewModel(
 
     /** 人工纠错：本地先落库（revision+1、保留原预测），再触发同步（F03/T10） */
     fun applyCorrection(categoryId: Int, displayName: String) {
+        val label = AppGraph.categoryCatalog.categories.firstOrNull { it.id == categoryId }?.labelKey ?: return
+        applyCorrectionSelection(categoryId, label, displayName)
+    }
+
+    fun applyOtherCorrection() = applyCorrectionSelection(
+        null, com.mobilecloud.recognition.data.CategoryCatalog.OTHER_LABEL, "其他")
+
+    private fun applyCorrectionSelection(categoryId: Int?, label: String, displayName: String) {
         val result = _state.value.lastResult ?: return
         val now = System.currentTimeMillis()
         viewModelScope.launch {
             AppGraph.recordDao.applyCorrection(
                 recordId = result.recordId,
                 correctedIndex = categoryId,
-                correctedLabel = AppGraph.categoryCatalog.categories
-                    .firstOrNull { it.id == categoryId }?.labelKey ?: displayName,
+                correctedLabel = label,
                 correctedAt = now,
                 now = now,
             )

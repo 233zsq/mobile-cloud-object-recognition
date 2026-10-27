@@ -20,6 +20,7 @@ export function createRecords({ state, ui, persistence, api }) {
       inference_ms: result.inference_ms,
       total_ms: totalMs,
       corrected_id: null,
+      corrected_label: null,
       corrected_at: null,
       revision: 0,
       correction_synced: true,
@@ -97,7 +98,10 @@ export function createRecords({ state, ui, persistence, api }) {
   function correctRecord(recordId, correctedId) {
     const record = findRecord(recordId);
     if (!record) return;
-    record.corrected_id = correctedId;
+    const other = correctedId === 'other';
+    if (!other && (!Number.isInteger(correctedId) || correctedId < 0 || correctedId > 9)) return;
+    record.corrected_id = other ? null : correctedId;
+    record.corrected_label = other ? 'other' : null;
     record.corrected_at = new Date().toISOString();
     record.revision = Math.max(Number(record.revision) || 0, Number(record.server_revision) || 0) + 1;
     record.correction_synced = false;
@@ -114,12 +118,14 @@ export function createRecords({ state, ui, persistence, api }) {
   async function resolveConflict(useLocal) {
     const record = state.ticket && findRecord(state.ticket.record_id);
     if (!record || !record.correction_conflict || state.syncing) return;
-    const wanted = { corrected_id: record.corrected_id, revision: record.revision, corrected_at: record.corrected_at };
+    const wanted = { corrected_id: record.corrected_id ?? null, corrected_label: record.corrected_label ?? null,
+      revision: record.revision, corrected_at: record.corrected_at };
     ui.setConflictBusy(true);
     try {
       // Re-uploading an existing UUID returns its current server state without inserting a duplicate.
       const server = Core.serverRecord(await api('/api/records', { method: 'POST', body: uploadPayload(record) }), record);
-      if (record.revision !== wanted.revision || record.corrected_id !== wanted.corrected_id || record.corrected_at !== wanted.corrected_at) {
+      if (record.revision !== wanted.revision || (record.corrected_id ?? null) !== wanted.corrected_id
+        || (record.corrected_label ?? null) !== wanted.corrected_label || record.corrected_at !== wanted.corrected_at) {
         throw new Error('本机修正刚有更新，请重新选择冲突处理方式。');
       }
       if (useLocal) {
