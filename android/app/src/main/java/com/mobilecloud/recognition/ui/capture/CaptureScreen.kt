@@ -183,13 +183,17 @@ fun CaptureScreen(catalog: CategoryCatalog, viewModel: CaptureViewModel = viewMo
     if (confirmationSheet && state.confirmation != null) ModalBottomSheet(onDismissRequest = { confirmationSheet = false }) {
         Column(Modifier.padding(22.dp)) {
             Text("确认类别并保存", style = MaterialTheme.typography.headlineSmall)
-            Text("选一个实际类别；如果不属于这十类，请返回并选择不保存。", style = MaterialTheme.typography.bodySmall)
+            Text("选一个实际类别；不属于这十类时可保存为“其他”，原预测仍会保留。", style = MaterialTheme.typography.bodySmall)
             catalog.categories.chunked(2).forEach { row -> Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 row.forEach { item -> AssistChip(enabled = !state.capturing,
                     modifier = Modifier.weight(1f),
                     onClick = { confirmationSheet = false; viewModel.confirmPhoto(item.id) },
                     label = { Text("保存为${item.displayName}") }) }
             } }
+            Button(enabled = !state.capturing, modifier = Modifier.fillMaxWidth().testTag("confirm-photo-other"),
+                onClick = { confirmationSheet = false; viewModel.confirmPhotoAsOther() }) {
+                Text("不属于这十类，保存为其他")
+            }
             Spacer(Modifier.height(24.dp))
         }
     }
@@ -212,6 +216,9 @@ fun CaptureScreen(catalog: CategoryCatalog, viewModel: CaptureViewModel = viewMo
             catalog.categories.chunked(3).forEach { row -> Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 row.forEach { item -> AssistChip(onClick = { viewModel.applyCorrection(item.id, item.displayName) }, label = { Text(item.displayName) }) }
             } }
+            Button(onClick = viewModel::applyOtherCorrection, modifier = Modifier.fillMaxWidth().testTag("correct-as-other")) {
+                Text("不属于这十类，修正为其他")
+            }
             Spacer(Modifier.height(24.dp))
         }
     }

@@ -131,6 +131,7 @@ def serialize_record(record):
         captured_at=utc_text(record.captured_at),
         category_version=record.category_version,
         corrected_id=record.corrected_id,
+        corrected_label=record.corrected_label,
         corrected_at=utc_text(record.corrected_at) if record.corrected_at else None,
         revision=record.revision,
         created_at=utc_text(record.created_at),

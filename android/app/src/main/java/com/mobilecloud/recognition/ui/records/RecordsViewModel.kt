@@ -93,6 +93,18 @@ class RecordsViewModel(private val savedStateHandle: SavedStateHandle) : ViewMod
         }
     }
 
+    /** 历史记录与拍摄结果共用修订语义：本地保存后由既有上传器补传。 */
+    fun correctRecord(record: RecordEntity, categoryId: Int?) {
+        val label = if (categoryId == null) com.mobilecloud.recognition.data.CategoryCatalog.OTHER_LABEL
+            else AppGraph.categoryCatalog.categories.firstOrNull { it.id == categoryId }?.labelKey ?: return
+        viewModelScope.launch {
+            val now = System.currentTimeMillis()
+            AppGraph.recordDao.applyCorrection(record.recordId, categoryId, label, now, now)
+            runCatching { AppGraph.syncScheduler.requestSync() }
+            message.value = "已记录修正（原预测保留，待同步）"
+        }
+    }
+
     fun consumeMessage() {
         message.value = null
     }

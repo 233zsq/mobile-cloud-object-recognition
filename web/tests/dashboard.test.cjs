@@ -16,6 +16,13 @@ test('dashboard filters preserve versioned categories, source, status and effect
   assert.equal(result.get('recognition_status'), 'uncertain'); assert.equal(result.get('category_basis'), 'effective');
 });
 
+test('other always uses effective-label filtering without inventing a category version', () => {
+  const result = buildFilters({ category: 'other', basis: 'predicted' });
+  assert.equal(result.get('category_id'), 'other');
+  assert.equal(result.get('category_basis'), 'effective');
+  assert.equal(result.has('category_version'), false);
+});
+
 test('invalid and empty time ranges do not become server queries', () => {
   for (const start of ['2026-10-13T12:00:00Z', '2026-10-14T00:00:00Z']) {
     assert.throws(() => buildFilters({ start, end: '2026-10-13T12:00:00Z' }), /开始时间/);

@@ -95,6 +95,27 @@ test('the record service syncs through injected callbacks without browser global
   assert.ok(saved > 0);
 });
 
+test('history can change other back to a category and upload original before both corrections', async () => {
+  const state = createState(); const record = row({ model_version: 'campus-evolve-v3', captured_at: '2026-10-13T12:00:00Z',
+    confidence: .5, latency_ms: 30, inference_source: 'cloud' });
+  state.records = [record]; state.clientId = 'existing-client'; const patches = [];
+  const records = createRecords({ state, ui: new Proxy({}, { get: () => () => {} }),
+    persistence: { trimRecords() {}, saveState() {} }, api: async (path, options) => {
+      if (options.method === 'PATCH') patches.push(options.body);
+      return { record: options.method === 'POST'
+        ? { ...record, revision: 0, corrected_id: null, corrected_label: null, category_version: 'campus-10-v4' }
+        : { ...record, ...options.body, category_version: 'campus-10-v4' } };
+    } });
+  records.correctRecord(record.record_id, 'other');
+  await records.syncAll({ silent: true });
+  assert.equal(record.corrected_label, 'other'); assert.equal(record.revision, 1);
+  assert.equal(record.correction_synced, true); assert.equal(patches[0].corrected_label, 'other');
+  records.correctRecord(record.record_id, 4);
+  await records.syncAll({ silent: true });
+  assert.equal(record.corrected_label, null); assert.equal(record.corrected_id, 4); assert.equal(record.revision, 2);
+  assert.equal(patches[1].corrected_id, 4); assert.equal('corrected_label' in patches[1], false);
+});
+
 test('keeping a local conflict creates a new revision while retaining original prediction and scope', async () => {
   const state = createState(); const record = row({ synced: true, corrected_id: 2, corrected_at: '2026-10-13T12:00:00Z', revision: 3,
     correction_synced: false, correction_conflict: true, scope_decision: { status: 'uncertain' }, scope_manually_confirmed: true });

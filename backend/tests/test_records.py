@@ -39,7 +39,7 @@ def test_insert_and_retry_save_one_record(database_app, upload):
     assert first.json["record"] == second.json["record"]
     record = first.json["record"]
     assert record["captured_at"] == "2026-10-08T08:30:00.123Z"
-    assert record["corrected_id"] is None and record["revision"] == 0
+    assert record["corrected_id"] is None and record["corrected_label"] is None and record["revision"] == 0
     assert record["category_version"] == "campus-10-v2"
     assert count_records(database_app) == 1
 

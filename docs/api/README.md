@@ -35,7 +35,7 @@ Content-Type为 `application/json`，请求体必须包含且只包含以下8个
 | `latency_ms` | 预处理加推理耗时，非负64位整数，不含网络等待 |
 | `captured_at` | 带时区的ISO-8601时间，以T分隔；最多3位小数，接受Z或±HH:MM；转为UTC毫秒入库 |
 
-成功响应：`{"created":true,"record":{...}}`。record包含原始上传字段，并附加 `category_version`、`corrected_id`、`corrected_at`、`revision` 和 `created_at`；返回时间统一为UTC，例如 `2026-10-08T08:30:00.123Z`。新记录的纠错字段为null，revision为0。
+成功响应：`{"created":true,"record":{...}}`。record包含原始上传字段，并附加 `category_version`、`corrected_id`、`corrected_label`、`corrected_at`、`revision` 和 `created_at`；返回时间统一为UTC，例如 `2026-10-08T08:30:00.123Z`。新记录的纠错字段为null，revision为0。
 
 | 场景 | 状态码与行为 |
 | --- | --- |
@@ -57,7 +57,7 @@ Content-Type为 `application/json`，请求体必须包含且只包含以下8个
 | 方法与路径 | 输入或查询 | 预期行为 |
 | --- | --- | --- |
 | `POST /api/records` | UUID、客户端、来源device/cloud、模型版本、预测类别、分数、耗时、采集时间 | 校验并保存一次；相同UUID与内容返回已有记录；内容冲突不能覆盖 |
-| `PATCH /api/records/{id}/label` | `corrected_id`、`revision`、`corrected_at` | 保留原预测；新修订更新人工标签；旧修订不能覆盖新标签 |
+| `PATCH /api/records/{id}/label` | `corrected_id`或`corrected_label=other`、`revision`、`corrected_at` | 保留原预测；新修订更新十类人工标签或其他；旧修订不能覆盖 |
 | `GET /api/records` | 时间范围、页码、类别、模型版本 | 分页返回记录和修正信息 |
 | `GET /api/stats` | 起止时间、可选模型版本 | 返回总数、类别计数、耗时、低置信数量与生成时间 |
 | `GET /api/categories` | 无 | 返回正式类别 ID 与显示名称 |
@@ -92,13 +92,14 @@ preprocess_ms覆盖工作进程内读取、解码和预处理，inference_ms只�
 
 ## 已实现：PATCH /api/records/{id}/label
 
-JSON必须且只能包含以下字段：
+JSON必须包含 `revision`、`corrected_at`，且只能提供 `corrected_id` 或 `corrected_label` 之一：
 
 ```json
 {"corrected_id":3,"revision":1,"corrected_at":"2026-10-12T10:00:00.123+08:00"}
+{"corrected_label":"other","revision":2,"corrected_at":"2026-10-12T10:01:00.123+08:00"}
 ```
 
-corrected_id是记录所属类别版本内0～9的整数；revision是1～2^63−1的整数，不接受布尔值、字符串或浮点数。时间规则与captured_at相同，规范为UTC毫秒；URL中的UUID规范为小写。
+corrected_id是记录所属类别版本内0～9的整数；corrected_label当前仅接受 `other`，表示人工判断不属于十类，不是模型第11类。其他记录中corrected_id为null。revision是1～2^63−1的整数，不接受布尔值、字符串或浮点数。时间规则与captured_at相同，规范为UTC毫秒；URL中的UUID规范为小写。
 
 - 新revision大于已有revision：200，`{"updated":true,"record":{...}}`，通过条件UPDATE原子比较并更新，允许跳过离线期间未上传的中间修订。
 - 相同revision、类别及规范化时间：200，updated=false，可安全补传。
@@ -117,8 +118,8 @@ corrected_id是记录所属类别版本内0～9的整数；revision是1～2^63�
 | start、end | 带时区ISO-8601，最多3位小数；范围[start,end)，同时指定时start必须早于end |
 | model_version | 已登记模型；未知为400 UNKNOWN_MODEL_VERSION |
 | category_version | 已登记类别；未知为400 UNKNOWN_CATEGORY_VERSION；与模型同时指定必须一致 |
-| category_id | 0～9整数 |
-| category_basis | predicted（默认，按原预测筛选）或effective（修正类别优先，否则沿用原预测） |
+| category_id | 0～9整数，或人工特殊标签 `other`；other只能配合effective |
+| category_basis | predicted（默认，按原预测筛选）或effective（修正类别优先，否则沿用原预测；其他单独匹配，不回落到原预测） |
 | client_id | 带连字符UUID |
 | inference_source | device或cloud |
 
@@ -132,9 +133,10 @@ records另支持page（**从0开始**，兼容Android现有定义；默认0，�
 
 按captured_at降序、record_id升序排序；超出页数返回空数组。记录字段与POST一致，包括纠错信息。分页期间新增记录可能改变页边界。
 
-stats返回total_count、corrected_count（有人工标签的数量）、low_confidence_count、device_count、cloud_count、latency_ms（average/min/max）、categories、daily_counts、models、filters、generated_at及timezone=UTC。无记录时计数为0、耗时为null、趋势为空。
+stats返回total_count、corrected_count（revision大于0的修正记录数，含其他）、other_count、low_confidence_count、device_count、cloud_count、latency_ms（average/min/max）、categories、daily_counts、models、filters、generated_at及timezone=UTC。无记录时计数为0、耗时为null、趋势为空。
 
-- categories按类别版本＋ID分别返回label_key、display_name、predicted_count（原预测）、corrected_count（仅人工标签）、effective_count（人工标签优先，未修正沿用原预测）；版本不混并，无记录类别为0。
+- categories按类别版本＋ID分别返回label_key、display_name、predicted_count（原预测）、corrected_count（仅十类人工标签）、effective_count（人工标签优先，未修正沿用原预测，不含其他）；版本不混并，无记录类别为0。
+- other_count独立统计有效标签为其他的记录，不伪造类别ID；原始预测计数始终保留模型十类口径。
 - 低置信使用每条记录所属模型的登记阈值，confidence严格小于阈值；纠错不改变原置信度。
 - daily_counts为按UTC日期的`[{"date":"2026-10-12","count":2}]`；models按模型版本返回数量。
 - 耗时是记录中的预处理＋推理，不含HTTP网络等待；修正比例不能视为独立模型准确率。

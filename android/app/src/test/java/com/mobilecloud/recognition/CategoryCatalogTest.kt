@@ -21,6 +21,8 @@ class CategoryCatalogTest {
     fun `display name falls back to raw label`() {
         val catalog = CategoryCatalog.fromText(CategoryCatalog.DRAFT_JSON)
         assertEquals("键盘", catalog.displayNameForLabel("keyboard"))
+        assertEquals("其他", catalog.displayNameForLabel("other"))
+        assertEquals(10, catalog.categories.size)
         // 占位模型可能输出非清单标签，此时展示原始标签
         assertEquals("goldfish", catalog.displayNameForLabel("goldfish"))
     }

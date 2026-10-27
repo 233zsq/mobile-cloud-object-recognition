@@ -30,11 +30,18 @@ object RecordMapper {
         scopeDecision = entity.scopeDecisionJson?.let { Json.decodeFromString<ScopeUploadEvidence>(it) },
     )
 
-    fun toCorrectionRequest(entity: RecordEntity): CorrectionRequest = CorrectionRequest(
-        correctedId = entity.correctedIndex ?: -1,
-        revision = entity.revision,
-        correctedAt = isoTime(entity.correctedAt ?: entity.updatedAt),
-    )
+    fun toCorrectionRequest(entity: RecordEntity): CorrectionRequest {
+        require(entity.revision > 0 && entity.correctedAt != null) { "纠错记录缺少修订号或修正时间" }
+        require((entity.correctedIndex == null) == (entity.correctedLabel == "other")) {
+            "十类纠错与其他人工标签必须且只能存在一项"
+        }
+        return CorrectionRequest(
+            correctedId = entity.correctedIndex,
+            correctedLabel = entity.correctedLabel?.takeIf { entity.correctedIndex == null },
+            revision = entity.revision,
+            correctedAt = isoTime(requireNotNull(entity.correctedAt)),
+        )
+    }
 
     /** 上报失败的用户可读说明 */
     fun uploadErrorMessage(httpCode: Int): String = when (httpCode) {

@@ -31,7 +31,18 @@ def render_mysql_schema():
     for table in db.metadata.sorted_tables:
         if table.name == 'inference_decision':
             continue  # Added by migration 002; keep the original 001 snapshot immutable.
-        lines.append(str(CreateTable(table).compile(dialect=dialect)).strip() + ";")
+        statement = str(CreateTable(table).compile(dialect=dialect)).strip()
+        if table.name == 'inference_record':
+            # Migration 003 owns the human-only label. Keep the deployed 001 snapshot reproducible.
+            original_lines = []
+            for line in statement.splitlines():
+                if 'corrected_label' in line:
+                    continue
+                original_lines.append(line)
+                if 'CONSTRAINT ck_record_revision' in line:
+                    original_lines.append("\tCONSTRAINT ck_record_correction_state CHECK ((corrected_id IS NULL AND corrected_at IS NULL AND revision = 0) OR (corrected_id IS NOT NULL AND corrected_at IS NOT NULL AND revision > 0))")
+            statement = "\n".join(original_lines)
+        lines.append(statement + ";")
         for index in sorted(table.indexes, key=lambda item: item.name):
             lines.append(str(CreateIndex(index).compile(dialect=dialect)).strip() + ";")
     return "\n".join(line.rstrip() for line in "\n\n".join(lines).splitlines()) + "\n"

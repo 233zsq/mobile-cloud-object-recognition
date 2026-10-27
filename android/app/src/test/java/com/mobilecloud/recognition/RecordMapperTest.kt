@@ -1,9 +1,12 @@
 package com.mobilecloud.recognition
 
 import com.mobilecloud.recognition.data.local.RecordEntity
+import com.mobilecloud.recognition.data.remote.ApiClient
 import com.mobilecloud.recognition.sync.RecordMapper
 import java.time.ZoneId
+import kotlinx.serialization.encodeToString
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class RecordMapperTest {
@@ -39,6 +42,35 @@ class RecordMapperTest {
         val request = RecordMapper.toCorrectionRequest(corrected)
         assertEquals(3, request.correctedId)
         assertEquals(2, request.revision)
+    }
+
+    @Test
+    fun `other correction carries only the special label`() {
+        val corrected = entity.copy(correctedLabel = "other", correctedAt = 1_760_000_100_000,
+            revision = 1, correctionPending = true)
+        val request = RecordMapper.toCorrectionRequest(corrected)
+        assertEquals(null, request.correctedId)
+        assertEquals("other", request.correctedLabel)
+        val json = ApiClient().json.encodeToString(request)
+        assertTrue(json.contains("\"corrected_label\":\"other\""))
+        assertTrue(!json.contains("corrected_id"))
+    }
+
+    @Test
+    fun `other can change back to a category without sending the special label`() {
+        val other = entity.copy(correctedLabel = "other", correctedAt = 1_760_000_100_000, revision = 1)
+        val category = other.copy(correctedIndex = 4, correctedLabel = "mouse", revision = 2)
+        val request = RecordMapper.toCorrectionRequest(category)
+        assertEquals(4, request.correctedId)
+        assertEquals(null, request.correctedLabel)
+        val json = ApiClient().json.encodeToString(request)
+        assertTrue(json.contains("\"corrected_id\":4"))
+        assertTrue(!json.contains("corrected_label"))
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun `uncorrected entity cannot become an invalid correction request`() {
+        RecordMapper.toCorrectionRequest(entity)
     }
 
     @Test fun `cloud results retain their source on upload and retry`() {

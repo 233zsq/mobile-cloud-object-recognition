@@ -25,7 +25,7 @@ data class RecordEntity(
     val capturedAt: Long,
     val photoPath: String? = null,
     @ColumnInfo(defaultValue = "NULL") val scopeDecisionJson: String? = null,
-    /** 人工纠错的类别 ID，null 表示未纠错 */
+    /** 人工纠错的十类类别 ID；为 null 且 correctedLabel=other 时表示人工“其他” */
     val correctedIndex: Int? = null,
     val correctedLabel: String? = null,
     /** 修订号：从 0 开始，每次纠错 +1；后端据此拒绝过期请求（T11） */

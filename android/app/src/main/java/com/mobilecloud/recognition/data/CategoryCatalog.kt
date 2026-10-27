@@ -36,9 +36,11 @@ class CategoryCatalog(val file: CategoryFile) {
         categories.associateBy { it.labelKey }
 
     fun displayNameForLabel(label: String): String =
-        byLabelKey[label]?.displayName ?: label
+        if (label == OTHER_LABEL) "其他" else byLabelKey[label]?.displayName ?: label
 
     companion object {
+        /** 人工标签，不属于模型输出或十类类别清单。 */
+        const val OTHER_LABEL = "other"
         const val DRAFT_JSON = """{
   "schema_version": 1,
   "status": "draft",

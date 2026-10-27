@@ -81,6 +81,8 @@ class InferenceRecord(db.Model):
     captured_at: Mapped[datetime] = mapped_column(timestamp)
     payload_sha256: Mapped[str] = mapped_column(identifier(64))
     corrected_id: Mapped[int | None] = mapped_column(Integer)
+    # Human-only labels are outside the model's ten output classes.
+    corrected_label: Mapped[str | None] = mapped_column(identifier(16))
     corrected_at: Mapped[datetime | None] = mapped_column(timestamp)
     revision: Mapped[int] = mapped_column(BigInteger, server_default=text("0"))
     created_at: Mapped[datetime] = mapped_column(timestamp, server_default=ServerTimestamp())
@@ -92,7 +94,8 @@ class InferenceRecord(db.Model):
         CheckConstraint("confidence >= 0 AND confidence <= 1", name="ck_record_confidence"),
         CheckConstraint("latency_ms >= 0", name="ck_record_latency"),
         CheckConstraint("revision >= 0", name="ck_record_revision"),
-        CheckConstraint("(corrected_id IS NULL AND corrected_at IS NULL AND revision = 0) OR (corrected_id IS NOT NULL AND corrected_at IS NOT NULL AND revision > 0)", name="ck_record_correction_state"),
+        CheckConstraint("corrected_label IS NULL OR corrected_label = 'other'", name="ck_record_correction_label"),
+        CheckConstraint("(corrected_id IS NULL AND corrected_label IS NULL AND corrected_at IS NULL AND revision = 0) OR (corrected_at IS NOT NULL AND revision > 0 AND ((corrected_id IS NOT NULL AND corrected_label IS NULL) OR (corrected_id IS NULL AND corrected_label = 'other')))", name="ck_record_correction_state"),
         Index("ix_record_captured", "captured_at"),
         Index("ix_record_model_captured", "model_version", "captured_at"),
         table_options,

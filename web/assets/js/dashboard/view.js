@@ -16,6 +16,7 @@ export function createDashboardView(state) {
       for (const category of categories) group.append(new Option(category.display_name, `${v}:${category.id}`));
       el("category").append(group);
     }
+    el("category").append(new Option("其他（人工标注）", "other"));
   }
 
   function bars(id, rows) {
@@ -39,14 +40,19 @@ export function createDashboardView(state) {
     text("latency-range", stats.latency_ms.min === null ? "预处理＋推理，不含网络" : `最小 ${number(stats.latency_ms.min)} / 最大 ${number(stats.latency_ms.max)} ms`);
     const effective = state.filters.get("category_basis") === "effective";
     text("basis-label", effective ? "修正后（未修正沿用原预测）" : "原始预测");
-    bars("category-chart", stats.categories.filter(c => c[effective ? "effective_count" : "predicted_count"] > 0).map(c => ({name: c.display_name, detail: c.category_version, count: c[effective ? "effective_count" : "predicted_count"]})));
+    const categoryRows = stats.categories.filter(c => c[effective ? "effective_count" : "predicted_count"] > 0)
+      .map(c => ({name: c.display_name, detail: c.category_version, count: c[effective ? "effective_count" : "predicted_count"]}));
+    if (effective && stats.other_count > 0) categoryRows.push({name: "其他", detail: "人工标注", count: stats.other_count});
+    bars("category-chart", categoryRows);
     bars("daily-chart", stats.daily_counts.map(d => ({name: d.date, count: d.count})));
     const tbody = el("record-rows"); tbody.replaceChildren();
     for (const record of records.records) {
       const tr = node("tr");
       tr.append(node("td", date(record.captured_at)), node("td", label(record.category_version, record.predicted_id)));
-      const correction = node("td", record.corrected_id === null ? "未修正" : label(record.category_version, record.corrected_id));
-      if (record.corrected_id !== null) correction.append(node("small", `修订 ${record.revision}`));
+      const corrected = record.corrected_label === "other" ? "其他（人工标注）"
+        : record.corrected_id != null ? label(record.category_version, record.corrected_id) : "未修正";
+      const correction = node("td", corrected);
+      if (record.revision > 0) correction.append(node("small", `修订 ${record.revision}`));
       tr.append(correction, node("td", `${number(record.confidence * 100)}%`), node("td", `${number(record.latency_ms)} ms`));
       const source = node("td", record.inference_source === "device" ? "手机离线" : "云端识别");
       const scope = record.scope_decision;

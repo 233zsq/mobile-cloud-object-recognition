@@ -5,6 +5,11 @@ export function buildFilters(values) {
   if (values["model"]) query.set("model_version", values["model"]);
   if (values["source"]) query.set("inference_source", values["source"]);
   if (values["recognition-status"]) query.set("recognition_status", values["recognition-status"]);
+  if (values["category"] === "other") {
+    query.set("category_id", "other");
+    query.set("category_basis", "effective");
+    return query;
+  }
   if (values["category"]) { const [version, id] = values["category"].split(":"); query.set("category_version", version); query.set("category_id", id); }
   query.set("category_basis", values["basis"]);
   return query;

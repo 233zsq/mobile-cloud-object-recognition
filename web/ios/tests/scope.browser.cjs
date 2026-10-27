@@ -157,6 +157,26 @@ test('choosing another category uploads the original prediction and then its cor
   assert.equal(f.patches[0].corrected_id, 4);
 });
 
+test('other confirmation preserves the prediction and syncs only the special label', async (t) => {
+  const f = await fixture(t);
+  await f.choose();
+  await f.page.locator('#scope-choose').click();
+  await f.page.locator('#category-grid button').nth(10).click();
+  await f.page.waitForFunction(() => document.getElementById('ticket-sync').textContent.includes('已上报'));
+  assert.equal(await f.page.locator('#ticket-name').textContent(), '其他');
+  const [record] = await f.saved();
+  assert.equal(record.predicted_id, 0);
+  assert.equal(record.corrected_id, null);
+  assert.equal(record.corrected_label, 'other');
+  assert.equal(record.scope_manually_confirmed, true);
+  assert.equal(f.posts[0].predicted_id, 0);
+  assert.equal('corrected_id' in f.patches[0], false);
+  assert.equal(f.patches[0].corrected_label, 'other');
+  await f.page.locator('[data-view="records"]').click();
+  await f.page.locator('#filter-category').selectOption('other');
+  assert.match(await f.page.locator('#record-list').textContent(), /其他/);
+});
+
 test('discard releases the photo and makes no record or upload', async (t) => {
   const f = await fixture(t);
   await f.choose();
